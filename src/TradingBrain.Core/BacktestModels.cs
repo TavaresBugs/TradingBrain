@@ -146,3 +146,17 @@ public sealed record GridSearchResult(
     StrategyKind Strategy,
     StrategyTuningParams Params,
     BacktestSummary Summary);
+
+public sealed record WalkForwardWindow(
+    int WindowIndex,
+    int IsBars,
+    int OosBars,
+    GridSearchResult IsWinner,
+    GridSearchResult? OosResult);
+
+public sealed record WalkForwardSummary(
+    IReadOnlyList<WalkForwardWindow> Windows,
+    double MedianOosScore,
+    double WinRate,
+    double MedianOosTrades,
+    double ConsistencyRatio);

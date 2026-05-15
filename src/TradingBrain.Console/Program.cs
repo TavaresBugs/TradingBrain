@@ -32,6 +32,17 @@ if (runAllRequest is not null)
     return RunAllStrategies(runAllRequest.Value.InputPath, runAllRequest.Value.OutputDirectory, executionSettings);
 }
 
+var walkForwardRequest = ReadWalkForwardRequest(args);
+if (walkForwardRequest is not null)
+{
+    return RunWalkForward(
+        walkForwardRequest.Value.InputPath,
+        walkForwardRequest.Value.OutputDirectory,
+        walkForwardRequest.Value.Strategy,
+        walkForwardRequest.Value.Windows,
+        executionSettings);
+}
+
 var gridSearchRequest = ReadGridSearchRequest(args);
 if (gridSearchRequest is not null)
 {
@@ -203,6 +214,82 @@ static int RunGridSearch(string inputPath, string outputDirectory, StrategyKind?
     return 0;
 }
 
+static int RunWalkForward(
+    string inputPath,
+    string outputDirectory,
+    StrategyKind strategy,
+    int windows,
+    ExecutionSettings executionSettings)
+{
+    if (!TryReadBars(inputPath, out var bars))
+        return 1;
+
+    Directory.CreateDirectory(outputDirectory);
+    var summary = WalkForwardValidator.Run(bars, strategy, windows, executionSettings);
+    var csvPath = Path.Combine(outputDirectory, "walk_forward.csv");
+    ExportWalkForwardCsv(summary, csvPath);
+    var manifestPath = WriteWalkForwardManifest(inputPath, outputDirectory, bars.Count, strategy, executionSettings, csvPath, summary);
+
+    Console.WriteLine($"Walk-forward windows: {summary.Windows.Count}");
+    Console.WriteLine($"Median OOS score: {FormatNumber(summary.MedianOosScore)}");
+    Console.WriteLine($"ConsistencyRatio: {FormatNumber(summary.ConsistencyRatio)}");
+    Console.WriteLine($"Walk-forward CSV: {csvPath}");
+    Console.WriteLine($"Manifesto: {manifestPath}");
+    return 0;
+}
+
+static void ExportWalkForwardCsv(WalkForwardSummary summary, string path)
+{
+    using var writer = new StreamWriter(path);
+
+    foreach (var window in summary.Windows)
+        writer.WriteLine(BuildWalkForwardWindowCsv(window));
+
+    writer.WriteLine(BuildWalkForwardSummaryCsv(summary));
+}
+
+static string BuildWalkForwardWindowCsv(WalkForwardWindow window)
+{
+    var isSummary = window.IsWinner.Summary;
+    var oosSummary = window.OosResult?.Summary;
+    return string.Join(",",
+        "WINDOW",
+        window.WindowIndex.ToString(CultureInfo.InvariantCulture),
+        window.IsBars.ToString(CultureInfo.InvariantCulture),
+        window.OosBars.ToString(CultureInfo.InvariantCulture),
+        window.IsWinner.Strategy,
+        FormatCsvNumber(GridSearchRunner.Score(isSummary)),
+        isSummary.ClosedTrades.ToString(CultureInfo.InvariantCulture),
+        FormatCsvNumber(isSummary.NetPnL),
+        FormatCsvNumber(OosScore(oosSummary)),
+        FormatCsvInt(oosSummary?.ClosedTrades),
+        FormatCsvNumber(oosSummary?.NetPnL),
+        "",
+        "",
+        "",
+        "");
+}
+
+static string BuildWalkForwardSummaryCsv(WalkForwardSummary summary)
+{
+    return string.Join(",",
+        "SUMMARY",
+        summary.Windows.Count.ToString(CultureInfo.InvariantCulture),
+        summary.Windows.Sum(w => w.IsBars).ToString(CultureInfo.InvariantCulture),
+        summary.Windows.Sum(w => w.OosBars).ToString(CultureInfo.InvariantCulture),
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        FormatCsvNumber(summary.MedianOosScore),
+        FormatCsvNumber(summary.WinRate),
+        FormatCsvNumber(summary.MedianOosTrades),
+        FormatCsvNumber(summary.ConsistencyRatio));
+}
+
 static bool TryReadBars(string inputPath, out IReadOnlyList<MarketBar> bars)
 {
     bars = Array.Empty<MarketBar>();
@@ -274,6 +361,33 @@ static string WriteGridSearchManifest(
             InSampleBars = split.InSample.Count,
             OutSampleBars = split.OutSample.Count,
             MinTradesOos = GridSearchRunner.MinTradesOos
+        }), outputDirectory);
+}
+
+static string WriteWalkForwardManifest(
+    string inputPath,
+    string outputDirectory,
+    int barCount,
+    StrategyKind strategy,
+    ExecutionSettings executionSettings,
+    string csvPath,
+    WalkForwardSummary summary)
+{
+    return RunManifestWriter.Write(RunManifestWriter.Create(
+        "walk-forward",
+        inputPath,
+        barCount,
+        new[] { strategy },
+        executionSettings,
+        new[] { csvPath },
+        new
+        {
+            Windows = summary.Windows.Count,
+            SplitRatio = WalkForwardValidator.SplitRatio,
+            MedianOosScore = FiniteOrNull(summary.MedianOosScore),
+            WinRate = summary.WinRate,
+            MedianOosTrades = summary.MedianOosTrades,
+            ConsistencyRatio = summary.ConsistencyRatio
         }), outputDirectory);
 }
 
@@ -423,6 +537,36 @@ static (string InputPath, string OutputDirectory, StrategyKind? Strategy)? ReadG
     return null;
 }
 
+static (string InputPath, string OutputDirectory, StrategyKind Strategy, int Windows)? ReadWalkForwardRequest(string[] args)
+{
+    for (var i = 0; i < args.Length; i++)
+    {
+        if (!args[i].Equals("--walk-forward", StringComparison.OrdinalIgnoreCase))
+        {
+            continue;
+        }
+
+        if (i + 2 >= args.Length)
+        {
+            throw new ArgumentException("Use --walk-forward <input.csv|txt> <pasta-de-saida> [Strategy] [--windows N].");
+        }
+
+        var strategy = StrategyKind.Volatility;
+        if (i + 3 < args.Length && !args[i + 3].StartsWith("--", StringComparison.Ordinal))
+        {
+            if (!Enum.TryParse<StrategyKind>(args[i + 3], ignoreCase: true, out strategy))
+            {
+                throw new ArgumentException("Strategy invalida: " + args[i + 3]);
+            }
+        }
+
+        var windows = ReadIntOption(args, "--windows", WalkForwardValidator.DefaultWindows);
+        return (args[i + 1], args[i + 2], strategy, windows);
+    }
+
+    return null;
+}
+
 static ExecutionSettings ReadExecutionSettings(string[] args)
 {
     var settings = ExecutionSettings.MnqDefault;
@@ -498,6 +642,7 @@ static void PrintUsage()
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- <input.csv|txt> <output.csv> --strategy Volatility");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --run-all <input.csv|txt> <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --grid-search <input.csv|txt> <pasta> [Strategy]");
+    Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --walk-forward <input.csv|txt> <pasta> [Strategy] [--windows N]");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --generate-ninja <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --inspect-dll <dll> <relatorio.md>");
     Console.WriteLine();
@@ -509,6 +654,26 @@ static void PrintUsage()
     Console.WriteLine();
     Console.WriteLine("Formato CSV aceito:");
     Console.WriteLine("  time,open,high,low,close,volume");
+}
+
+static double OosScore(BacktestSummary? summary)
+{
+    return summary is null ? double.NaN : GridSearchRunner.Score(summary);
+}
+
+static string FormatCsvNumber(double? value)
+{
+    return value is null || double.IsNaN(value.Value) ? "" : FormatNumber(value.Value);
+}
+
+static string FormatCsvInt(int? value)
+{
+    return value is null ? "" : value.Value.ToString(CultureInfo.InvariantCulture);
+}
+
+static double? FiniteOrNull(double value)
+{
+    return double.IsNaN(value) || double.IsInfinity(value) ? null : value;
 }
 
 static string FormatNumber(double value)

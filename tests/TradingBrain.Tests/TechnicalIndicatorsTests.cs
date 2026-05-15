@@ -128,5 +128,5 @@ public sealed class TechnicalIndicatorsTests
         double high = 10,
         double low = 10,
         long volume = 1) =>
-        new(DateTime.UnixEpoch, open: close, high, low, close, volume);
+        new(DateTime.UnixEpoch, close, high, low, close, volume);
 }

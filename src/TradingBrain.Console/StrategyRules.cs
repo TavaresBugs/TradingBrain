@@ -10,6 +10,7 @@ public sealed partial class StrategyBacktester
         IReadOnlyDictionary<string, double> m,
         int position,
         double entryPrice,
+        double openProfit,
         int barsSinceEntry,
         ref int trendState,
         ref int rangeState)

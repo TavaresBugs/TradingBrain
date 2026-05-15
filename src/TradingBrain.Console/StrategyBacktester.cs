@@ -57,7 +57,7 @@ public sealed partial class StrategyBacktester
             var openProfit = position == 0 ? 0 : (bar.Close - entryPrice) * position;
             var barsSinceEntry = entryBarIndex < 0 ? 0 : i - entryBarIndex;
             var decision = IndicatorsReady(metrics)
-                ? Evaluate(bar, history, metrics, position, entryPrice, barsSinceEntry, ref trendState, ref rangeState)
+                ? Evaluate(bar, history, metrics, position, entryPrice, openProfit, barsSinceEntry, ref trendState, ref rangeState)
                 : new StrategyDecision(SignalAction.None, "Aquecendo indicadores");
 
             var signal = decision.Action;

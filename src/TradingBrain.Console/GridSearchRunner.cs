@@ -261,7 +261,7 @@ public static class GridSearchRunner
             };
     }
 
-    private static double Score(BacktestSummary summary)
+    public static double Score(BacktestSummary summary)
     {
         if (summary.ClosedTrades < 30)
         {

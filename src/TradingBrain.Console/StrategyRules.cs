@@ -6,7 +6,8 @@ public sealed partial class StrategyBacktester
 {
     private StrategyDecision Evaluate(
         MarketBar bar,
-        IReadOnlyList<MarketBar> history,
+        IReadOnlyList<MarketBar> bars,
+        int barIndex,
         IReadOnlyDictionary<string, double> m,
         int position,
         double entryPrice,
@@ -27,11 +28,11 @@ public sealed partial class StrategyBacktester
             StrategyKind.Trend => EvaluateTrend(bar, m, position, entryPrice, barsSinceEntry, ref trendState),
             StrategyKind.Range => EvaluateRange(bar, m, position, entryPrice, barsSinceEntry, ref rangeState),
             StrategyKind.Momentum => EvaluateMomentum(bar, m, position, entryPrice, barsSinceEntry),
-            StrategyKind.OrbBreakout => EvaluateOrbBreakout(bar, history, m, position, entryPrice, barsSinceEntry),
+            StrategyKind.OrbBreakout => EvaluateOrbBreakout(bar, bars, barIndex, m, position, entryPrice, barsSinceEntry),
             StrategyKind.Ema => EvaluateEma(bar, m, position, entryPrice, barsSinceEntry),
             StrategyKind.VwapReversion => EvaluateVwapReversion(bar, m, position, entryPrice, barsSinceEntry),
             StrategyKind.BollingerFade => EvaluateBollingerFade(bar, m, position, entryPrice, barsSinceEntry),
-            StrategyKind.SessionBreakout => EvaluateSessionBreakout(bar, history, m, position, entryPrice, barsSinceEntry),
+            StrategyKind.SessionBreakout => EvaluateSessionBreakout(bar, bars, barIndex, m, position, entryPrice, barsSinceEntry),
             StrategyKind.SchoolRun => EvaluateSchoolRun(bar, m, position, entryPrice, barsSinceEntry, ref schoolRunState),
             _ => new StrategyDecision(SignalAction.None, "Strategy nao implementada")
         };
@@ -237,7 +238,14 @@ public sealed partial class StrategyBacktester
         return new StrategyDecision(SignalAction.None, "Sem sinal");
     }
 
-    private StrategyDecision EvaluateOrbBreakout(MarketBar bar, IReadOnlyList<MarketBar> history, IReadOnlyDictionary<string, double> m, int position, double entryPrice, int barsSinceEntry)
+    private StrategyDecision EvaluateOrbBreakout(
+        MarketBar bar,
+        IReadOnlyList<MarketBar> bars,
+        int barIndex,
+        IReadOnlyDictionary<string, double> m,
+        int position,
+        double entryPrice,
+        int barsSinceEntry)
     {
         var start = _defaults.SessionStartHHmmss;
         var end = _defaults.SessionEndHHmmss;
@@ -254,7 +262,7 @@ public sealed partial class StrategyBacktester
         if (position != 0)
             return new StrategyDecision(SignalAction.None, "Em posicao");
 
-        var windowM15 = (_resampledBars ?? history)
+        var windowM15 = (_resampledBars ?? bars.Take(barIndex + 1))
             .Where(b => b.Time.Date == bar.Time.Date && ToHHmmss(b.Time) >= start && ToHHmmss(b.Time) <= end)
             .ToList();
 
@@ -411,7 +419,8 @@ public sealed partial class StrategyBacktester
 
     private StrategyDecision EvaluateSessionBreakout(
         MarketBar bar,
-        IReadOnlyList<MarketBar> history,
+        IReadOnlyList<MarketBar> bars,
+        int barIndex,
         IReadOnlyDictionary<string, double> m,
         int position,
         double entryPrice,
@@ -434,7 +443,8 @@ public sealed partial class StrategyBacktester
         if (position != 0)
             return new StrategyDecision(SignalAction.None, "Em posicao");
 
-        var window = history
+        var window = bars
+            .Take(barIndex + 1)
             .Where(b => b.Time.Date == bar.Time.Date && ToHHmmss(b.Time) >= rangeStart && ToHHmmss(b.Time) <= rangeEnd)
             .ToList();
 
@@ -547,32 +557,32 @@ public sealed partial class StrategyBacktester
         return new StrategyDecision(action, reason);
     }
 
-    private static Dictionary<string, double> BuildMetrics(PrecomputedSeries series, int index)
+    private static IReadOnlyDictionary<string, double> BuildMetrics(PrecomputedSeries s, int i)
     {
         return new Dictionary<string, double>
         {
-            ["EMA9"] = series.Ema9[index],
-            ["EMA21"] = series.Ema21[index],
-            ["RSI"] = series.Rsi14[index],
-            ["VWAP"] = series.Vwap[index],
-            ["ATR"] = series.Atr14[index],
-            ["ATRPrev"] = index > 0 ? series.Atr14[index - 1] : double.NaN,
-            ["ATRSMA"] = series.AtrSma14[index],
-            ["CandleRangeSMA"] = series.CandleRangeSma14[index],
-            ["VolumeSMA"] = series.VolumeSma20[index],
-            ["MACD"] = series.Macd[index],
-            ["MACDSignal"] = series.MacdSignal[index],
-            ["BbMiddle"] = series.BbMiddle[index],
-            ["BbUpper"] = series.BbUpper[index],
-            ["BbLower"] = series.BbLower[index],
-            ["Highest10"] = series.Highest10[index],
-            ["Lowest10"] = series.Lowest10[index],
-            ["Highest3"] = series.Highest3[index],
-            ["Lowest3"] = series.Lowest3[index],
-            ["RangeFilter"] = series.Ema20[index],
+            ["EMA9"] = s.Ema9[i],
+            ["EMA21"] = s.Ema21[i],
+            ["RSI"] = s.Rsi14[i],
+            ["VWAP"] = s.Vwap[i],
+            ["ATR"] = s.Atr14[i],
+            ["ATRPrev"] = i > 0 ? s.Atr14[i - 1] : double.NaN,
+            ["ATRSMA"] = s.AtrSma14[i],
+            ["CandleRangeSMA"] = s.CandleRangeSma14[i],
+            ["VolumeSMA"] = s.VolumeSma20[i],
+            ["MACD"] = s.Macd[i],
+            ["MACDSignal"] = s.MacdSignal[i],
+            ["Highest10"] = s.Highest10[i],
+            ["Lowest10"] = s.Lowest10[i],
+            ["Highest3"] = s.Highest3[i],
+            ["Lowest3"] = s.Lowest3[i],
+            ["RangeFilter"] = s.Ema20[i],
             ["Trend"] = double.NaN,
-            ["SwingHigh"] = series.SwingHigh20[index],
-            ["SwingLow"] = series.SwingLow20[index]
+            ["SwingHigh"] = s.SwingHigh20[i],
+            ["SwingLow"] = s.SwingLow20[i],
+            ["BbUpper"] = s.BbUpper[i],
+            ["BbMiddle"] = s.BbMiddle[i],
+            ["BbLower"] = s.BbLower[i],
         };
     }
 

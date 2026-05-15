@@ -75,6 +75,16 @@ var tradeOutputPath = Path.Combine(
     Path.GetFileNameWithoutExtension(outputPath) + ".trades.csv");
 StrategyBacktester.ExportTradesCsv(trades, tradeOutputPath);
 var summary = StrategyBacktester.Summarize(rows, executionSettings);
+var manifestPath = RunManifestWriter.Write(
+    RunManifestWriter.Create(
+        "single-backtest",
+        csvPath,
+        bars.Count,
+        new[] { strategy },
+        executionSettings,
+        new[] { outputPath, tradeOutputPath },
+        StrategyTuningParams.RefinedDefault),
+    outputDirectory ?? Environment.CurrentDirectory);
 
 Console.WriteLine($"Barras carregadas: {bars.Count}");
 Console.WriteLine($"Strategy testada: {summary.StrategyName}");
@@ -90,6 +100,7 @@ Console.WriteLine($"Net currency: {summary.NetCurrency:0.##}");
 Console.WriteLine($"Max drawdown: {summary.MaxDrawdown:0.##}");
 Console.WriteLine($"Relatorio CSV: {outputPath}");
 Console.WriteLine($"Trades CSV: {tradeOutputPath}");
+Console.WriteLine($"Manifesto: {manifestPath}");
 return 0;
 
 static int RunAllStrategies(string inputPath, string outputDirectory, ExecutionSettings executionSettings)
@@ -109,6 +120,7 @@ static int RunAllStrategies(string inputPath, string outputDirectory, ExecutionS
 
     Directory.CreateDirectory(outputDirectory);
     var summaries = new List<BacktestSummary>();
+    var outputFiles = new List<string>();
 
     foreach (var strategy in Enum.GetValues<StrategyKind>())
     {
@@ -119,8 +131,12 @@ static int RunAllStrategies(string inputPath, string outputDirectory, ExecutionS
         summaries.Add(summary);
 
         var slug = strategy.ToString().ToLowerInvariant();
-        StrategyBacktester.ExportCsv(rows, Path.Combine(outputDirectory, slug + ".signals.csv"));
-        StrategyBacktester.ExportTradesCsv(trades, Path.Combine(outputDirectory, slug + ".trades.csv"));
+        var signalsPath = Path.Combine(outputDirectory, slug + ".signals.csv");
+        var tradesPath = Path.Combine(outputDirectory, slug + ".trades.csv");
+        StrategyBacktester.ExportCsv(rows, signalsPath);
+        StrategyBacktester.ExportTradesCsv(trades, tradesPath);
+        outputFiles.Add(signalsPath);
+        outputFiles.Add(tradesPath);
 
         Console.WriteLine(string.Join(" | ",
             summary.StrategyName,
@@ -136,12 +152,25 @@ static int RunAllStrategies(string inputPath, string outputDirectory, ExecutionS
             "DD=" + FormatNumber(summary.MaxDrawdown)));
     }
 
+    var summaryPath = Path.Combine(outputDirectory, "strategy-summary.csv");
     StrategyBacktester.ExportSummaryCsv(
         summaries.OrderByDescending(s => s.NetProfitFactor).ThenByDescending(s => s.NetExpectancy).ToList(),
-        Path.Combine(outputDirectory, "strategy-summary.csv"));
+        summaryPath);
+    outputFiles.Add(summaryPath);
+    var manifestPath = RunManifestWriter.Write(
+        RunManifestWriter.Create(
+            "all-strategies",
+            inputPath,
+            bars.Count,
+            Enum.GetValues<StrategyKind>(),
+            executionSettings,
+            outputFiles,
+            StrategyTuningParams.RefinedDefault),
+        outputDirectory);
 
     Console.WriteLine($"Barras carregadas: {bars.Count}");
     Console.WriteLine($"Saidas geradas em: {outputDirectory}");
+    Console.WriteLine($"Manifesto: {manifestPath}");
     return 0;
 }
 
@@ -164,12 +193,14 @@ static int RunGridSearch(string inputPath, string outputDirectory, StrategyKind?
     var strategies = requestedStrategy is null
         ? new[] { StrategyKind.Momentum, StrategyKind.Ema, StrategyKind.Volatility, StrategyKind.Range }
         : new[] { requestedStrategy.Value };
+    var outputFiles = new List<string>();
 
     foreach (var strategy in strategies)
     {
         var results = GridSearchRunner.Run(bars, strategy, executionSettings);
         var outputPath = Path.Combine(outputDirectory, strategy.ToString().ToLowerInvariant() + ".grid.csv");
         GridSearchRunner.ExportCsv(results, outputPath);
+        outputFiles.Add(outputPath);
 
         var best = results.FirstOrDefault();
         if (best is null)
@@ -188,6 +219,21 @@ static int RunGridSearch(string inputPath, string outputDirectory, StrategyKind?
             "CSV=" + outputPath));
     }
 
+    var manifestPath = RunManifestWriter.Write(
+        RunManifestWriter.Create(
+            "grid-search",
+            inputPath,
+            bars.Count,
+            strategies,
+            executionSettings,
+            outputFiles,
+            new
+            {
+                RequestedStrategy = requestedStrategy?.ToString(),
+                Grid = "default"
+            }),
+        outputDirectory);
+    Console.WriteLine($"Manifesto: {manifestPath}");
     return 0;
 }
 
@@ -317,22 +363,13 @@ static ExecutionSettings ReadExecutionSettings(string[] args)
     var commissionPerSide = ReadDoubleOption(args, "--commission-per-side", settings.CommissionPerSide);
     var quantity = ReadIntOption(args, "--quantity", settings.Quantity);
 
-    if (tickSize <= 0) throw new ArgumentException("--tick-size deve ser maior que zero.");
-    if (tickValue <= 0) throw new ArgumentException("--tick-value deve ser maior que zero.");
-    if (quantity <= 0) throw new ArgumentException("--quantity deve ser maior que zero.");
-    if (slippageTicks < 0) throw new ArgumentException("--slippage-ticks nao pode ser negativo.");
-    if (spreadTicks < 0) throw new ArgumentException("--spread-ticks nao pode ser negativo.");
-    if (commissionPerSide < 0) throw new ArgumentException("--commission-per-side nao pode ser negativo.");
-
-    return settings with
-    {
-        TickSize = tickSize,
-        TickValue = tickValue,
-        SlippageTicks = slippageTicks,
-        SpreadTicks = spreadTicks,
-        CommissionPerSide = commissionPerSide,
-        Quantity = quantity
-    };
+    return new ExecutionSettings(
+        tickSize,
+        tickValue,
+        slippageTicks,
+        spreadTicks,
+        commissionPerSide,
+        quantity);
 }
 
 static double ReadDoubleOption(string[] args, string name, double defaultValue)

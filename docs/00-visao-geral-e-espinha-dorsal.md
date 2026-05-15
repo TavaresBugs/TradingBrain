@@ -91,7 +91,7 @@ src\TradingBrain.Console\Program.cs
 Codigo NinjaTrader limpo gerado:
 
 ```text
-generated\CleanNinjaBotIAReconstruction.cs
+generated\CleanNinjaBotIAReconstruction.cs, gerado sob demanda e ignorado pelo Git
 ```
 
 Esse arquivo nao depende da DLL bloqueada. Ele e uma reconstrucao limpa baseada em metadados + hipoteses testadas no playground.
@@ -215,6 +215,6 @@ As decisoes mais importantes agora sao:
 1. Escolher se o foco inicial sera `Momentum` ou `Ema`.
 2. Definir custos realistas para MNQ.
 3. Rodar grid search completo com train/test separado.
-4. Atualizar `CleanNinjaBotIAReconstruction.cs` apenas depois de estabilizar as regras.
+4. Gerar `CleanNinjaBotIAReconstruction.cs` localmente apenas depois de estabilizar as regras.
 
 Minha recomendacao tecnica atual: focar em `Momentum` como estrategia-ancora e usar `Ema` como estrategia de alta frequencia para comparacao. Volatility e Range devem voltar depois com filtros graduais.

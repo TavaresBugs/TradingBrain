@@ -64,17 +64,39 @@ public sealed record TradeResult(
     string EntryReason,
     string ExitReason);
 
+public enum VolatilityExpansionMode
+{
+    Atr,
+    CandleRange,
+    AtrAndCandleRange
+}
+
+public enum VolatilityTrailingMode
+{
+    VwapEmaChandelier,
+    AtrChandelier
+}
+
 public sealed record StrategyTuningParams(
-    double VolatilityMinAtrRatio = 1.1,
+    double VolatilityMinAtrRatio = 1.2,
     double VolatilityMinVolumeRatio = 1.5,
-    bool UseSqueezeFilter = true,
+    bool UseSqueezeFilter = false,
     double VolatilitySqueezeRatio = 0.95,
+    double VolatilityRangeMultiplier = 1.5,
+    VolatilityExpansionMode VolatilityExpansionMode = VolatilityExpansionMode.Atr,
+    double VwapMinDistance = 0.001,
+    double RsiLongMax = 70,
+    double RsiShortMin = 30,
+    VolatilityTrailingMode VolatilityTrailingMode = VolatilityTrailingMode.VwapEmaChandelier,
+    double AtrChandelierMultiplier = 3.0,
+    int MaxBarsWithoutProfit = 5,
+    double MinProfitAtrRatio = 1.0,
     double RangeCompressionRatio = 1.05,
     double MomentumMinMacdAtrRatio = 0.1,
     double MomentumVolumeRatio = 1.2,
     double EmaVolumeRatio = 1.1,
     double AtrStopMultiplier = 1.5,
-    int TrailingActivationBars = 2,
+    int TrailingActivationBars = 3,
     double EmaTrailingAtrOffset = 0,
     double TrendAtrStopMultiplier = 2.0,
     double GoldBreakoutAtrStopMultiplier = 2.0)
@@ -85,13 +107,14 @@ public sealed record StrategyTuningParams(
         VolatilityMinAtrRatio: 1.0,
         VolatilityMinVolumeRatio: 1.2,
         UseSqueezeFilter: false,
-        VolatilitySqueezeRatio: 1.0,
+        VolatilitySqueezeRatio: 0.95,
+        VwapMinDistance: 0,
         RangeCompressionRatio: double.PositiveInfinity,
         MomentumMinMacdAtrRatio: 0,
         MomentumVolumeRatio: 1.0,
         EmaVolumeRatio: 1.0,
         AtrStopMultiplier: 1.5,
-        TrailingActivationBars: 2,
+        TrailingActivationBars: 3,
         EmaTrailingAtrOffset: 0,
         TrendAtrStopMultiplier: 2.0,
         GoldBreakoutAtrStopMultiplier: 2.0);

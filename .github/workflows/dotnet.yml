@@ -1,0 +1,30 @@
+name: .NET
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore tests/TradingBrain.Tests/TradingBrain.Tests.csproj
+
+      - name: Build
+        run: dotnet build tests/TradingBrain.Tests/TradingBrain.Tests.csproj --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test tests/TradingBrain.Tests/TradingBrain.Tests.csproj --configuration Release --no-build --verbosity normal

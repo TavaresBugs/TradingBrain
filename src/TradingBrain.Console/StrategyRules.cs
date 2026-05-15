@@ -21,7 +21,7 @@ public sealed partial class StrategyBacktester
 
         return _strategy switch
         {
-            StrategyKind.Volatility => EvaluateVolatility(bar, m, position, entryPrice, barsSinceEntry),
+            StrategyKind.Volatility => EvaluateVolatility(bar, m, position, entryPrice, openProfit, barsSinceEntry),
             StrategyKind.Trend => EvaluateTrend(bar, m, position, entryPrice, barsSinceEntry, ref trendState),
             StrategyKind.Range => EvaluateRange(bar, m, position, entryPrice, barsSinceEntry, ref rangeState),
             StrategyKind.Momentum => EvaluateMomentum(bar, m, position, entryPrice, barsSinceEntry),
@@ -31,22 +31,51 @@ public sealed partial class StrategyBacktester
         };
     }
 
-    private StrategyDecision EvaluateVolatility(MarketBar bar, IReadOnlyDictionary<string, double> m, int position, double entryPrice, int barsSinceEntry)
+    private StrategyDecision EvaluateVolatility(
+        MarketBar bar,
+        IReadOnlyDictionary<string, double> m,
+        int position,
+        double entryPrice,
+        double openProfit,
+        int barsSinceEntry)
     {
-        var stopAtr = Math.Max(8, m["ATR"] * _params.AtrStopMultiplier);
+        if (position != 0 && IsAtOrAfterCloseAll(bar.Time))
+        {
+            return new StrategyDecision(SignalAction.Exit, "Fora da janela operacional");
+        }
+
+        if (position == 0 && IsAtOrAfterCloseAll(bar.Time))
+        {
+            return new StrategyDecision(SignalAction.None, "Fora da janela operacional");
+        }
+
+        if (position != 0 && openProfit <= -_defaults.MaxDrawdownPoints)
+        {
+            return new StrategyDecision(SignalAction.Exit, "MaxDrawdown atingido");
+        }
+
+        var stopAtr = m["ATR"] * _params.AtrStopMultiplier;
         var trailingLong = Math.Max(m["VWAP"], m["EMA21"]);
         var trailingShort = Math.Min(m["VWAP"], m["EMA21"]);
+        var atrTrailingLong = m["Highest3"] - m["ATR"] * _params.AtrChandelierMultiplier;
+        var atrTrailingShort = m["Lowest3"] + m["ATR"] * _params.AtrChandelierMultiplier;
 
         if (position > 0)
         {
             if (bar.Close <= entryPrice - stopAtr)
                 return new StrategyDecision(SignalAction.Exit, "Stop ATR long");
-            if (barsSinceEntry > _params.TrailingActivationBars && bar.Close < trailingLong)
-                return new StrategyDecision(SignalAction.Exit, "Trailing VWAP/EMA long");
-            if (m["RSI"] > 75)
-                return new StrategyDecision(SignalAction.Exit, "RSI sobrecomprado");
-            if (barsSinceEntry >= _defaults.TimeExitBars)
-                return new StrategyDecision(SignalAction.Exit, "Time exit long");
+            if (barsSinceEntry > _params.TrailingActivationBars &&
+                _params.VolatilityTrailingMode == VolatilityTrailingMode.VwapEmaChandelier &&
+                bar.Close < trailingLong)
+                return new StrategyDecision(SignalAction.Exit, "Chandelier long - fechamento abaixo do trailing");
+            if (barsSinceEntry > _params.TrailingActivationBars &&
+                _params.VolatilityTrailingMode == VolatilityTrailingMode.AtrChandelier &&
+                bar.Close < atrTrailingLong)
+                return new StrategyDecision(SignalAction.Exit, "ATR Chandelier long - fechamento abaixo do trailing");
+            if (barsSinceEntry <= _params.TrailingActivationBars && m["RSI"] > 75)
+                return new StrategyDecision(SignalAction.Exit, "RSI extremo long");
+            if (barsSinceEntry >= _params.MaxBarsWithoutProfit && openProfit < m["ATR"] * _params.MinProfitAtrRatio)
+                return new StrategyDecision(SignalAction.Exit, "Tempo maximo sem lucro minimo");
             return new StrategyDecision(SignalAction.None, "Em posicao long");
         }
 
@@ -54,25 +83,41 @@ public sealed partial class StrategyBacktester
         {
             if (bar.Close >= entryPrice + stopAtr)
                 return new StrategyDecision(SignalAction.Exit, "Stop ATR short");
-            if (barsSinceEntry > _params.TrailingActivationBars && bar.Close > trailingShort)
-                return new StrategyDecision(SignalAction.Exit, "Trailing VWAP/EMA short");
-            if (m["RSI"] < 25)
-                return new StrategyDecision(SignalAction.Exit, "RSI sobrevendido");
-            if (barsSinceEntry >= _defaults.TimeExitBars)
-                return new StrategyDecision(SignalAction.Exit, "Time exit short");
+            if (barsSinceEntry > _params.TrailingActivationBars &&
+                _params.VolatilityTrailingMode == VolatilityTrailingMode.VwapEmaChandelier &&
+                bar.Close > trailingShort)
+                return new StrategyDecision(SignalAction.Exit, "Chandelier short - fechamento acima do trailing");
+            if (barsSinceEntry > _params.TrailingActivationBars &&
+                _params.VolatilityTrailingMode == VolatilityTrailingMode.AtrChandelier &&
+                bar.Close > atrTrailingShort)
+                return new StrategyDecision(SignalAction.Exit, "ATR Chandelier short - fechamento acima do trailing");
+            if (barsSinceEntry <= _params.TrailingActivationBars && m["RSI"] < 25)
+                return new StrategyDecision(SignalAction.Exit, "RSI extremo short");
+            if (barsSinceEntry >= _params.MaxBarsWithoutProfit && openProfit < m["ATR"] * _params.MinProfitAtrRatio)
+                return new StrategyDecision(SignalAction.Exit, "Tempo maximo sem lucro minimo");
             return new StrategyDecision(SignalAction.None, "Em posicao short");
         }
 
         var squeeze = !_params.UseSqueezeFilter || m["ATRPrev"] <= m["ATRSMA"] * _params.VolatilitySqueezeRatio;
-        var volatilityOk = m["ATR"] > m["ATRSMA"] * _params.VolatilityMinAtrRatio &&
+        var atrExpansionOk = m["ATR"] > m["ATRSMA"] * _params.VolatilityMinAtrRatio;
+        var rangeExpansionOk = bar.High - bar.Low > m["CandleRangeSMA"] * _params.VolatilityRangeMultiplier;
+        var expansionOk = _params.VolatilityExpansionMode switch
+        {
+            VolatilityExpansionMode.CandleRange => rangeExpansionOk,
+            VolatilityExpansionMode.AtrAndCandleRange => atrExpansionOk && rangeExpansionOk,
+            _ => atrExpansionOk
+        };
+        var volatilityOk = expansionOk &&
                            bar.Volume > m["VolumeSMA"] * _params.VolatilityMinVolumeRatio;
+        var vwapLongOk = bar.Close > m["VWAP"] * (1 + _params.VwapMinDistance);
+        var vwapShortOk = bar.Close < m["VWAP"] * (1 - _params.VwapMinDistance);
         var longTrend = m["EMA9"] > m["EMA21"] &&
-                        bar.Close > m["VWAP"] &&
+                        vwapLongOk &&
                         m["RSI"] >= 50 &&
-                        m["RSI"] <= 70;
+                        m["RSI"] <= _params.RsiLongMax;
         var shortTrend = m["EMA9"] < m["EMA21"] &&
-                         bar.Close < m["VWAP"] &&
-                         m["RSI"] >= 30 &&
+                         vwapShortOk &&
+                         m["RSI"] >= _params.RsiShortMin &&
                          m["RSI"] <= 50;
 
         if (volatilityOk && squeeze && longTrend)
@@ -289,11 +334,14 @@ public sealed partial class StrategyBacktester
             ["ATR"] = TechnicalIndicators.Atr(history, 14),
             ["ATRPrev"] = atrValues.Count < 2 ? double.NaN : atrValues[^2],
             ["ATRSMA"] = TechnicalIndicators.Sma(atrValues, 14),
+            ["CandleRangeSMA"] = TechnicalIndicators.CandleRangeSma(history, 14),
             ["VolumeSMA"] = TechnicalIndicators.VolumeSma(history, 20),
             ["MACD"] = macd,
             ["MACDSignal"] = TechnicalIndicators.Ema(macdValues, 9),
             ["Highest10"] = highs.Count < 10 ? double.NaN : highs.TakeLast(10).Max(),
             ["Lowest10"] = lows.Count < 10 ? double.NaN : lows.TakeLast(10).Min(),
+            ["Highest3"] = highs.Count < 3 ? double.NaN : highs.TakeLast(3).Max(),
+            ["Lowest3"] = lows.Count < 3 ? double.NaN : lows.TakeLast(3).Min(),
             ["RangeFilter"] = TechnicalIndicators.Ema(closes, 20),
             ["Trend"] = double.NaN,
             ["SwingHigh"] = highs.Count < 5 ? double.NaN : highs.Skip(Math.Max(0, highs.Count - 6)).Take(5).Max(),
@@ -303,7 +351,7 @@ public sealed partial class StrategyBacktester
 
     private static bool IndicatorsReady(IReadOnlyDictionary<string, double> metrics)
     {
-        var required = new[] { "EMA9", "EMA21", "RSI", "VWAP", "ATR", "ATRSMA", "VolumeSMA" };
+        var required = new[] { "EMA9", "EMA21", "RSI", "VWAP", "ATR", "ATRSMA", "CandleRangeSMA", "VolumeSMA", "Highest3", "Lowest3" };
         return required.All(k => !double.IsNaN(metrics[k]) && !double.IsInfinity(metrics[k]));
     }
 
@@ -312,6 +360,8 @@ public sealed partial class StrategyBacktester
         var value = ToHHmmss(time);
         return value >= _defaults.SessionStartHHmmss && value <= _defaults.SessionEndHHmmss;
     }
+
+    private bool IsAtOrAfterCloseAll(DateTime time) => ToHHmmss(time) >= _defaults.CloseAllHHmmss;
 
     public static string StrategyName(StrategyKind kind) => kind switch
     {

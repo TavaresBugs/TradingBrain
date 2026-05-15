@@ -5,7 +5,7 @@ using TradingBrain.Core;
 
 public class NinjaBotIA : Strategy
 {
-    private readonly MotorDeDecisao _motor = new();
+    private readonly DecisionEngine _engine = new();
 
     protected override void OnBarUpdate()
     {
@@ -22,7 +22,7 @@ public class NinjaBotIA : Strategy
             IsLong: Position.MarketPosition == MarketPosition.Long,
             IsShort: Position.MarketPosition == MarketPosition.Short);
 
-        var decision = _motor.Evaluate(input);
+        var decision = _engine.Evaluate(input);
 
         switch (decision.Action)
         {

@@ -40,7 +40,7 @@ Objetivo: aproximar o backtest de uma execucao real.
 
 Tarefas:
 
-- Criar `ExecutionSettings`.
+- Criar `ExecutionSettings` com validacao de invariantes.
 - Parametrizar tick size, tick value, spread, slippage e comissao.
 - Aplicar custos no PnL de cada trade.
 - Registrar custos nos arquivos `*.trades.csv`.
@@ -62,15 +62,17 @@ Objetivo: todo resultado gerado precisa ser reproduzivel.
 
 Tarefas:
 
-- Criar `outputs\<run-name>\run-manifest.json`.
-- Salvar dataset, data/hora, strategy, parametros, custos e versao do codigo.
-- Criar subpastas por rodada em vez de misturar arquivos soltos.
-- Padronizar nomes de outputs.
+- [x] Criar `outputs\<run-name>\run-manifest.json`.
+- [x] Salvar dataset, data/hora, strategy, parametros, custos e versao do codigo.
+- [x] Criar subpastas por rodada nos exemplos principais.
+- [x] Padronizar nomes de outputs gerados pelo runner.
 
 Pronto quando:
 
 - Qualquer CSV em `outputs` tem um manifesto correspondente.
 - Da para saber exatamente com quais parametros um resultado foi gerado.
+
+Status: concluida em 2026-05-15.
 
 ## Fase 4 - Validacao quantitativa robusta
 
@@ -100,11 +102,12 @@ Objetivo: evitar regressao enquanto mexemos nas regras.
 
 Tarefas:
 
-- Criar projeto `TradingBrain.Tests` somente se os testes realmente agregarem.
-- Testar indicadores principais: EMA, SMA, ATR, RSI, MACD e VWAP.
-- Testar parser CSV.
+- [x] Criar projeto `TradingBrain.Tests` com testes de regressao.
+- [x] Testar indicadores principais: EMA, SMA, ATR, RSI e VWAP.
+- [x] Testar parser CSV.
 - Testar extracao de trades.
 - Testar regras simples de entrada/saida com datasets pequenos.
+- Testar MACD quando houver API dedicada para o indicador.
 
 Pronto quando:
 
@@ -139,6 +142,7 @@ Foco inicial:
 
 - `Momentum`: candidata principal.
 - `Ema`: estrategia ativa para comparacao e fluxo de trades.
+- `Volatility`: atualizada para v2; precisa de validacao com dados MNQ reais.
 
 Depois:
 
@@ -161,7 +165,7 @@ Objetivo: gerar codigo limpo apenas depois de estabilizar regras.
 
 Tarefas:
 
-- Atualizar `CleanNinjaBotIAReconstruction.cs` com parametros vencedores.
+- Gerar `CleanNinjaBotIAReconstruction.cs` localmente com parametros vencedores.
 - Manter nomes proximos dos metadados originais quando isso ajudar auditoria.
 - Separar motor de decisao da casca NinjaTrader quando possivel.
 - Validar compilacao no NinjaTrader.
@@ -174,7 +178,7 @@ Pronto quando:
 ## Ordem recomendada agora
 
 1. Finalizar Fase 1.
-2. Implementar `ExecutionSettings`.
+2. Implementar `ExecutionSettings` com validacao centralizada.
 3. Criar manifesto de rodada.
 4. Rodar Momentum e Ema com custos.
 5. Adicionar treino/teste ao grid search.

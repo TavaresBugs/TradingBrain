@@ -134,4 +134,20 @@ public static class TechnicalIndicators
 
         return sum / period;
     }
+
+    public static double CandleRangeSma(IReadOnlyList<MarketBar> bars, int period)
+    {
+        if (bars.Count < period)
+        {
+            return double.NaN;
+        }
+
+        double sum = 0;
+        for (var i = bars.Count - period; i < bars.Count; i++)
+        {
+            sum += bars[i].High - bars[i].Low;
+        }
+
+        return sum / period;
+    }
 }

@@ -50,4 +50,4 @@ Para logica ofuscada, use o relatorio como indice:
 2. correlacione os campos com chamadas de indicador;
 3. abra `OnBarUpdate`;
 4. traduza branches e chamadas de ordem para pseudocodigo;
-5. mova a regra para `TradingBrain.Core/MotorDeDecisao.cs`.
+5. mova a regra para `TradingBrain.Core/DecisionEngine.cs`.

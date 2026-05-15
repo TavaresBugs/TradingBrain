@@ -34,10 +34,10 @@ Arquivos que parecem pertencer ao primeiro prototipo de motor isolado/adaptador 
 
 | Arquivo | Observacao |
 |---|---|
-| `src\TradingBrain.Core\DecisionInput.cs` | Entrada simples usada por `MotorDeDecisao`. |
+| `src\TradingBrain.Core\DecisionInput.cs` | Entrada simples usada por `DecisionEngine`. |
 | `src\TradingBrain.Core\DecisionResult.cs` | Resultado simples usado por motores antigos. |
 | `src\TradingBrain.Core\IndicatorState.cs` | Estado incremental simples de medias/RSI; nao e usado pelo runner atual. |
-| `src\TradingBrain.Core\MotorDeDecisao.cs` | Motor didatico inicial usado pelo exemplo em `adapters`. |
+| `src\TradingBrain.Core\DecisionEngine.cs` | Motor didatico inicial usado pelo exemplo em `adapters`. |
 | `src\TradingBrain.Core\VolatilityDecisionConfig.cs` | Config antiga do motor Volatility isolado. |
 | `src\TradingBrain.Core\VolatilityDecisionEngine.cs` | Motor Volatility isolado anterior ao backtester multi-strategy atual. |
 | `src\TradingBrain.Core\VolatilityDecisionInput.cs` | Entrada antiga do motor Volatility isolado. |
@@ -50,4 +50,4 @@ Na fase de qualidade de codigo, escolher um destes caminhos:
 2. Migrar o adaptador para usar o mesmo fluxo multi-strategy do backtester.
 3. Arquivar/remover os arquivos legados se eles nao forem mais necessarios.
 
-Decisao recomendada: manter por enquanto, porque o adaptador ainda referencia `MotorDeDecisao`. A remocao deve acontecer apenas quando existir um adaptador novo usando a arquitetura atual.
+Decisao recomendada: manter por enquanto, porque o adaptador ainda referencia `DecisionEngine`. A remocao deve acontecer apenas quando existir um adaptador novo usando a arquitetura atual.

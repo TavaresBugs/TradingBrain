@@ -10,6 +10,13 @@ Atualizado em: 2026-05-15
 
 - Fase 1 - Fundacao profissional: concluida em 2026-05-15.
 - Fase 2 - Realismo de execucao: concluida em 2026-05-15.
+- Suite inicial de testes unitarios criada em `tests/TradingBrain.Tests`.
+- CI GitHub Actions criado em `.github/workflows/dotnet.yml`.
+- `DecisionEngine` usa regras injetaveis via `IDecisionRule`.
+- `ExecutionSettings` valida invariantes no proprio tipo de dominio.
+- Manifesto de rodada `run-manifest.json` criado junto dos outputs.
+- Convencoes de editor e formatacao registradas em `.editorconfig`.
+- `Volatility` atualizada para a especificacao v2 com filtros VWAP/RSI, expansao ATR/range e saidas hierarquicas.
 
 
 - A solucao compila com `dotnet build .\TradingBrain.slnx`.
@@ -17,7 +24,7 @@ Atualizado em: 2026-05-15
 - O codigo principal fica em `src`.
 - A documentacao principal fica em `docs`.
 - Os resultados gerados ficam em `outputs`.
-- O NinjaScript limpo gerado fica em `generated`.
+- O NinjaScript limpo e gerado sob demanda em `generated`, fora do versionamento.
 
 ## Capacidades prontas
 
@@ -29,7 +36,10 @@ Atualizado em: 2026-05-15
 - Grid search simples por parametros.
 - Custos de execucao com slippage, spread, comissao, tick size, tick value e quantity.
 - Inspecao estatica read-only da DLL.
-- Geracao de `generated\CleanNinjaBotIAReconstruction.cs`.
+- Geracao sob demanda de NinjaScript limpo.
+- Testes unitarios para indicadores tecnicos, parser CSV e `DecisionEngine`.
+- Manifesto JSON com dataset, parametros, custos, versao do codigo e arquivos gerados.
+- Grid search de `Volatility` cobre as tres ondas principais de calibracao da v2.
 
 ## Strategies reconstruidas
 
@@ -59,4 +69,4 @@ Atualizado em: 2026-05-15
 - A execucao assume entrada/saida no fechamento do candle.
 - Grid search ainda nao tem split treino/teste ou walk-forward.
 - Indicadores ainda podem ser otimizados para grids grandes.
-- Ainda nao ha suite de testes unitarios.
+- Cobertura ainda e inicial; backtester e estrategias reconstruidas precisam de testes adicionais.

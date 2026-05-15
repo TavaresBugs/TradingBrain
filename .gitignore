@@ -5,6 +5,7 @@ obj/
 **/obj/
 
 # Generated runtime outputs
+generated/**
 outputs/**
 !outputs/.gitkeep
 

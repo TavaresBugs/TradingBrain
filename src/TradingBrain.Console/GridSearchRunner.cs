@@ -36,7 +36,7 @@ public static class GridSearchRunner
     public static void ExportCsv(IReadOnlyList<GridSearchResult> results, string path)
     {
         using var writer = new StreamWriter(path);
-        writer.WriteLine("Strategy,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,GoldAtrStop");
+        writer.WriteLine("Strategy,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,GoldAtrStop");
 
         foreach (var result in results)
         {
@@ -62,6 +62,15 @@ public static class GridSearchRunner
                 F(p.VolatilityMinVolumeRatio),
                 p.UseSqueezeFilter,
                 F(p.VolatilitySqueezeRatio),
+                F(p.VolatilityRangeMultiplier),
+                p.VolatilityExpansionMode,
+                F(p.VwapMinDistance),
+                F(p.RsiLongMax),
+                F(p.RsiShortMin),
+                p.VolatilityTrailingMode,
+                F(p.AtrChandelierMultiplier),
+                p.MaxBarsWithoutProfit.ToString(CultureInfo.InvariantCulture),
+                F(p.MinProfitAtrRatio),
                 F(p.RangeCompressionRatio),
                 F(p.MomentumMinMacdAtrRatio),
                 F(p.MomentumVolumeRatio),
@@ -116,18 +125,42 @@ public static class GridSearchRunner
 
     private static IEnumerable<StrategyTuningParams> VolatilityGrid()
     {
-        foreach (var atr in new[] { 1.0, 1.03, 1.06, 1.1 })
-        foreach (var volume in new[] { 1.0, 1.15, 1.3, 1.5 })
+        foreach (var atr in new[] { 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 })
+        foreach (var volume in new[] { 1.2, 1.4, 1.6, 1.8, 2.0 })
         foreach (var squeeze in new[] { false, true })
-        foreach (var squeezeRatio in new[] { 0.9, 0.95, 1.0 })
-        foreach (var stop in new[] { 1.2, 1.5, 1.8 })
+        foreach (var squeezeRatio in new[] { 0.85, 0.95, 1.05 })
             yield return StrategyTuningParams.RefinedDefault with
             {
                 VolatilityMinAtrRatio = atr,
                 VolatilityMinVolumeRatio = volume,
                 UseSqueezeFilter = squeeze,
-                VolatilitySqueezeRatio = squeezeRatio,
-                AtrStopMultiplier = stop
+                VolatilitySqueezeRatio = squeezeRatio
+            };
+
+        foreach (var stop in new[] { 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5 })
+        foreach (var trailingBars in new[] { 1, 2, 3, 4, 5, 6 })
+        foreach (var trailingMode in Enum.GetValues<VolatilityTrailingMode>())
+        foreach (var maxBars in new[] { 3, 5, 7 })
+        foreach (var minProfit in new[] { 0.5, 1.0, 1.5 })
+            yield return StrategyTuningParams.RefinedDefault with
+            {
+                AtrStopMultiplier = stop,
+                TrailingActivationBars = trailingBars,
+                VolatilityTrailingMode = trailingMode,
+                MaxBarsWithoutProfit = maxBars,
+                MinProfitAtrRatio = minProfit
+            };
+
+        foreach (var rsiLongMax in new[] { 60, 62, 64, 66, 68, 70 })
+        foreach (var rsiShortMin in new[] { 30, 32, 34, 36, 38, 40 })
+        foreach (var vwapDistance in new[] { 0.0, 0.001, 0.002 })
+        foreach (var expansionMode in Enum.GetValues<VolatilityExpansionMode>())
+            yield return StrategyTuningParams.RefinedDefault with
+            {
+                RsiLongMax = rsiLongMax,
+                RsiShortMin = rsiShortMin,
+                VwapMinDistance = vwapDistance,
+                VolatilityExpansionMode = expansionMode
             };
     }
 
@@ -162,12 +195,12 @@ public static class GridSearchRunner
 
     private static double Score(BacktestSummary summary)
     {
-        if (summary.ClosedTrades < 10)
+        if (summary.ClosedTrades < 30)
         {
             return double.NegativeInfinity;
         }
 
-        return summary.NetExpectancy * Math.Log10(summary.ClosedTrades + 1) + summary.ReturnToDrawdown;
+        return summary.ReturnToDrawdown * Math.Log10(summary.ClosedTrades + 1);
     }
 
     private static string F(double value)

@@ -1,0 +1,5 @@
+StrategyClass,Method,Order,IndicatorOrField,ResolvedMeaning,Condition,Action,OrderParameters,StateVariables,Notes,Confidence
+NinjaBotIA,OnStateChange,1,this.a,SMA(20),State == DataLoaded,InitializeIndicator,,,"Campo indicador inicializado em DataLoaded",High
+NinjaBotIA,OnStateChange,2,this.b,SMA(50),State == DataLoaded,InitializeIndicator,,,"Campo indicador inicializado em DataLoaded",High
+NinjaBotIA,OnBarUpdate,1,"this.a[0], this.b[0], this.c[0]","SMA(20), SMA(50), RSI(14)","a[0] > b[0] && c[0] < 30",EnterLong,quantity unknown,Position must not already be long,"Traduzir nomes ofuscados pelos campos mapeados em OnStateChange",Medium
+NinjaBotIA,OnBarUpdate,2,this.c[0],RSI(14),"Position long && c[0] > 70",ExitLong,,isLong,"Saida por sobrecompra",Medium

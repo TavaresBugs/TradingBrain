@@ -1,0 +1,74 @@
+=== LOCKED DLL PLAYGROUND PROBE ===
+Target: C:\Users\jhonv\OneDrive\Documentos\NinjaTrader 8\bin\Custom\NinjaBotIA.dll
+Time: 2026-05-14 18:20:47
+
+ENVIRONMENT
+  AppDomain.BaseDirectory: C:\Users\jhonv\Documents\Codex\2026-05-14\me-ajude-a-criar-isso-entendo\LockedDllPlaygroundProbe\bin\Debug\net8.0-windows\
+  CurrentDirectory:        C:\Users\jhonv\Documents\Codex\2026-05-14\me-ajude-a-criar-isso-entendo
+  DLL Directory:           C:\Users\jhonv\OneDrive\Documentos\NinjaTrader 8\bin\Custom
+  ProcessPath:             C:\Users\jhonv\Documents\Codex\2026-05-14\me-ajude-a-criar-isso-entendo\LockedDllPlaygroundProbe\bin\Debug\net8.0-windows\LockedDllPlaygroundProbe.exe
+  Debugger.IsAttached:     False
+  Is64BitProcess:          True
+  OS:                      Microsoft Windows NT 10.0.26200.0
+  Env[PATH]: C:\Users\jhonv\.codex\tmp\arg0\codex-arg00gqsot;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Users\jhonv\AppData\Local\Microsoft\WindowsApps;C:\Users\jhonv\AppData\Local\Python\bin;C:\adb;C:\Users\jhonv\AppData\Local\Programs\Python\Python314;C:\Users\jhonv\AppData\Local\Programs\Python\Python314\Scripts;C:\Program Files\Git\cmd;C:\Program Files\Docker\Docker\resources\bin;C:\Users\jhonv\AppData\Local\Programs\Python\Python314\Scripts\;C:\Users\jhonv\AppData\Local\Programs\Python\Python314\;C:\Users\jhonv\AppData\Local\Python\pythoncore-3.14-64\Scripts;C:\Users\jhonv\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\jhonv\.dotnet\tools;C:\Users\jhonv\AppData\Local\OpenAI\Codex\bin;C:\Program Files\WindowsApps\OpenAI.Codex_26.506.3741.0_x64__2p2nqsd0c76g0\app\resources
+  Env[TEMP]: C:\Users\jhonv\AppData\Local\Temp
+  Env[TMP]: C:\Users\jhonv\AppData\Local\Temp
+  AgileDotNetRT in DLL dir: 0
+  Loaded Agile/Ninja modules: 0
+
+Assembly loaded: NinjaBotIA, Version=1.0.0.1, Culture=neutral, PublicKeyToken=null
+
+TYPE NinjaTrader.NinjaScript.Strategies.ema
+  force .cctor: FAIL System.TypeInitializationException - The type initializer for '<Module>' threw an exception.
+    System.TypeInitializationException: The type initializer for '<Module>' threw an exception.
+      System.TypeLoadException: Could not load type 'System.Security.Principal.WindowsImpersonationContext' from assembly 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
+  create instance: FAIL System.TypeInitializationException - The type initializer for '<Module>' threw an exception.
+    System.TypeInitializationException: The type initializer for '<Module>' threw an exception.
+      System.TypeLoadException: Could not load type 'System.Security.Principal.WindowsImpersonationContext' from assembly 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
+  instance unavailable; skipping method calls
+
+TYPE NinjaTrader.NinjaScript.Strategies.NinjaBotIA.NinjaBotIAGoldBreakout_v1_0_0_0
+  force .cctor: FAIL System.TypeInitializationException - The type initializer for '<Module>' threw an exception.
+    System.TypeInitializationException: The type initializer for '<Module>' threw an exception.
+      System.TypeLoadException: Could not load type 'System.Security.Principal.WindowsImpersonationContext' from assembly 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
+  create instance: FAIL System.TypeInitializationException - The type initializer for '<Module>' threw an exception.
+    System.TypeInitializationException: The type initializer for '<Module>' threw an exception.
+      System.TypeLoadException: Could not load type 'System.Security.Principal.WindowsImpersonationContext' from assembly 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
+  instance unavailable; skipping method calls
+
+TYPE NinjaTrader.NinjaScript.Strategies.NinjaBotIA.NinjaBotIAMomentum_v1_0_0_0
+  force .cctor: FAIL System.TypeInitializationException - The type initializer for '<Module>' threw an exception.
+    System.TypeInitializationException: The type initializer for '<Module>' threw an exception.
+      System.TypeLoadException: Could not load type 'System.Security.Principal.WindowsImpersonationContext' from assembly 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
+  create instance: FAIL System.TypeInitializationException - The type initializer for '<Module>' threw an exception.
+    System.TypeInitializationException: The type initializer for '<Module>' threw an exception.
+      System.TypeLoadException: Could not load type 'System.Security.Principal.WindowsImpersonationContext' from assembly 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
+  instance unavailable; skipping method calls
+
+TYPE NinjaTrader.NinjaScript.Strategies.NinjaBotIA.NinjaBotIARange_v1_0_0_0
+  force .cctor: FAIL System.TypeInitializationException - The type initializer for '<Module>' threw an exception.
+    System.TypeInitializationException: The type initializer for '<Module>' threw an exception.
+      System.TypeLoadException: Could not load type 'System.Security.Principal.WindowsImpersonationContext' from assembly 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
+  create instance: FAIL System.TypeInitializationException - The type initializer for '<Module>' threw an exception.
+    System.TypeInitializationException: The type initializer for '<Module>' threw an exception.
+      System.TypeLoadException: Could not load type 'System.Security.Principal.WindowsImpersonationContext' from assembly 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
+  instance unavailable; skipping method calls
+
+TYPE NinjaTrader.NinjaScript.Strategies.NinjaBotIA.NinjaBotIATrend_v1_0_0_1
+  force .cctor: FAIL System.TypeInitializationException - The type initializer for '<Module>' threw an exception.
+    System.TypeInitializationException: The type initializer for '<Module>' threw an exception.
+      System.TypeLoadException: Could not load type 'System.Security.Principal.WindowsImpersonationContext' from assembly 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
+  create instance: FAIL System.TypeInitializationException - The type initializer for '<Module>' threw an exception.
+    System.TypeInitializationException: The type initializer for '<Module>' threw an exception.
+      System.TypeLoadException: Could not load type 'System.Security.Principal.WindowsImpersonationContext' from assembly 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
+  instance unavailable; skipping method calls
+
+TYPE NinjaTrader.NinjaScript.Strategies.NinjaBotIA.NinjaBotIAVolatility_v1_0_0_0
+  force .cctor: FAIL System.TypeInitializationException - The type initializer for '<Module>' threw an exception.
+    System.TypeInitializationException: The type initializer for '<Module>' threw an exception.
+      System.TypeLoadException: Could not load type 'System.Security.Principal.WindowsImpersonationContext' from assembly 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
+  create instance: FAIL System.TypeInitializationException - The type initializer for '<Module>' threw an exception.
+    System.TypeInitializationException: The type initializer for '<Module>' threw an exception.
+      System.TypeLoadException: Could not load type 'System.Security.Principal.WindowsImpersonationContext' from assembly 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
+  instance unavailable; skipping method calls
+

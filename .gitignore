@@ -1,0 +1,32 @@
+# Build artifacts
+bin/
+obj/
+**/bin/
+**/obj/
+
+# Generated runtime outputs
+outputs/**
+!outputs/.gitkeep
+
+# Local/editor files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Compiled binaries and debug symbols
+*.dll
+*.exe
+*.pdb
+*.cache
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# OS noise
+Thumbs.db
+Desktop.ini

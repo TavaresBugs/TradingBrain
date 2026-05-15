@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/TradingBrain.Console/TradingBrain.Console.csproj" />
+  <Project Path="src/TradingBrain.Core/TradingBrain.Core.csproj" />
+</Solution>

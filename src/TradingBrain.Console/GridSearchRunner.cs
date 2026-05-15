@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Collections.Concurrent;
 using TradingBrain.Core;
 
 namespace TradingBrain.ConsoleApp;
@@ -13,20 +14,20 @@ public static class GridSearchRunner
         ExecutionSettings? executionSettings = null)
     {
         var settings = executionSettings ?? ExecutionSettings.MnqDefault;
-        var results = new List<GridSearchResult>();
-        foreach (var parameters in BuildParameterGrid(strategy))
+        var series = PrecomputedSeries.From(bars);
+        var results = new ConcurrentBag<GridSearchResult>();
+
+        Parallel.ForEach(BuildParameterGrid(strategy), parameters =>
         {
-            var backtester = new StrategyBacktester(strategy, parameters);
+            var backtester = new StrategyBacktester(strategy, parameters, series);
             var rows = backtester.Run(bars);
             var summary = StrategyBacktester.Summarize(rows, settings);
 
-            if (summary.ClosedTrades == 0)
+            if (summary.ClosedTrades > 0)
             {
-                continue;
+                results.Add(new GridSearchResult(strategy, parameters, summary));
             }
-
-            results.Add(new GridSearchResult(strategy, parameters, summary));
-        }
+        });
 
         return results
             .OrderByDescending(r => Score(r.Summary))
@@ -90,7 +91,7 @@ public static class GridSearchRunner
         {
             var s = result.Summary;
             writer.WriteLine(string.Join(",",
-                result.Strategy,
+                StrategyBacktester.StrategyName(result.Strategy),
                 s.IsLabel,
                 F(Score(s)),
                 s.ClosedTrades.ToString(CultureInfo.InvariantCulture),
@@ -111,7 +112,7 @@ public static class GridSearchRunner
             var p = result.Params;
             var s = result.Summary;
             writer.WriteLine(string.Join(",",
-                result.Strategy,
+                StrategyBacktester.StrategyName(result.Strategy),
                 F(Score(s)),
                 s.ClosedTrades.ToString(CultureInfo.InvariantCulture),
                 F(s.WinRate),

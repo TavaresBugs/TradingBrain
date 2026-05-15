@@ -547,45 +547,32 @@ public sealed partial class StrategyBacktester
         return new StrategyDecision(action, reason);
     }
 
-    private static Dictionary<string, double> BuildMetrics(
-        IReadOnlyList<MarketBar> history,
-        IReadOnlyList<MarketBar> sessionHistory,
-        IReadOnlyList<double> closes,
-        IReadOnlyList<double> highs,
-        IReadOnlyList<double> lows,
-        IReadOnlyList<double> atrValues,
-        IReadOnlyList<double> macdValues)
+    private static Dictionary<string, double> BuildMetrics(PrecomputedSeries series, int index)
     {
-        var ema9 = TechnicalIndicators.Ema(closes, 9);
-        var ema12 = TechnicalIndicators.Ema(closes, 12);
-        var ema21 = TechnicalIndicators.Ema(closes, 21);
-        var ema26 = TechnicalIndicators.Ema(closes, 26);
-        var macd = double.IsNaN(ema12) || double.IsNaN(ema26) ? double.NaN : ema12 - ema26;
-
         return new Dictionary<string, double>
         {
-            ["EMA9"] = ema9,
-            ["EMA21"] = ema21,
-            ["RSI"] = TechnicalIndicators.Rsi(closes, 14),
-            ["VWAP"] = TechnicalIndicators.Vwap(sessionHistory),
-            ["ATR"] = TechnicalIndicators.Atr(history, 14),
-            ["ATRPrev"] = atrValues.Count < 2 ? double.NaN : atrValues[^2],
-            ["ATRSMA"] = TechnicalIndicators.Sma(atrValues, 14),
-            ["CandleRangeSMA"] = TechnicalIndicators.CandleRangeSma(history, 14),
-            ["VolumeSMA"] = TechnicalIndicators.VolumeSma(history, 20),
-            ["MACD"] = macd,
-            ["MACDSignal"] = TechnicalIndicators.Ema(macdValues, 9),
-            ["BbMiddle"] = TechnicalIndicators.Sma(closes, 20),
-            ["BbUpper"] = TechnicalIndicators.BollingerUpper(closes, 20, 2.0),
-            ["BbLower"] = TechnicalIndicators.BollingerLower(closes, 20, 2.0),
-            ["Highest10"] = highs.Count < 10 ? double.NaN : highs.TakeLast(10).Max(),
-            ["Lowest10"] = lows.Count < 10 ? double.NaN : lows.TakeLast(10).Min(),
-            ["Highest3"] = highs.Count < 3 ? double.NaN : highs.TakeLast(3).Max(),
-            ["Lowest3"] = lows.Count < 3 ? double.NaN : lows.TakeLast(3).Min(),
-            ["RangeFilter"] = TechnicalIndicators.Ema(closes, 20),
+            ["EMA9"] = series.Ema9[index],
+            ["EMA21"] = series.Ema21[index],
+            ["RSI"] = series.Rsi14[index],
+            ["VWAP"] = series.Vwap[index],
+            ["ATR"] = series.Atr14[index],
+            ["ATRPrev"] = index > 0 ? series.Atr14[index - 1] : double.NaN,
+            ["ATRSMA"] = series.AtrSma14[index],
+            ["CandleRangeSMA"] = series.CandleRangeSma14[index],
+            ["VolumeSMA"] = series.VolumeSma20[index],
+            ["MACD"] = series.Macd[index],
+            ["MACDSignal"] = series.MacdSignal[index],
+            ["BbMiddle"] = series.BbMiddle[index],
+            ["BbUpper"] = series.BbUpper[index],
+            ["BbLower"] = series.BbLower[index],
+            ["Highest10"] = series.Highest10[index],
+            ["Lowest10"] = series.Lowest10[index],
+            ["Highest3"] = series.Highest3[index],
+            ["Lowest3"] = series.Lowest3[index],
+            ["RangeFilter"] = series.Ema20[index],
             ["Trend"] = double.NaN,
-            ["SwingHigh"] = highs.Count < 20 ? double.NaN : highs.TakeLast(20).Max(),
-            ["SwingLow"] = lows.Count < 20 ? double.NaN : lows.TakeLast(20).Min()
+            ["SwingHigh"] = series.SwingHigh20[index],
+            ["SwingLow"] = series.SwingLow20[index]
         };
     }
 
@@ -605,17 +592,17 @@ public sealed partial class StrategyBacktester
 
     public static string StrategyName(StrategyKind kind) => kind switch
     {
-        StrategyKind.Volatility => "NinjaBotIAVolatility_v1_0_0_0",
-        StrategyKind.Trend => "NinjaBotIATrend_v1_0_0_1",
-        StrategyKind.Range => "NinjaBotIARange_v1_0_0_0",
-        StrategyKind.Momentum => "NinjaBotIAMomentum_v1_0_0_0",
-        StrategyKind.OrbBreakout => "OrbBreakout_v1",
-        StrategyKind.Ema => "ema",
-        StrategyKind.VwapReversion => "VwapReversion_v1",
-        StrategyKind.BollingerFade => "BollingerFade_v1",
-        StrategyKind.SessionBreakout => "SessionBreakout_v1",
-        StrategyKind.SchoolRun => "SchoolRun_v1",
-        _ => kind.ToString()
+        StrategyKind.Volatility => "TradingBrain.Volatility",
+        StrategyKind.Trend => "TradingBrain.Trend",
+        StrategyKind.Range => "TradingBrain.Range",
+        StrategyKind.Momentum => "TradingBrain.Momentum",
+        StrategyKind.OrbBreakout => "TradingBrain.ORB",
+        StrategyKind.Ema => "TradingBrain.EMA",
+        StrategyKind.VwapReversion => "TradingBrain.VwapReversion",
+        StrategyKind.BollingerFade => "TradingBrain.BollingerFade",
+        StrategyKind.SessionBreakout => "TradingBrain.SessionBreakout",
+        StrategyKind.SchoolRun => "TradingBrain.SRS",
+        _ => $"TradingBrain.{kind}"
     };
 
     private static int ToHHmmss(DateTime time) => time.Hour * 10000 + time.Minute * 100 + time.Second;

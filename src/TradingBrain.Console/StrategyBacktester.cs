@@ -7,26 +7,26 @@ public sealed partial class StrategyBacktester
     private readonly StrategyKind _strategy;
     private readonly StrategyDefaults _defaults;
     private readonly StrategyTuningParams _params;
+    private readonly PrecomputedSeries? _series;
     private IReadOnlyList<MarketBar>? _resampledBars;
 
-    public StrategyBacktester(StrategyKind strategy, StrategyTuningParams? tuningParams = null)
+    public StrategyBacktester(
+        StrategyKind strategy,
+        StrategyTuningParams? tuningParams = null,
+        PrecomputedSeries? precomputed = null)
     {
         _strategy = strategy;
         _defaults = StrategyDefaults.For(strategy);
         _params = tuningParams ?? StrategyTuningParams.RefinedDefault;
+        _series = precomputed;
     }
 
     public IReadOnlyList<StrategyBacktestRow> Run(IReadOnlyList<MarketBar> bars)
     {
+        var series = _series ?? PrecomputedSeries.From(bars);
         _resampledBars = TechnicalIndicators.Resample(bars, factor: 3);
         var rows = new List<StrategyBacktestRow>(bars.Count);
-        var closes = new List<double>(bars.Count);
-        var highs = new List<double>(bars.Count);
-        var lows = new List<double>(bars.Count);
         var history = new List<MarketBar>(bars.Count);
-        var sessionHistory = new List<MarketBar>();
-        var atrValues = new List<double>();
-        var macdValues = new List<double>();
         var position = 0;
         var entryPrice = 0.0;
         var entryBarIndex = -1;
@@ -40,32 +40,15 @@ public sealed partial class StrategyBacktester
         for (var i = 0; i < bars.Count; i++)
         {
             var bar = bars[i];
-            closes.Add(bar.Close);
-            highs.Add(bar.High);
-            lows.Add(bar.Low);
             history.Add(bar);
 
             if (bar.Time.Date != currentDate)
             {
                 currentDate = bar.Time.Date;
-                sessionHistory.Clear();
                 schoolRunState = 0;
             }
-            sessionHistory.Add(bar);
 
-            var metrics = BuildMetrics(history, sessionHistory, closes, highs, lows, atrValues, macdValues);
-
-            if (!double.IsNaN(metrics["ATR"]))
-            {
-                atrValues.Add(metrics["ATR"]);
-                metrics = BuildMetrics(history, sessionHistory, closes, highs, lows, atrValues, macdValues);
-            }
-
-            if (!double.IsNaN(metrics["MACD"]))
-            {
-                macdValues.Add(metrics["MACD"]);
-                metrics = BuildMetrics(history, sessionHistory, closes, highs, lows, atrValues, macdValues);
-            }
+            var metrics = BuildMetrics(series, i);
 
             var openProfit = position == 0 ? 0 : (bar.Close - entryPrice) * position;
             var barsSinceEntry = entryBarIndex < 0 ? 0 : i - entryBarIndex;

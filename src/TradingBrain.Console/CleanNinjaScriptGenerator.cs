@@ -6,7 +6,7 @@ public static class CleanNinjaScriptGenerator
     {
         Directory.CreateDirectory(outputDirectory);
         File.WriteAllText(
-            Path.Combine(outputDirectory, "CleanNinjaBotIAReconstruction.cs"),
+            Path.Combine(outputDirectory, "CleanTradingBrainReconstruction.cs"),
             Source);
     }
 
@@ -24,7 +24,7 @@ using NinjaTrader.NinjaScript.Indicators;
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class CleanNinjaBotIAVolatility : Strategy
+    public class CleanTradingBrainVolatility : Strategy
     {
         private EMA ema1;
         private EMA ema2;
@@ -117,7 +117,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Name = "CleanNinjaBotIAVolatility";
+                Name = "CleanTradingBrainVolatility";
                 Calculate = Calculate.OnBarClose;
                 EntriesPerDirection = 1;
                 EntryHandling = EntryHandling.AllEntries;
@@ -246,7 +246,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
     }
 
-    public class CleanNinjaBotIATrend : Strategy
+    public class CleanTradingBrainTrend : Strategy
     {
         private ATR atr;
         private int trend;
@@ -276,7 +276,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Name = "CleanNinjaBotIATrend";
+                Name = "CleanTradingBrainTrend";
                 Calculate = Calculate.OnBarClose;
                 contractSize = 1;
                 StartHour = 9;
@@ -381,7 +381,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
     }
 
-    public class CleanNinjaBotIAMomentum : Strategy
+    public class CleanTradingBrainMomentum : Strategy
     {
         private MACD macdI;
 
@@ -403,7 +403,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Name = "CleanNinjaBotIAMomentum";
+                Name = "CleanTradingBrainMomentum";
                 Calculate = Calculate.OnBarClose;
                 Quantity = 1;
                 StartHour = 9;
@@ -470,7 +470,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
     }
 
-    public class CleanNinjaBotIARange : Strategy
+    public class CleanTradingBrainRange : Strategy
     {
         private ATR atr;
         private EMA filter;
@@ -492,7 +492,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Name = "CleanNinjaBotIARange";
+                Name = "CleanTradingBrainRange";
                 Calculate = Calculate.OnBarClose;
                 contractSize = 1;
                 StartHour = 0;
@@ -564,7 +564,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
     }
 
-    public class CleanNinjaBotIAOrbBreakout : Strategy
+    public class CleanTradingBrainOrbBreakout : Strategy
     {
         private double windowHigh;
         private double windowLow;
@@ -588,7 +588,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Name = "CleanNinjaBotIAOrbBreakout";
+                Name = "CleanTradingBrainOrbBreakout";
                 Calculate = Calculate.OnBarClose;
                 LoteBase = 1;
                 StartHour = 8;

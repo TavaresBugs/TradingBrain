@@ -268,7 +268,17 @@ public static class GridSearchRunner
             return double.NegativeInfinity;
         }
 
-        return summary.ReturnToDrawdown * Math.Log10(summary.ClosedTrades + 1);
+        if (summary.NetExpectancy <= 0)
+        {
+            return double.NegativeInfinity;
+        }
+
+        var pf = Math.Min(summary.NetProfitFactor, 10.0);
+        var rtd = Math.Min(Math.Max(summary.ReturnToDrawdown, -5.0), 20.0);
+        var confidence = Math.Log10(summary.ClosedTrades + 1);
+        var expectancyFactor = Math.Max(summary.NetExpectancy, 0.0);
+
+        return pf * expectancyFactor * confidence * (1.0 + rtd * 0.1);
     }
 
     private static string F(double value)

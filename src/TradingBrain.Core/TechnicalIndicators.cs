@@ -3,30 +3,91 @@ namespace TradingBrain.Core;
 public static class TechnicalIndicators
 {
     /// <summary>
-    /// Agrega barras de timeframe menor em barras de timeframe maior.
-    /// factor = quantas barras menores formam uma barra maior.
+    /// Agrega barras de timeframe menor em barras de timeframe maior por janela de tempo real.
     /// </summary>
-    public static IReadOnlyList<MarketBar> Resample(IReadOnlyList<MarketBar> bars, int factor)
+    public static IReadOnlyList<MarketBar> Resample(IReadOnlyList<MarketBar> bars, int targetMinutes)
     {
-        if (factor <= 1)
+        if (targetMinutes <= 0 || bars.Count == 0)
         {
             return bars;
         }
 
+        if (targetMinutes > 1 && targetMinutes < InferBarIntervalMinutes(bars))
+        {
+            return ResampleByFactor(bars, targetMinutes);
+        }
+
+        var result = new List<MarketBar>();
+        var bucket = new List<MarketBar>();
+        DateTime? bucketStart = null;
+
+        foreach (var bar in bars)
+        {
+            var slotMinutes = (bar.Time.Hour * 60 + bar.Time.Minute) / targetMinutes * targetMinutes;
+            var slotStart = bar.Time.Date.AddMinutes(slotMinutes);
+
+            if (bucketStart is null || slotStart != bucketStart)
+            {
+                if (bucket.Count > 0)
+                {
+                    result.Add(AggregateBucket(bucket, bucketStart.GetValueOrDefault()));
+                    bucket.Clear();
+                }
+
+                bucketStart = slotStart;
+            }
+
+            bucket.Add(bar);
+        }
+
+        if (bucket.Count > 0)
+        {
+            result.Add(AggregateBucket(bucket, bucketStart!.Value));
+        }
+
+        return result;
+    }
+
+    private static MarketBar AggregateBucket(List<MarketBar> bars, DateTime time)
+    {
+        return new MarketBar(
+            time,
+            bars[0].Open,
+            bars.Max(b => b.High),
+            bars.Min(b => b.Low),
+            bars[^1].Close,
+            bars.Sum(b => b.Volume));
+    }
+
+    private static IReadOnlyList<MarketBar> ResampleByFactor(IReadOnlyList<MarketBar> bars, int factor)
+    {
         var result = new List<MarketBar>();
         for (var i = 0; i < bars.Count; i += factor)
         {
             var slice = bars.Skip(i).Take(factor).ToList();
-            result.Add(new MarketBar(
-                slice[0].Time,
-                slice[0].Open,
-                slice.Max(b => b.High),
-                slice.Min(b => b.Low),
-                slice[^1].Close,
-                slice.Sum(b => b.Volume)));
+            result.Add(AggregateBucket(slice, slice[0].Time));
         }
 
         return result;
+    }
+
+    private static int InferBarIntervalMinutes(IReadOnlyList<MarketBar> bars)
+    {
+        if (bars.Count < 2)
+        {
+            return int.MaxValue;
+        }
+
+        for (var i = 1; i < bars.Count; i++)
+        {
+            var minutes = (int)(bars[i].Time - bars[i - 1].Time).TotalMinutes;
+            if (minutes > 0)
+            {
+                return minutes;
+            }
+        }
+
+        return int.MaxValue;
     }
 
     public static double Ema(IReadOnlyList<double> values, int period)

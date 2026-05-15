@@ -25,7 +25,7 @@ public sealed partial class StrategyBacktester
     {
         var rows = new List<StrategyBacktestRow>(bars.Count);
         var series = _series ?? PrecomputedSeries.From(bars);
-        _resampledBars = TechnicalIndicators.Resample(bars, factor: 3);
+        _resampledBars = TechnicalIndicators.Resample(bars, targetMinutes: 15);
         var position = 0;
         var entryPrice = 0.0;
         var entryBarIndex = -1;

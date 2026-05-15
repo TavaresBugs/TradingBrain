@@ -17,7 +17,12 @@ public sealed partial class StrategyBacktester
         ref int rangeState,
         ref int schoolRunState)
     {
-        if (!IsInsideSession(bar.Time) && position == 0)
+        var usesOwnSessionGate = _strategy is
+            StrategyKind.OrbBreakout or
+            StrategyKind.SessionBreakout or
+            StrategyKind.SchoolRun;
+
+        if (!usesOwnSessionGate && !IsInsideSession(bar.Time) && position == 0)
         {
             return new StrategyDecision(SignalAction.None, "Fora da sessao");
         }

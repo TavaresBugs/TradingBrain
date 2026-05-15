@@ -17,10 +17,12 @@ public sealed partial class StrategyBacktester
 
     public IReadOnlyList<StrategyBacktestRow> Run(IReadOnlyList<MarketBar> bars)
     {
-        var rows = new List<StrategyBacktestRow>();
-        var closes = new List<double>();
-        var highs = new List<double>();
-        var lows = new List<double>();
+        var rows = new List<StrategyBacktestRow>(bars.Count);
+        var closes = new List<double>(bars.Count);
+        var highs = new List<double>(bars.Count);
+        var lows = new List<double>(bars.Count);
+        var history = new List<MarketBar>(bars.Count);
+        var sessionHistory = new List<MarketBar>();
         var atrValues = new List<double>();
         var macdValues = new List<double>();
         var position = 0;
@@ -30,6 +32,7 @@ public sealed partial class StrategyBacktester
         var peakEquity = 0.0;
         var trendState = 0;
         var rangeState = 0;
+        var currentDate = DateTime.MinValue;
 
         for (var i = 0; i < bars.Count; i++)
         {
@@ -37,9 +40,15 @@ public sealed partial class StrategyBacktester
             closes.Add(bar.Close);
             highs.Add(bar.High);
             lows.Add(bar.Low);
+            history.Add(bar);
 
-            var history = bars.Take(i + 1).ToList();
-            var sessionHistory = history.Where(b => b.Time.Date == bar.Time.Date).ToList();
+            if (bar.Time.Date != currentDate)
+            {
+                currentDate = bar.Time.Date;
+                sessionHistory.Clear();
+            }
+            sessionHistory.Add(bar);
+
             var metrics = BuildMetrics(history, sessionHistory, closes, highs, lows, atrValues, macdValues);
 
             if (!double.IsNaN(metrics["ATR"]))

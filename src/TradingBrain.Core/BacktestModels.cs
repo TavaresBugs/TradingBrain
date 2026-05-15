@@ -39,7 +39,29 @@ public sealed record BacktestSummary(
     double GrossCurrency,
     double NetCurrency,
     double MaxDrawdown,
-    double ReturnToDrawdown);
+    double ReturnToDrawdown,
+    string IsLabel = "IS");
+
+public sealed record DataSplit(
+    IReadOnlyList<MarketBar> InSample,
+    IReadOnlyList<MarketBar> OutSample)
+{
+    public static DataSplit SplitChronological(IReadOnlyList<MarketBar> bars, double ratio = 0.65)
+    {
+        ArgumentNullException.ThrowIfNull(bars);
+        if (ratio <= 0 || ratio >= 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(ratio), "Ratio must be between 0 and 1.");
+        }
+
+        var splitIndex = bars.Count < 2
+            ? bars.Count
+            : Math.Clamp((int)Math.Floor(bars.Count * ratio), 1, bars.Count - 1);
+        return new DataSplit(
+            bars.Take(splitIndex).ToList(),
+            bars.Skip(splitIndex).ToList());
+    }
+}
 
 public sealed record TradeResult(
     string StrategyName,

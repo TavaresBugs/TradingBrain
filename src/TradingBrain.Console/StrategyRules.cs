@@ -344,8 +344,8 @@ public sealed partial class StrategyBacktester
             ["Lowest3"] = lows.Count < 3 ? double.NaN : lows.TakeLast(3).Min(),
             ["RangeFilter"] = TechnicalIndicators.Ema(closes, 20),
             ["Trend"] = double.NaN,
-            ["SwingHigh"] = highs.Count < 5 ? double.NaN : highs.Skip(Math.Max(0, highs.Count - 6)).Take(5).Max(),
-            ["SwingLow"] = lows.Count < 5 ? double.NaN : lows.Skip(Math.Max(0, lows.Count - 6)).Take(5).Min()
+            ["SwingHigh"] = highs.Count < 20 ? double.NaN : highs.TakeLast(20).Max(),
+            ["SwingLow"] = lows.Count < 20 ? double.NaN : lows.TakeLast(20).Min()
         };
     }
 

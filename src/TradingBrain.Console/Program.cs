@@ -176,65 +176,135 @@ static int RunAllStrategies(string inputPath, string outputDirectory, ExecutionS
 
 static int RunGridSearch(string inputPath, string outputDirectory, StrategyKind? requestedStrategy, ExecutionSettings executionSettings)
 {
-    if (!File.Exists(inputPath))
-    {
-        Console.Error.WriteLine($"CSV nao encontrado: {inputPath}");
+    if (!TryReadBars(inputPath, out var bars))
         return 1;
-    }
 
-    var bars = CsvBarReader.Read(inputPath).ToList();
-    if (bars.Count == 0)
-    {
-        Console.Error.WriteLine("Nenhuma barra valida foi carregada.");
-        return 1;
-    }
+    const double splitRatio = 0.65;
+    var split = DataSplit.SplitChronological(bars, splitRatio);
+    if (split.InSample.Count == 0 || split.OutSample.Count == 0)
+        return FailExit("Split 65/35 sem barras suficientes para IS/OOS.");
 
     Directory.CreateDirectory(outputDirectory);
-    var strategies = requestedStrategy is null
-        ? new[] { StrategyKind.Momentum, StrategyKind.Ema, StrategyKind.Volatility, StrategyKind.Range }
-        : new[] { requestedStrategy.Value };
+    var strategies = GridSearchStrategies(requestedStrategy);
     var outputFiles = new List<string>();
+    var comparisonRows = new List<GridSearchResult>();
 
     foreach (var strategy in strategies)
-    {
-        var results = GridSearchRunner.Run(bars, strategy, executionSettings);
-        var outputPath = Path.Combine(outputDirectory, strategy.ToString().ToLowerInvariant() + ".grid.csv");
-        GridSearchRunner.ExportCsv(results, outputPath);
-        outputFiles.Add(outputPath);
+        comparisonRows.AddRange(RunGridSearchForStrategy(strategy, split, outputDirectory, executionSettings, outputFiles));
 
-        var best = results.FirstOrDefault();
-        if (best is null)
-        {
-            Console.WriteLine($"{strategy}: nenhum resultado com trades fechados.");
-            continue;
-        }
+    var isVsOosPath = Path.Combine(outputDirectory, "is_vs_oos.csv");
+    GridSearchRunner.ExportIsVsOosCsv(comparisonRows, isVsOosPath);
+    outputFiles.Add(isVsOosPath);
 
-        Console.WriteLine(string.Join(" | ",
-            strategy.ToString(),
-            "Combos=" + results.Count.ToString(CultureInfo.InvariantCulture),
-            "BestTrades=" + best.Summary.ClosedTrades.ToString(CultureInfo.InvariantCulture),
-            "BestNetPF=" + FormatNumber(best.Summary.NetProfitFactor),
-            "BestNetExp=" + FormatNumber(best.Summary.NetExpectancy),
-            "BestNetPts=" + FormatNumber(best.Summary.NetPnL),
-            "CSV=" + outputPath));
-    }
-
-    var manifestPath = RunManifestWriter.Write(
-        RunManifestWriter.Create(
-            "grid-search",
-            inputPath,
-            bars.Count,
-            strategies,
-            executionSettings,
-            outputFiles,
-            new
-            {
-                RequestedStrategy = requestedStrategy?.ToString(),
-                Grid = "default"
-            }),
-        outputDirectory);
+    var manifestPath = WriteGridSearchManifest(inputPath, outputDirectory, bars.Count, strategies, executionSettings, outputFiles, split, splitRatio, requestedStrategy);
+    Console.WriteLine($"Split IS/OOS: {split.InSample.Count}/{split.OutSample.Count}");
+    Console.WriteLine($"IS vs OOS CSV: {isVsOosPath}");
     Console.WriteLine($"Manifesto: {manifestPath}");
     return 0;
+}
+
+static bool TryReadBars(string inputPath, out IReadOnlyList<MarketBar> bars)
+{
+    bars = Array.Empty<MarketBar>();
+    if (!File.Exists(inputPath))
+        return Fail($"CSV nao encontrado: {inputPath}");
+
+    var loaded = CsvBarReader.Read(inputPath).ToList();
+    if (loaded.Count == 0)
+        return Fail("Nenhuma barra valida foi carregada.");
+
+    bars = loaded;
+    return true;
+}
+
+static IReadOnlyList<StrategyKind> GridSearchStrategies(StrategyKind? requestedStrategy)
+{
+    return requestedStrategy is null
+        ? new[] { StrategyKind.Momentum, StrategyKind.GoldBreakout, StrategyKind.Ema, StrategyKind.Range }
+        : new[] { requestedStrategy.Value };
+}
+
+static IReadOnlyList<GridSearchResult> RunGridSearchForStrategy(
+    StrategyKind strategy,
+    DataSplit split,
+    string outputDirectory,
+    ExecutionSettings executionSettings,
+    List<string> outputFiles)
+{
+    var results = GridSearchRunner.Label(GridSearchRunner.Run(split.InSample, strategy, executionSettings), "IS");
+    var outputPath = Path.Combine(outputDirectory, strategy.ToString().ToLowerInvariant() + ".grid.csv");
+    GridSearchRunner.ExportCsv(results, outputPath);
+    outputFiles.Add(outputPath);
+
+    if (results.Count == 0)
+    {
+        Console.WriteLine($"{strategy}: nenhum resultado com trades fechados.");
+        return Array.Empty<GridSearchResult>();
+    }
+
+    var top = results.Take(3).ToList();
+    var oos = GridSearchRunner.ValidateOutOfSample(split.OutSample, top, executionSettings);
+    PrintGridSearchResult(strategy, results, outputPath, oos.Count);
+    return GridSearchRunner.BuildIsVsOosRows(top, oos);
+}
+
+static string WriteGridSearchManifest(
+    string inputPath,
+    string outputDirectory,
+    int barCount,
+    IReadOnlyList<StrategyKind> strategies,
+    ExecutionSettings executionSettings,
+    IReadOnlyList<string> outputFiles,
+    DataSplit split,
+    double splitRatio,
+    StrategyKind? requestedStrategy)
+{
+    return RunManifestWriter.Write(RunManifestWriter.Create(
+        "grid-search",
+        inputPath,
+        barCount,
+        strategies,
+        executionSettings,
+        outputFiles,
+        new
+        {
+            RequestedStrategy = requestedStrategy?.ToString(),
+            Grid = "default",
+            SplitRatio = splitRatio,
+            InSampleBars = split.InSample.Count,
+            OutSampleBars = split.OutSample.Count,
+            MinTradesOos = GridSearchRunner.MinTradesOos
+        }), outputDirectory);
+}
+
+static void PrintGridSearchResult(
+    StrategyKind strategy,
+    IReadOnlyList<GridSearchResult> results,
+    string outputPath,
+    int oosValidated)
+{
+    var best = results[0];
+    Console.WriteLine(string.Join(" | ",
+        strategy.ToString(),
+        "Combos=" + results.Count.ToString(CultureInfo.InvariantCulture),
+        "BestTrades=" + best.Summary.ClosedTrades.ToString(CultureInfo.InvariantCulture),
+        "BestNetPF=" + FormatNumber(best.Summary.NetProfitFactor),
+        "BestNetExp=" + FormatNumber(best.Summary.NetExpectancy),
+        "BestNetPts=" + FormatNumber(best.Summary.NetPnL),
+        "OOSValidated=" + oosValidated.ToString(CultureInfo.InvariantCulture),
+        "CSV=" + outputPath));
+}
+
+static bool Fail(string message)
+{
+    Console.Error.WriteLine(message);
+    return false;
+}
+
+static int FailExit(string message)
+{
+    Console.Error.WriteLine(message);
+    return 1;
 }
 
 static StrategyKind ReadStrategy(string[] args)

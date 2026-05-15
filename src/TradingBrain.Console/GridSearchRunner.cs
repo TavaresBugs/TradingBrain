@@ -5,6 +5,8 @@ namespace TradingBrain.ConsoleApp;
 
 public static class GridSearchRunner
 {
+    public const int MinTradesOos = 15;
+
     public static IReadOnlyList<GridSearchResult> Run(
         IReadOnlyList<MarketBar> bars,
         StrategyKind strategy,
@@ -31,6 +33,72 @@ public static class GridSearchRunner
             .ThenByDescending(r => r.Summary.NetProfitFactor)
             .ThenByDescending(r => r.Summary.NetExpectancy)
             .ToList();
+    }
+
+    public static IReadOnlyList<GridSearchResult> Label(
+        IReadOnlyList<GridSearchResult> results,
+        string label)
+    {
+        return results
+            .Select(r => r with { Summary = r.Summary with { IsLabel = label } })
+            .ToList();
+    }
+
+    public static IReadOnlyList<GridSearchResult> ValidateOutOfSample(
+        IReadOnlyList<MarketBar> bars,
+        IReadOnlyList<GridSearchResult> winners,
+        ExecutionSettings? executionSettings = null)
+    {
+        var settings = executionSettings ?? ExecutionSettings.MnqDefault;
+        var results = new List<GridSearchResult>();
+        foreach (var winner in winners.Take(3))
+        {
+            var backtester = new StrategyBacktester(winner.Strategy, winner.Params);
+            var summary = StrategyBacktester.Summarize(backtester.Run(bars), settings) with { IsLabel = "OOS" };
+            if (summary.ClosedTrades >= MinTradesOos)
+            {
+                results.Add(winner with { Summary = summary });
+            }
+        }
+
+        return results;
+    }
+
+    public static IReadOnlyList<GridSearchResult> BuildIsVsOosRows(
+        IReadOnlyList<GridSearchResult> inSample,
+        IReadOnlyList<GridSearchResult> outSample)
+    {
+        var rows = new List<GridSearchResult>();
+        foreach (var result in inSample)
+        {
+            rows.Add(result);
+            var oos = outSample.FirstOrDefault(r => r.Strategy == result.Strategy && r.Params == result.Params);
+            if (oos is not null)
+            {
+                rows.Add(oos);
+            }
+        }
+
+        return rows;
+    }
+
+    public static void ExportIsVsOosCsv(IReadOnlyList<GridSearchResult> results, string path)
+    {
+        using var writer = new StreamWriter(path);
+        writer.WriteLine("Strategy,Split,Score,Trades,WinRate,NetPnL,MaxDrawdown,ReturnToDrawdown");
+        foreach (var result in results)
+        {
+            var s = result.Summary;
+            writer.WriteLine(string.Join(",",
+                result.Strategy,
+                s.IsLabel,
+                F(Score(s)),
+                s.ClosedTrades.ToString(CultureInfo.InvariantCulture),
+                F(s.WinRate),
+                F(s.NetPnL),
+                F(s.MaxDrawdown),
+                F(s.ReturnToDrawdown)));
+        }
     }
 
     public static void ExportCsv(IReadOnlyList<GridSearchResult> results, string path)

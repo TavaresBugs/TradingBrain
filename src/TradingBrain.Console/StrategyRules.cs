@@ -28,6 +28,9 @@ public sealed partial class StrategyBacktester
             StrategyKind.Momentum => EvaluateMomentum(bar, m, position, entryPrice, barsSinceEntry),
             StrategyKind.GoldBreakout => EvaluateGoldBreakout(bar, history, m, position, entryPrice, barsSinceEntry),
             StrategyKind.Ema => EvaluateEma(bar, m, position, entryPrice, barsSinceEntry),
+            StrategyKind.VwapReversion => EvaluateVwapReversion(bar, m, position, entryPrice, barsSinceEntry),
+            StrategyKind.BollingerFade => EvaluateBollingerFade(bar, m, position, entryPrice, barsSinceEntry),
+            StrategyKind.SessionBreakout => EvaluateSessionBreakout(bar, history, m, position, entryPrice, barsSinceEntry),
             _ => new StrategyDecision(SignalAction.None, "Strategy nao implementada")
         };
     }
@@ -311,6 +314,145 @@ public sealed partial class StrategyBacktester
         return new StrategyDecision(SignalAction.None, "Sem sinal");
     }
 
+    private StrategyDecision EvaluateVwapReversion(MarketBar bar, IReadOnlyDictionary<string, double> m, int position, double entryPrice, int barsSinceEntry)
+    {
+        if (position != 0 && IsAtOrAfterCloseAll(bar.Time))
+            return new StrategyDecision(SignalAction.Exit, "Fechamento horario");
+        if (position == 0 && IsAtOrAfterCloseAll(bar.Time))
+            return new StrategyDecision(SignalAction.None, "Fora da janela operacional");
+
+        var stop = m["ATR"] * _params.AtrStopMultiplier;
+        if (position > 0)
+        {
+            if (bar.Close <= entryPrice - stop)
+                return new StrategyDecision(SignalAction.Exit, "Stop ATR long");
+            if (bar.Close >= m["VWAP"])
+                return new StrategyDecision(SignalAction.Exit, "Retorno ao VWAP long");
+            if (m["RSI"] > 70)
+                return new StrategyDecision(SignalAction.Exit, "RSI extremo long");
+            if (barsSinceEntry >= _defaults.TimeExitBars)
+                return new StrategyDecision(SignalAction.Exit, "Tempo long");
+            return new StrategyDecision(SignalAction.None, "Reversao VWAP long ativa");
+        }
+
+        if (position < 0)
+        {
+            if (bar.Close >= entryPrice + stop)
+                return new StrategyDecision(SignalAction.Exit, "Stop ATR short");
+            if (bar.Close <= m["VWAP"])
+                return new StrategyDecision(SignalAction.Exit, "Retorno ao VWAP short");
+            if (m["RSI"] < 30)
+                return new StrategyDecision(SignalAction.Exit, "RSI extremo short");
+            if (barsSinceEntry >= _defaults.TimeExitBars)
+                return new StrategyDecision(SignalAction.Exit, "Tempo short");
+            return new StrategyDecision(SignalAction.None, "Reversao VWAP short ativa");
+        }
+
+        var volumeOk = bar.Volume > m["VolumeSMA"] * _params.VwapReversionVolumeRatio;
+        var longSetup = bar.Close < m["VWAP"] * (1 - _params.VwapReversionBand) &&
+                        m["RSI"] < _params.RsiOversold &&
+                        volumeOk;
+        var shortSetup = bar.Close > m["VWAP"] * (1 + _params.VwapReversionBand) &&
+                         m["RSI"] > _params.RsiOverbought &&
+                         volumeOk;
+
+        if (longSetup)
+            return new StrategyDecision(SignalAction.Buy, "Reversao VWAP long");
+        if (shortSetup)
+            return new StrategyDecision(SignalAction.Sell, "Reversao VWAP short");
+
+        return new StrategyDecision(SignalAction.None, "Sem sinal");
+    }
+
+    private StrategyDecision EvaluateBollingerFade(MarketBar bar, IReadOnlyDictionary<string, double> m, int position, double entryPrice, int barsSinceEntry)
+    {
+        if (position != 0 && IsAtOrAfterCloseAll(bar.Time))
+            return new StrategyDecision(SignalAction.Exit, "Fechamento horario");
+        if (position == 0 && IsAtOrAfterCloseAll(bar.Time))
+            return new StrategyDecision(SignalAction.None, "Fora da janela operacional");
+
+        var bbUpper = m["BbMiddle"] + (m["BbUpper"] - m["BbMiddle"]) * (_params.BbStdDev / 2.0);
+        var bbLower = m["BbMiddle"] - (m["BbMiddle"] - m["BbLower"]) * (_params.BbStdDev / 2.0);
+        var stop = m["ATR"] * _params.AtrStopMultiplier;
+        if (position > 0)
+        {
+            if (bar.Close <= entryPrice - stop)
+                return new StrategyDecision(SignalAction.Exit, "Stop banda long");
+            if (bar.Close >= m["BbMiddle"])
+                return new StrategyDecision(SignalAction.Exit, "Alvo media Bollinger long");
+            if (barsSinceEntry >= _defaults.TimeExitBars)
+                return new StrategyDecision(SignalAction.Exit, "Tempo long");
+            return new StrategyDecision(SignalAction.None, "Bollinger fade long ativo");
+        }
+
+        if (position < 0)
+        {
+            if (bar.Close >= entryPrice + stop)
+                return new StrategyDecision(SignalAction.Exit, "Stop banda short");
+            if (bar.Close <= m["BbMiddle"])
+                return new StrategyDecision(SignalAction.Exit, "Alvo media Bollinger short");
+            if (barsSinceEntry >= _defaults.TimeExitBars)
+                return new StrategyDecision(SignalAction.Exit, "Tempo short");
+            return new StrategyDecision(SignalAction.None, "Bollinger fade short ativo");
+        }
+
+        var bullishReversal = bar.Low <= bbLower && bar.Close > bar.Open && m["RSI"] < _params.BbFadeRsiOversold;
+        var bearishReversal = bar.High >= bbUpper && bar.Close < bar.Open && m["RSI"] > _params.BbFadeRsiOverbought;
+
+        if (bullishReversal)
+            return new StrategyDecision(SignalAction.Buy, "Fade Bollinger long");
+        if (bearishReversal)
+            return new StrategyDecision(SignalAction.Sell, "Fade Bollinger short");
+
+        return new StrategyDecision(SignalAction.None, "Sem sinal");
+    }
+
+    private StrategyDecision EvaluateSessionBreakout(
+        MarketBar bar,
+        IReadOnlyList<MarketBar> history,
+        IReadOnlyDictionary<string, double> m,
+        int position,
+        double entryPrice,
+        int barsSinceEntry)
+    {
+        var rangeStart = _defaults.SessionStartHHmmss;
+        var rangeEnd = _defaults.SessionEndHHmmss;
+        var entryDeadline = AddHoursHHmmss(rangeEnd, 1);
+        var closeAll = _defaults.CloseAllHHmmss;
+        var hhmmss = ToHHmmss(bar.Time);
+
+        if (position != 0 && hhmmss >= closeAll)
+            return new StrategyDecision(SignalAction.Exit, "Fechamento horario");
+        if (position > 0 && bar.Close <= entryPrice - m["ATR"] * _params.AtrStopMultiplier)
+            return new StrategyDecision(SignalAction.Exit, "Stop ATR long");
+        if (position < 0 && bar.Close >= entryPrice + m["ATR"] * _params.AtrStopMultiplier)
+            return new StrategyDecision(SignalAction.Exit, "Stop ATR short");
+        if (position != 0 && barsSinceEntry >= _defaults.TimeExitBars)
+            return new StrategyDecision(SignalAction.Exit, "Tempo");
+        if (position != 0)
+            return new StrategyDecision(SignalAction.None, "Em posicao");
+
+        var window = history
+            .Where(b => b.Time.Date == bar.Time.Date && ToHHmmss(b.Time) >= rangeStart && ToHHmmss(b.Time) <= rangeEnd)
+            .ToList();
+
+        if (hhmmss <= rangeEnd || hhmmss > entryDeadline || window.Count < 2)
+            return new StrategyDecision(SignalAction.None, "Aguardando rompimento da janela");
+
+        var windowHigh = window.Max(b => b.High);
+        var windowLow = window.Min(b => b.Low);
+        var windowRange = windowHigh - windowLow;
+        if (windowRange < m["ATR"] * _params.SessionMinRangeAtrRatio)
+            return new StrategyDecision(SignalAction.None, "Amplitude baixa");
+
+        if (bar.Close > windowHigh + m["ATR"] * _params.SessionBreakoutAtrBuffer)
+            return new StrategyDecision(SignalAction.Buy, "Breakout de sessao long");
+        if (bar.Close < windowLow - m["ATR"] * _params.SessionBreakoutAtrBuffer)
+            return new StrategyDecision(SignalAction.Sell, "Breakout de sessao short");
+
+        return new StrategyDecision(SignalAction.None, "Sem rompimento");
+    }
+
     private static Dictionary<string, double> BuildMetrics(
         IReadOnlyList<MarketBar> history,
         IReadOnlyList<MarketBar> sessionHistory,
@@ -339,6 +481,9 @@ public sealed partial class StrategyBacktester
             ["VolumeSMA"] = TechnicalIndicators.VolumeSma(history, 20),
             ["MACD"] = macd,
             ["MACDSignal"] = TechnicalIndicators.Ema(macdValues, 9),
+            ["BbMiddle"] = TechnicalIndicators.Sma(closes, 20),
+            ["BbUpper"] = TechnicalIndicators.BollingerUpper(closes, 20, 2.0),
+            ["BbLower"] = TechnicalIndicators.BollingerLower(closes, 20, 2.0),
             ["Highest10"] = highs.Count < 10 ? double.NaN : highs.TakeLast(10).Max(),
             ["Lowest10"] = lows.Count < 10 ? double.NaN : lows.TakeLast(10).Min(),
             ["Highest3"] = highs.Count < 3 ? double.NaN : highs.TakeLast(3).Max(),
@@ -352,7 +497,7 @@ public sealed partial class StrategyBacktester
 
     private static bool IndicatorsReady(IReadOnlyDictionary<string, double> metrics)
     {
-        var required = new[] { "EMA9", "EMA21", "RSI", "VWAP", "ATR", "ATRSMA", "CandleRangeSMA", "VolumeSMA", "Highest3", "Lowest3" };
+        var required = new[] { "EMA9", "EMA21", "RSI", "VWAP", "ATR", "ATRSMA", "CandleRangeSMA", "VolumeSMA", "Highest3", "Lowest3", "BbUpper", "BbLower" };
         return required.All(k => !double.IsNaN(metrics[k]) && !double.IsInfinity(metrics[k]));
     }
 
@@ -372,6 +517,9 @@ public sealed partial class StrategyBacktester
         StrategyKind.Momentum => "NinjaBotIAMomentum_v1_0_0_0",
         StrategyKind.GoldBreakout => "NinjaBotIAGoldBreakout_v1_0_0_0",
         StrategyKind.Ema => "ema",
+        StrategyKind.VwapReversion => "VwapReversion_v1",
+        StrategyKind.BollingerFade => "BollingerFade_v1",
+        StrategyKind.SessionBreakout => "SessionBreakout_v1",
         _ => kind.ToString()
     };
 
@@ -408,6 +556,9 @@ public sealed partial class StrategyBacktester
             StrategyKind.Momentum => new(90000, 110000, 110000, 30, 80, 73.75, 1.0, 1.0, 1.0, 73.75),
             StrategyKind.GoldBreakout => new(83000, 100000, 165500, 60, 73.75, 26.25, 1.0, 1.0, 1.0, 26.25),
             StrategyKind.Ema => new(90000, 170000, 170000, 30, 40, 25, 1.0, 1.0, 1.0, 25),
+            StrategyKind.VwapReversion => new(93000, 160000, 160000, 20, 40, 15, 1.0, 1.0, 1.1, 15),
+            StrategyKind.BollingerFade => new(93000, 160000, 160000, 30, 40, 20, 1.0, 1.0, 1.0, 20),
+            StrategyKind.SessionBreakout => new(93000, 100000, 165500, 40, 60, 25, 1.0, 1.0, 1.0, 25),
             _ => new(90000, 170000, 170000, 30, 40, 25, 1.0, 1.0, 1.0, 25)
         };
     }

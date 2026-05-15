@@ -150,4 +150,38 @@ public static class TechnicalIndicators
 
         return sum / period;
     }
+
+    public static double BollingerUpper(IReadOnlyList<double> closes, int period, double stdDevMultiplier)
+    {
+        if (closes.Count < period)
+        {
+            return double.NaN;
+        }
+
+        var mean = Sma(closes, period);
+        var variance = 0.0;
+        for (var i = closes.Count - period; i < closes.Count; i++)
+        {
+            variance += Math.Pow(closes[i] - mean, 2);
+        }
+
+        return mean + stdDevMultiplier * Math.Sqrt(variance / period);
+    }
+
+    public static double BollingerLower(IReadOnlyList<double> closes, int period, double stdDevMultiplier)
+    {
+        if (closes.Count < period)
+        {
+            return double.NaN;
+        }
+
+        var mean = Sma(closes, period);
+        var variance = 0.0;
+        for (var i = closes.Count - period; i < closes.Count; i++)
+        {
+            variance += Math.Pow(closes[i] - mean, 2);
+        }
+
+        return mean - stdDevMultiplier * Math.Sqrt(variance / period);
+    }
 }

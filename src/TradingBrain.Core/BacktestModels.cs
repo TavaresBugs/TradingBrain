@@ -121,7 +121,16 @@ public sealed record StrategyTuningParams(
     int TrailingActivationBars = 3,
     double EmaTrailingAtrOffset = 0,
     double TrendAtrStopMultiplier = 2.0,
-    double GoldBreakoutAtrStopMultiplier = 2.0)
+    double GoldBreakoutAtrStopMultiplier = 2.0,
+    double VwapReversionBand = 0.002,
+    int RsiOversold = 35,
+    int RsiOverbought = 65,
+    double VwapReversionVolumeRatio = 1.1,
+    double BbStdDev = 2.0,
+    int BbFadeRsiOversold = 35,
+    int BbFadeRsiOverbought = 65,
+    double SessionBreakoutAtrBuffer = 0.1,
+    double SessionMinRangeAtrRatio = 0.5)
 {
     public static StrategyTuningParams RefinedDefault { get; } = new();
 
@@ -139,7 +148,16 @@ public sealed record StrategyTuningParams(
         TrailingActivationBars: 3,
         EmaTrailingAtrOffset: 0,
         TrendAtrStopMultiplier: 2.0,
-        GoldBreakoutAtrStopMultiplier: 2.0);
+        GoldBreakoutAtrStopMultiplier: 2.0,
+        VwapReversionBand: 0.002,
+        RsiOversold: 35,
+        RsiOverbought: 65,
+        VwapReversionVolumeRatio: 1.1,
+        BbStdDev: 2.0,
+        BbFadeRsiOversold: 35,
+        BbFadeRsiOverbought: 65,
+        SessionBreakoutAtrBuffer: 0.1,
+        SessionMinRangeAtrRatio: 0.5);
 }
 
 public sealed record GridSearchResult(

@@ -123,6 +123,46 @@ public sealed class TechnicalIndicatorsTests
         Assert.Equal(4.0, result, precision: 10);
     }
 
+    [Fact]
+    public void BollingerUpper_ReturnsNaN_WhenNotEnoughData()
+    {
+        var result = TechnicalIndicators.BollingerUpper(new[] { 1.0, 2.0 }, 3, 2.0);
+
+        Assert.True(double.IsNaN(result));
+    }
+
+    [Fact]
+    public void BollingerUpper_IsAboveMean_WhenDataReady()
+    {
+        var values = new[] { 1.0, 2.0, 3.0, 4.0, 5.0 };
+
+        var result = TechnicalIndicators.BollingerUpper(values, 5, 2.0);
+
+        Assert.True(result > values.Average());
+    }
+
+    [Fact]
+    public void BollingerLower_IsBelowMean_WhenDataReady()
+    {
+        var values = new[] { 1.0, 2.0, 3.0, 4.0, 5.0 };
+
+        var result = TechnicalIndicators.BollingerLower(values, 5, 2.0);
+
+        Assert.True(result < values.Average());
+    }
+
+    [Fact]
+    public void BollingerUpperAndLower_AreSymmetric_AroundMean()
+    {
+        var values = new[] { 1.0, 2.0, 3.0, 4.0, 5.0 };
+        var mean = values.Average();
+
+        var upper = TechnicalIndicators.BollingerUpper(values, 5, 2.0);
+        var lower = TechnicalIndicators.BollingerLower(values, 5, 2.0);
+
+        Assert.Equal(mean - lower, upper - mean, precision: 10);
+    }
+
     private static MarketBar Bar(
         double close = 10,
         double high = 10,

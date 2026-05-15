@@ -7,5 +7,8 @@ public enum StrategyKind
     Momentum,
     Range,
     Trend,
-    Ema
+    Ema,
+    VwapReversion,
+    BollingerFade,
+    SessionBreakout
 }

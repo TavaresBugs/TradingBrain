@@ -13,7 +13,8 @@ public sealed partial class StrategyBacktester
         double openProfit,
         int barsSinceEntry,
         ref int trendState,
-        ref int rangeState)
+        ref int rangeState,
+        ref int schoolRunState)
     {
         if (!IsInsideSession(bar.Time) && position == 0)
         {
@@ -31,6 +32,7 @@ public sealed partial class StrategyBacktester
             StrategyKind.VwapReversion => EvaluateVwapReversion(bar, m, position, entryPrice, barsSinceEntry),
             StrategyKind.BollingerFade => EvaluateBollingerFade(bar, m, position, entryPrice, barsSinceEntry),
             StrategyKind.SessionBreakout => EvaluateSessionBreakout(bar, history, m, position, entryPrice, barsSinceEntry),
+            StrategyKind.SchoolRun => EvaluateSchoolRun(bar, m, position, entryPrice, barsSinceEntry, ref schoolRunState),
             _ => new StrategyDecision(SignalAction.None, "Strategy nao implementada")
         };
     }
@@ -453,6 +455,98 @@ public sealed partial class StrategyBacktester
         return new StrategyDecision(SignalAction.None, "Sem rompimento");
     }
 
+    private StrategyDecision EvaluateSchoolRun(
+        MarketBar bar,
+        IReadOnlyDictionary<string, double> m,
+        int position,
+        double entryPrice,
+        int barsSinceEntry,
+        ref int schoolRunState)
+    {
+        if (position != 0 && IsAtOrAfterCloseAll(bar.Time))
+            return new StrategyDecision(SignalAction.Exit, "SRS: fechamento forcado");
+
+        var stop = m["ATR"] * _params.SrsAtrStopMultiplier;
+        var target = m["ATR"] * _params.SrsAtrTargetMultiplier;
+
+        if (position > 0)
+        {
+            if (bar.Close <= entryPrice - stop)
+                return new StrategyDecision(SignalAction.Exit, "SRS: stop long");
+            if (bar.Close >= entryPrice + target)
+                return new StrategyDecision(SignalAction.Exit, "SRS: target long");
+            if (barsSinceEntry >= _defaults.TimeExitBars)
+                return new StrategyDecision(SignalAction.Exit, "SRS: timeout long");
+            return new StrategyDecision(SignalAction.None, "SRS: em posicao long");
+        }
+
+        if (position < 0)
+        {
+            if (bar.Close >= entryPrice + stop)
+                return new StrategyDecision(SignalAction.Exit, "SRS: stop short");
+            if (bar.Close <= entryPrice - target)
+                return new StrategyDecision(SignalAction.Exit, "SRS: target short");
+            if (barsSinceEntry >= _defaults.TimeExitBars)
+                return new StrategyDecision(SignalAction.Exit, "SRS: timeout short");
+            return new StrategyDecision(SignalAction.None, "SRS: em posicao short");
+        }
+
+        if (schoolRunState == 2)
+            return new StrategyDecision(SignalAction.None, "SRS: trade diario encerrado");
+        if (IsAtOrAfterCloseAll(bar.Time) || ToHHmmss(bar.Time) > _defaults.SessionEndHHmmss)
+            return new StrategyDecision(SignalAction.None, "SRS: fora da janela");
+
+        var m15Today = (_resampledBars ?? Array.Empty<MarketBar>())
+            .Where(b => b.Time.Date == bar.Time.Date)
+            .ToList();
+
+        if (m15Today.Count < _params.SrsReferenceCandle)
+            return new StrategyDecision(SignalAction.None, "SRS: aguardando candle de referencia M15");
+
+        var refCandle = m15Today[_params.SrsReferenceCandle - 1];
+        var refCloseTime = refCandle.Time.AddMinutes(15);
+        schoolRunState = 1;
+
+        if (bar.Time <= refCloseTime)
+            return new StrategyDecision(SignalAction.None, "SRS: candle de referencia ainda aberto");
+
+        var overnightBars = (_resampledBars ?? Array.Empty<MarketBar>())
+            .Where(b => b.Time.Date == bar.Time.Date &&
+                        ToHHmmss(b.Time) >= _params.OvernightRangeStartHHmmss &&
+                        ToHHmmss(b.Time) <= _params.OvernightRangeEndHHmmss)
+            .ToList();
+
+        var overnightHigh = overnightBars.Count > 0 ? overnightBars.Max(b => b.High) : double.NaN;
+        var overnightLow = overnightBars.Count > 0 ? overnightBars.Min(b => b.Low) : double.NaN;
+        var insideOvernight = !double.IsNaN(overnightHigh) &&
+                              !double.IsNaN(overnightLow) &&
+                              bar.Close < overnightHigh &&
+                              bar.Close > overnightLow;
+
+        var buffer = m["ATR"] * _params.SrsAtrBuffer;
+        var rawLong = bar.Close > refCandle.High + buffer;
+        var rawShort = bar.Close < refCandle.Low - buffer;
+
+        if (!rawLong && !rawShort)
+            return new StrategyDecision(SignalAction.None, "SRS: sem rompimento do candle de referencia");
+
+        SignalAction action;
+        string reason;
+        if (_params.UseAntiMode && insideOvernight)
+        {
+            action = rawLong ? SignalAction.Sell : SignalAction.Buy;
+            reason = rawLong ? "Anti-SRS: long dentro do overnight -> short" : "Anti-SRS: short dentro do overnight -> long";
+        }
+        else
+        {
+            action = rawLong ? SignalAction.Buy : SignalAction.Sell;
+            reason = rawLong ? "SRS: breakout long" : "SRS: breakout short";
+        }
+
+        schoolRunState = 2;
+        return new StrategyDecision(action, reason);
+    }
+
     private static Dictionary<string, double> BuildMetrics(
         IReadOnlyList<MarketBar> history,
         IReadOnlyList<MarketBar> sessionHistory,
@@ -520,6 +614,7 @@ public sealed partial class StrategyBacktester
         StrategyKind.VwapReversion => "VwapReversion_v1",
         StrategyKind.BollingerFade => "BollingerFade_v1",
         StrategyKind.SessionBreakout => "SessionBreakout_v1",
+        StrategyKind.SchoolRun => "SchoolRun_v1",
         _ => kind.ToString()
     };
 
@@ -559,6 +654,7 @@ public sealed partial class StrategyBacktester
             StrategyKind.VwapReversion => new(93000, 160000, 160000, 20, 40, 15, 1.0, 1.0, 1.1, 15),
             StrategyKind.BollingerFade => new(93000, 160000, 160000, 30, 40, 20, 1.0, 1.0, 1.0, 20),
             StrategyKind.SessionBreakout => new(93000, 100000, 165500, 40, 60, 25, 1.0, 1.0, 1.0, 25),
+            StrategyKind.SchoolRun => new(93000, 160000, 160000, 20, 60, 30, 1.0, 1.0, 1.0, 30),
             _ => new(90000, 170000, 170000, 30, 40, 25, 1.0, 1.0, 1.0, 25)
         };
     }

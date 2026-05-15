@@ -10,5 +10,6 @@ public enum StrategyKind
     Ema,
     VwapReversion,
     BollingerFade,
-    SessionBreakout
+    SessionBreakout,
+    SchoolRun
 }

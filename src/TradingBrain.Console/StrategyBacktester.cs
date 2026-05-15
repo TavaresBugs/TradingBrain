@@ -34,6 +34,7 @@ public sealed partial class StrategyBacktester
         var peakEquity = 0.0;
         var trendState = 0;
         var rangeState = 0;
+        var schoolRunState = 0;
         var currentDate = DateTime.MinValue;
 
         for (var i = 0; i < bars.Count; i++)
@@ -48,6 +49,7 @@ public sealed partial class StrategyBacktester
             {
                 currentDate = bar.Time.Date;
                 sessionHistory.Clear();
+                schoolRunState = 0;
             }
             sessionHistory.Add(bar);
 
@@ -68,7 +70,7 @@ public sealed partial class StrategyBacktester
             var openProfit = position == 0 ? 0 : (bar.Close - entryPrice) * position;
             var barsSinceEntry = entryBarIndex < 0 ? 0 : i - entryBarIndex;
             var decision = IndicatorsReady(metrics)
-                ? Evaluate(bar, history, metrics, position, entryPrice, openProfit, barsSinceEntry, ref trendState, ref rangeState)
+                ? Evaluate(bar, history, metrics, position, entryPrice, openProfit, barsSinceEntry, ref trendState, ref rangeState, ref schoolRunState)
                 : new StrategyDecision(SignalAction.None, "Aquecendo indicadores");
 
             var signal = decision.Action;

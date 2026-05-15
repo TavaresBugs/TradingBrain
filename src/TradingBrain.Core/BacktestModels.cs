@@ -130,7 +130,14 @@ public sealed record StrategyTuningParams(
     int BbFadeRsiOversold = 35,
     int BbFadeRsiOverbought = 65,
     double SessionBreakoutAtrBuffer = 0.1,
-    double SessionMinRangeAtrRatio = 0.5)
+    double SessionMinRangeAtrRatio = 0.5,
+    bool UseAntiMode = false,
+    int SrsReferenceCandle = 2,
+    int OvernightRangeStartHHmmss = 0,
+    int OvernightRangeEndHHmmss = 93000,
+    double SrsAtrBuffer = 0.1,
+    double SrsAtrStopMultiplier = 1.5,
+    double SrsAtrTargetMultiplier = 2.0)
 {
     public static StrategyTuningParams RefinedDefault { get; } = new();
 
@@ -157,7 +164,14 @@ public sealed record StrategyTuningParams(
         BbFadeRsiOversold: 35,
         BbFadeRsiOverbought: 65,
         SessionBreakoutAtrBuffer: 0.1,
-        SessionMinRangeAtrRatio: 0.5);
+        SessionMinRangeAtrRatio: 0.5,
+        UseAntiMode: false,
+        SrsReferenceCandle: 2,
+        OvernightRangeStartHHmmss: 0,
+        OvernightRangeEndHHmmss: 93000,
+        SrsAtrBuffer: 0.1,
+        SrsAtrStopMultiplier: 1.5,
+        SrsAtrTargetMultiplier: 2.0);
 }
 
 public sealed record GridSearchResult(

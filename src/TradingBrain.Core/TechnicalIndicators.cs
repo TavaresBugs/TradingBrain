@@ -2,6 +2,33 @@ namespace TradingBrain.Core;
 
 public static class TechnicalIndicators
 {
+    /// <summary>
+    /// Agrega barras de timeframe menor em barras de timeframe maior.
+    /// factor = quantas barras menores formam uma barra maior.
+    /// </summary>
+    public static IReadOnlyList<MarketBar> Resample(IReadOnlyList<MarketBar> bars, int factor)
+    {
+        if (factor <= 1)
+        {
+            return bars;
+        }
+
+        var result = new List<MarketBar>();
+        for (var i = 0; i < bars.Count; i += factor)
+        {
+            var slice = bars.Skip(i).Take(factor).ToList();
+            result.Add(new MarketBar(
+                slice[0].Time,
+                slice[0].Open,
+                slice.Max(b => b.High),
+                slice.Min(b => b.Low),
+                slice[^1].Close,
+                slice.Sum(b => b.Volume)));
+        }
+
+        return result;
+    }
+
     public static double Ema(IReadOnlyList<double> values, int period)
     {
         if (values.Count < period)

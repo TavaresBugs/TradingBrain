@@ -20,7 +20,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private readonly string[] targetTypes =
         {
-            "NinjaTrader.NinjaScript.Strategies.NinjaBotIA.NinjaBotIAGoldBreakout_v1_0_0_0",
+            "NinjaTrader.NinjaScript.Strategies.NinjaBotIA.NinjaBotIAOrbBreakout_v1_0_0_0",
             "NinjaTrader.NinjaScript.Strategies.NinjaBotIA.NinjaBotIAMomentum_v1_0_0_0",
             "NinjaTrader.NinjaScript.Strategies.NinjaBotIA.NinjaBotIARange_v1_0_0_0",
             "NinjaTrader.NinjaScript.Strategies.NinjaBotIA.NinjaBotIATrend_v1_0_0_1",

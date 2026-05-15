@@ -35,7 +35,7 @@ Achados confirmados:
 - O inicializador do modulo chama runtime AgileDotNet.
 - Foram detectados 6 tipos de strategy:
   - `ema`
-  - `NinjaBotIAGoldBreakout_v1_0_0_0`
+  - `NinjaBotIAOrbBreakout_v1_0_0_0`
   - `NinjaBotIAMomentum_v1_0_0_0`
   - `NinjaBotIARange_v1_0_0_0`
   - `NinjaBotIATrend_v1_0_0_1`
@@ -58,7 +58,7 @@ Os campos indicam a planta baixa de cada strategy:
 | `Momentum` | MACD, series internas, MA kind, cloud/arrows, stop/target, time filter | Momentum com MACD/RSI/EMA e saidas por reversao/tempo |
 | `Range` | range filter, ATR, swing period/multiplier, TP/SL por ATR | Rompimento/retorno de faixa com filtro ATR |
 | `Trend` | up/down series, trend series, SMA TR, ATR multiplier, break-even, trailing | Trend following com banda/estado e gestao dinamica |
-| `GoldBreakout` | janela de horario, high da janela, partial, take1/take2, stop, close all | Breakout intradiario por janela de abertura |
+| `OrbBreakout` | janela de horario, high da janela, partial, take1/take2, stop, close all | Breakout intradiario por janela de abertura |
 | `ema` | Swing, Stop, Target | EMA/swing simplificada com stop/target |
 
 ## O que e codigo nosso
@@ -113,7 +113,7 @@ Resultado baseline no MNQ:
 | Range | 7 | 1.4007 | 7.6429 | 53.50 | Pouca amostra |
 | Ema | 227 | 1.1574 | 2.2104 | 501.75 | Muito ativa, precisa controle de risco |
 | Trend | 24 | 0.6903 | -8.2188 | -197.25 | Desalinhada com MNQ atual |
-| GoldBreakout | 0 | 0 | 0 | 0 | Janela/ativo desalinhados |
+| OrbBreakout | 0 | 0 | 0 | 0 | Janela/ativo desalinhados |
 
 Resultado apos primeira rodada refinada:
 
@@ -121,11 +121,11 @@ Resultado apos primeira rodada refinada:
 - `Ema` melhorou pouco o ProfitFactor, mas perdeu expectancy.
 - `Trend` continuou negativa.
 - `Volatility` e `Range` ficaram restritivas demais e zeraram trades.
-- `GoldBreakout` continuou sem trades no MNQ.
+- `OrbBreakout` continuou sem trades no MNQ.
 
 Conclusao atual:
 
-`Momentum` e `Ema` sao as duas frentes mais uteis para evoluir primeiro. `Volatility` e `Range` precisam de filtros graduais/parametrizados. `Trend` e `GoldBreakout` dependem de recalibracao forte por ativo/sessao.
+`Momentum` e `Ema` sao as duas frentes mais uteis para evoluir primeiro. `Volatility` e `Range` precisam de filtros graduais/parametrizados. `Trend` e `OrbBreakout` dependem de recalibracao forte por ativo/sessao.
 
 ## Nivel de confianca por componente
 
@@ -192,7 +192,7 @@ dotnet run --project .\src\TradingBrain.Console\TradingBrain.Console.csproj -- -
 - Transformar filtros binarios em score quando fizer sentido.
 - Criar harness especifico para `Momentum` e `Ema` primeiro.
 - Recalibrar `Volatility` e `Range` com filtros menos restritivos.
-- Reavaliar `Trend` e `GoldBreakout` apenas depois de ajustar ativo/sessao.
+- Reavaliar `Trend` e `OrbBreakout` apenas depois de ajustar ativo/sessao.
 
 ### 4. Validar robustez
 

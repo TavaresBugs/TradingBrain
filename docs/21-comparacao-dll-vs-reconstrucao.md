@@ -37,7 +37,7 @@ O que ainda falta para comparar "lado a lado de verdade":
 | Momentum | Defaults confirmados. Campos: MACD, `Lb`, medias customizadas, cloud/arrows, time filter, flat outside. | Motor heuristico por MACD/RSI/EMA e janela real. | 74 trades, Net +198.25, DD 151.50 |
 | Range | Defaults confirmados. Campos: range filter, ATR, swing, TP/SL ATR. | Motor heuristico por range filter + ATR. | 7 trades, Net +53.50, DD 133.50 |
 | Trend | Defaults confirmados. Campos: SuperTrend-like ATR, target, stop, BE, trailing. | Motor heuristico por SuperTrend/ATR. | 24 trades, Net -197.25, DD 461.00 |
-| GoldBreakout | Defaults confirmados. Campos: windowHigh, windowActive, parcial, targets, stop, close all. | Motor heuristico por rompimento de janela. | 0 trades no MNQ atual |
+| OrbBreakout | Defaults confirmados. Campos: windowHigh, windowActive, parcial, targets, stop, close all. | Motor heuristico por rompimento de janela. | 0 trades no MNQ atual |
 | Ema | Campos confirmados: Swing, Stop, Target. Defaults ainda menos ricos que os outros. | Motor heuristico EMA + swing + stop/target. | 227 trades, Net +501.75, DD 422.75 |
 
 ## Como obter comparacao trade a trade

@@ -78,7 +78,7 @@ Rodada com `MNQ 06-26.Last.txt`, 13471 barras:
 | Strategy | Trades | WinRate | ProfitFactor | Expectancy | NetPnL | MaxDD |
 |---|---:|---:|---:|---:|---:|---:|
 | Volatility | 18 | 38.89% | 1.4223 | 3.0972 | 55.75 | 108.75 |
-| GoldBreakout | 0 | 0% | 0 | 0 | 0 | 0 |
+| OrbBreakout | 0 | 0% | 0 | 0 | 0 | 0 |
 | Momentum | 74 | 39.19% | 1.4835 | 2.6791 | 198.25 | 151.50 |
 | Range | 7 | 42.86% | 1.4007 | 7.6429 | 53.50 | 133.50 |
 | Trend | 24 | 41.67% | 0.6903 | -8.2188 | -197.25 | 461.00 |

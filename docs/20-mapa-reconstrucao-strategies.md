@@ -8,7 +8,7 @@ Temos duas coisas bem estabelecidas:
 
 - A DLL `NinjaBotIA.dll` nao esta alinhada como build direta do arquivo `NinjaBotIA v3.cs` unificado.
 - A DLL contem cinco estrategias separadas dentro de `NinjaTrader.NinjaScript.Strategies.NinjaBotIA`:
-  - `NinjaBotIAGoldBreakout_v1_0_0_0`
+  - `NinjaBotIAOrbBreakout_v1_0_0_0`
   - `NinjaBotIAMomentum_v1_0_0_0`
   - `NinjaBotIARange_v1_0_0_0`
   - `NinjaBotIATrend_v1_0_0_1`
@@ -67,7 +67,7 @@ ATR multipliers: 0.1..double.MaxValue
 Booleanos/doubles especificos sem RangeAttribute: sem limite declarado
 ```
 
-### GoldBreakout
+### OrbBreakout
 
 Propriedades publicas:
 
@@ -522,7 +522,7 @@ C:\Users\jhonv\OneDrive\Documentos\NinjaTrader 8\log\NinjaBotIAConfigProbeV2-rep
 1. Completar o mapa de defaults e atributos com `NinjaBotIAConfigProbe`.
 2. Atualizar o esqueleto `NinjaBotIA_dll_shape.cs` com defaults e metadados visiveis.
 3. Reconstruir modulo por modulo, nesta ordem:
-   - GoldBreakout: mais simples e mais parametrico.
+   - OrbBreakout: mais simples e mais parametrico.
    - Trend: padrao SuperTrend/ATR e gestao clara.
    - Range: range filter com ATR.
    - Volatility: mais rico, mas campos indicam arquitetura.
@@ -578,7 +578,7 @@ Uso recomendado:
 2. Rodar em Sim101/Playback, nunca em conta real.
 3. Adicionar o NinjaBotIABehaviorTraceProbe em um chart.
 4. Rodar um modulo original da DLL no mesmo ambiente.
-5. Repetir por modulo: GoldBreakout, Trend, Range, Volatility, Momentum.
+5. Repetir por modulo: OrbBreakout, Trend, Range, Volatility, Momentum.
 6. Comparar o CSV gerado com os trades do Strategy Analyzer/Executions.
 ```
 

@@ -14,7 +14,7 @@ O CSV exportado inclui a coluna `Strategy`, por exemplo:
 NinjaBotIAVolatility_v1_0_0_0
 ```
 
-Assim nao existe ambiguidade entre `GoldBreakout`, `Momentum`, `Range`, `Trend`, `Volatility` e `ema`.
+Assim nao existe ambiguidade entre `OrbBreakout`, `Momentum`, `Range`, `Trend`, `Volatility` e `ema`.
 
 ## 2. O que significa "mais fiel"
 
@@ -55,7 +55,7 @@ Volatility: EMA, RSI, VWAP, ATR, SMA volume, trailing, breakeven, time exit, max
 Trend: ATR/SuperTrend, break-even, trailing, target/stop ticks
 Range: range filter, ATR, swing, TP/SL por ATR
 Momentum: MACD, medias suavizadas, cloud/arrows
-GoldBreakout: janela, windowHigh, parcial, targets/stop fixos
+OrbBreakout: janela, windowHigh, parcial, targets/stop fixos
 ```
 
 ### Etapa B: escolher motor
@@ -74,7 +74,7 @@ Proximos motores:
 Trend
 Range
 Momentum
-GoldBreakout
+OrbBreakout
 Ema
 ```
 

@@ -29,7 +29,7 @@ Tambem existem recursos embutidos com nomes GUID e a secao `.text` tem alta entr
 
 Mesmo com os corpos vazios, os metadados de propriedades e campos sobreviveram. Isso revela a arquitetura das estrategias:
 
-### GoldBreakout
+### OrbBreakout
 
 Campos/propriedades expostos:
 

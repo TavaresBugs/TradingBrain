@@ -3,7 +3,7 @@ namespace TradingBrain.Core;
 public enum StrategyKind
 {
     Volatility,
-    GoldBreakout,
+    OrbBreakout,
     Momentum,
     Range,
     Trend,

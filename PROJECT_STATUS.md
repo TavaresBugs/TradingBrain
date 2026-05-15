@@ -44,7 +44,7 @@ Atualizado em: 2026-05-15
 ## Strategies reconstruidas
 
 - `Volatility`
-- `GoldBreakout`
+- `OrbBreakout`
 - `Momentum`
 - `Range`
 - `Trend`

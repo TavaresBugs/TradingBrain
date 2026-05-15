@@ -163,6 +163,72 @@ public sealed class TechnicalIndicatorsTests
         Assert.Equal(mean - lower, upper - mean, precision: 10);
     }
 
+    [Fact]
+    public void Resample_Factor3_AggregatesCorrectly()
+    {
+        var bars = new[]
+        {
+            new MarketBar(new DateTime(2024, 1, 2, 9, 30, 0), 100, 105, 99, 103, 1000),
+            new MarketBar(new DateTime(2024, 1, 2, 9, 35, 0), 103, 107, 102, 106, 1200),
+            new MarketBar(new DateTime(2024, 1, 2, 9, 40, 0), 106, 108, 104, 105, 800),
+            new MarketBar(new DateTime(2024, 1, 2, 9, 45, 0), 105, 110, 104, 109, 1500),
+            new MarketBar(new DateTime(2024, 1, 2, 9, 50, 0), 109, 112, 108, 111, 900),
+            new MarketBar(new DateTime(2024, 1, 2, 9, 55, 0), 111, 113, 109, 112, 600),
+        };
+
+        var result = TechnicalIndicators.Resample(bars, 3);
+
+        Assert.Equal(2, result.Count);
+
+        Assert.Equal(new DateTime(2024, 1, 2, 9, 30, 0), result[0].Time);
+        Assert.Equal(100, result[0].Open);
+        Assert.Equal(108, result[0].High);
+        Assert.Equal(99, result[0].Low);
+        Assert.Equal(105, result[0].Close);
+        Assert.Equal(3000, result[0].Volume);
+
+        Assert.Equal(new DateTime(2024, 1, 2, 9, 45, 0), result[1].Time);
+        Assert.Equal(105, result[1].Open);
+        Assert.Equal(113, result[1].High);
+        Assert.Equal(104, result[1].Low);
+        Assert.Equal(112, result[1].Close);
+        Assert.Equal(3000, result[1].Volume);
+    }
+
+    [Fact]
+    public void Resample_Factor1_ReturnsOriginal()
+    {
+        var bars = new[]
+        {
+            new MarketBar(new DateTime(2024, 1, 2, 9, 30, 0), 100, 105, 99, 103, 1000),
+            new MarketBar(new DateTime(2024, 1, 2, 9, 35, 0), 103, 107, 102, 106, 1200),
+        };
+
+        var result = TechnicalIndicators.Resample(bars, 1);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal(bars[0], result[0]);
+        Assert.Equal(bars[1], result[1]);
+    }
+
+    [Fact]
+    public void Resample_BarrasIncompletas_IncluiUltimoGrupo()
+    {
+        var bars = Enumerable.Range(0, 5)
+            .Select(i => new MarketBar(
+                new DateTime(2024, 1, 2, 9, 30, 0).AddMinutes(i * 5),
+                100 + i,
+                105 + i,
+                99 + i,
+                103 + i,
+                1000))
+            .ToList();
+
+        var result = TechnicalIndicators.Resample(bars, 3);
+
+        Assert.Equal(2, result.Count);
+    }
+
     private static MarketBar Bar(
         double close = 10,
         double high = 10,

@@ -564,7 +564,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
     }
 
-    public class CleanNinjaBotIAGoldBreakout : Strategy
+    public class CleanNinjaBotIAOrbBreakout : Strategy
     {
         private double windowHigh;
         private double windowLow;
@@ -588,7 +588,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Name = "CleanNinjaBotIAGoldBreakout";
+                Name = "CleanNinjaBotIAOrbBreakout";
                 Calculate = Calculate.OnBarClose;
                 LoteBase = 1;
                 StartHour = 8;
@@ -647,12 +647,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (Close[0] > windowHigh)
             {
                 tradesHoje++;
-                EnterLong(LoteBase, "GoldBreakoutLong");
+                EnterLong(LoteBase, "OrbBreakoutLong");
             }
             else if (Close[0] < windowLow)
             {
                 tradesHoje++;
-                EnterShort(LoteBase, "GoldBreakoutShort");
+                EnterShort(LoteBase, "OrbBreakoutShort");
             }
         }
 

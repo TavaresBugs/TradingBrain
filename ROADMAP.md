@@ -149,7 +149,7 @@ Depois:
 - `Volatility`: transformar filtros binarios em scores/parametros.
 - `Range`: recalibrar compressao e banda.
 - `Trend`: revisar premissa para MNQ.
-- `GoldBreakout`: testar outros ativos/sessoes antes de descartar.
+- `OrbBreakout`: testar outros ativos/sessoes antes de descartar.
 
 Pronto quando:
 
@@ -182,4 +182,4 @@ Pronto quando:
 3. Criar manifesto de rodada.
 4. Rodar Momentum e Ema com custos.
 5. Adicionar treino/teste ao grid search.
-6. So depois mexer forte em Volatility, Range, Trend e GoldBreakout.
+6. So depois mexer forte em Volatility, Range, Trend e OrbBreakout.

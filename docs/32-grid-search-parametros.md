@@ -10,7 +10,7 @@ Foi adicionada uma camada de parametros (`StrategyTuningParams`) para evitar thr
 
 - `src/TradingBrain.Console/StrategyBacktester.cs`
   - Recebe parametros opcionais no construtor.
-  - Usa parametros em `EvaluateVolatility`, `EvaluateRange`, `EvaluateMomentum`, `EvaluateEma`, `EvaluateTrend` e `EvaluateGoldBreakout`.
+  - Usa parametros em `EvaluateVolatility`, `EvaluateRange`, `EvaluateMomentum`, `EvaluateEma`, `EvaluateTrend` e `EvaluateOrbBreakout`.
 
 - `src/TradingBrain.Console/GridSearchRunner.cs`
   - Novo runner com grids pequenos por estrategia.

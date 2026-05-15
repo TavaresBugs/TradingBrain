@@ -59,7 +59,7 @@
 #### Recognized Trading Calls
 - none found
 
-### `NinjaTrader.NinjaScript.Strategies.NinjaBotIA.NinjaBotIAGoldBreakout_v1_0_0_0`
+### `NinjaTrader.NinjaScript.Strategies.NinjaBotIA.NinjaBotIAOrbBreakout_v1_0_0_0`
 
 - Base: `NinjaTrader.NinjaScript.Strategies.Strategy`
 - Token: `0x0200004D`

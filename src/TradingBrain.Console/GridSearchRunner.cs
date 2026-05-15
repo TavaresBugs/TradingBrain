@@ -104,7 +104,7 @@ public static class GridSearchRunner
     public static void ExportCsv(IReadOnlyList<GridSearchResult> results, string path)
     {
         using var writer = new StreamWriter(path);
-        writer.WriteLine("Strategy,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,GoldAtrStop,VwapReversionBand,BbStdDev,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio");
+        writer.WriteLine("Strategy,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,OrbAtrStop,VwapReversionBand,BbStdDev,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio");
 
         foreach (var result in results)
         {
@@ -147,7 +147,7 @@ public static class GridSearchRunner
                 p.TrailingActivationBars.ToString(CultureInfo.InvariantCulture),
                 F(p.EmaTrailingAtrOffset),
                 F(p.TrendAtrStopMultiplier),
-                F(p.GoldBreakoutAtrStopMultiplier),
+                F(p.OrbAtrStopMultiplier),
                 F(p.VwapReversionBand),
                 F(p.BbStdDev),
                 F(p.SessionBreakoutAtrBuffer),
@@ -164,7 +164,7 @@ public static class GridSearchRunner
             StrategyKind.Volatility => VolatilityGrid(),
             StrategyKind.Range => RangeGrid(),
             StrategyKind.Trend => TrendGrid(),
-            StrategyKind.GoldBreakout => GoldBreakoutGrid(),
+            StrategyKind.OrbBreakout => OrbBreakoutGrid(),
             StrategyKind.VwapReversion => VwapReversionGrid(),
             StrategyKind.BollingerFade => BollingerFadeGrid(),
             StrategyKind.SessionBreakout => SessionBreakoutGrid(),
@@ -259,12 +259,12 @@ public static class GridSearchRunner
             };
     }
 
-    private static IEnumerable<StrategyTuningParams> GoldBreakoutGrid()
+    private static IEnumerable<StrategyTuningParams> OrbBreakoutGrid()
     {
         foreach (var stop in new[] { 1.2, 1.6, 2.0, 2.5, 3.0 })
             yield return StrategyTuningParams.RefinedDefault with
             {
-                GoldBreakoutAtrStopMultiplier = stop
+                OrbAtrStopMultiplier = stop
             };
     }
 

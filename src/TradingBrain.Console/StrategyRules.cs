@@ -26,7 +26,7 @@ public sealed partial class StrategyBacktester
             StrategyKind.Trend => EvaluateTrend(bar, m, position, entryPrice, barsSinceEntry, ref trendState),
             StrategyKind.Range => EvaluateRange(bar, m, position, entryPrice, barsSinceEntry, ref rangeState),
             StrategyKind.Momentum => EvaluateMomentum(bar, m, position, entryPrice, barsSinceEntry),
-            StrategyKind.GoldBreakout => EvaluateGoldBreakout(bar, history, m, position, entryPrice, barsSinceEntry),
+            StrategyKind.OrbBreakout => EvaluateOrbBreakout(bar, history, m, position, entryPrice, barsSinceEntry),
             StrategyKind.Ema => EvaluateEma(bar, m, position, entryPrice, barsSinceEntry),
             StrategyKind.VwapReversion => EvaluateVwapReversion(bar, m, position, entryPrice, barsSinceEntry),
             StrategyKind.BollingerFade => EvaluateBollingerFade(bar, m, position, entryPrice, barsSinceEntry),
@@ -235,32 +235,32 @@ public sealed partial class StrategyBacktester
         return new StrategyDecision(SignalAction.None, "Sem sinal");
     }
 
-    private StrategyDecision EvaluateGoldBreakout(MarketBar bar, IReadOnlyList<MarketBar> history, IReadOnlyDictionary<string, double> m, int position, double entryPrice, int barsSinceEntry)
+    private StrategyDecision EvaluateOrbBreakout(MarketBar bar, IReadOnlyList<MarketBar> history, IReadOnlyDictionary<string, double> m, int position, double entryPrice, int barsSinceEntry)
     {
         var start = _defaults.SessionStartHHmmss;
         var end = _defaults.SessionEndHHmmss;
         var closeAll = _defaults.CloseAllHHmmss;
         var hhmmss = ToHHmmss(bar.Time);
-        var window = history
-            .Where(b => b.Time.Date == bar.Time.Date && ToHHmmss(b.Time) >= start && ToHHmmss(b.Time) <= end)
-            .ToList();
-
         if (position != 0 && hhmmss >= closeAll)
             return new StrategyDecision(SignalAction.Exit, "Fechamento horario");
-        if (position > 0 && bar.Close <= entryPrice - m["ATR"] * _params.GoldBreakoutAtrStopMultiplier)
+        if (position > 0 && bar.Close <= entryPrice - m["ATR"] * _params.OrbAtrStopMultiplier)
             return new StrategyDecision(SignalAction.Exit, "Stop ATR long");
-        if (position < 0 && bar.Close >= entryPrice + m["ATR"] * _params.GoldBreakoutAtrStopMultiplier)
+        if (position < 0 && bar.Close >= entryPrice + m["ATR"] * _params.OrbAtrStopMultiplier)
             return new StrategyDecision(SignalAction.Exit, "Stop ATR short");
         if (position != 0 && barsSinceEntry >= _defaults.TimeExitBars)
             return new StrategyDecision(SignalAction.Exit, "Tempo");
         if (position != 0)
             return new StrategyDecision(SignalAction.None, "Em posicao");
 
-        if (hhmmss <= end || hhmmss > AddHoursHHmmss(end, 1) || window.Count < 5)
-            return new StrategyDecision(SignalAction.None, "Aguardando rompimento da janela");
+        var windowM15 = (_resampledBars ?? history)
+            .Where(b => b.Time.Date == bar.Time.Date && ToHHmmss(b.Time) >= start && ToHHmmss(b.Time) <= end)
+            .ToList();
 
-        var windowHigh = window.Max(b => b.High);
-        var windowLow = window.Min(b => b.Low);
+        if (hhmmss <= end || hhmmss > AddHoursHHmmss(end, 1) || windowM15.Count < 2)
+            return new StrategyDecision(SignalAction.None, "Aguardando rompimento da janela M15");
+
+        var windowHigh = windowM15.Max(b => b.High);
+        var windowLow = windowM15.Min(b => b.Low);
         var windowRange = windowHigh - windowLow;
         if (windowRange <= m["ATR"] * 0.5)
             return new StrategyDecision(SignalAction.None, "Amplitude baixa");
@@ -515,7 +515,7 @@ public sealed partial class StrategyBacktester
         StrategyKind.Trend => "NinjaBotIATrend_v1_0_0_1",
         StrategyKind.Range => "NinjaBotIARange_v1_0_0_0",
         StrategyKind.Momentum => "NinjaBotIAMomentum_v1_0_0_0",
-        StrategyKind.GoldBreakout => "NinjaBotIAGoldBreakout_v1_0_0_0",
+        StrategyKind.OrbBreakout => "OrbBreakout_v1",
         StrategyKind.Ema => "ema",
         StrategyKind.VwapReversion => "VwapReversion_v1",
         StrategyKind.BollingerFade => "BollingerFade_v1",
@@ -554,7 +554,7 @@ public sealed partial class StrategyBacktester
             StrategyKind.Trend => new(93000, 143000, 143000, 60, 76.25, 62.5, 2.0, 2.0, 1.0, 62.5),
             StrategyKind.Range => new(0, 124500, 124500, 40, 40, 40, 4.0, 3.0, 1.0, 40),
             StrategyKind.Momentum => new(90000, 110000, 110000, 30, 80, 73.75, 1.0, 1.0, 1.0, 73.75),
-            StrategyKind.GoldBreakout => new(83000, 100000, 165500, 60, 73.75, 26.25, 1.0, 1.0, 1.0, 26.25),
+            StrategyKind.OrbBreakout => new(83000, 100000, 165500, 60, 73.75, 26.25, 1.0, 1.0, 1.0, 26.25),
             StrategyKind.Ema => new(90000, 170000, 170000, 30, 40, 25, 1.0, 1.0, 1.0, 25),
             StrategyKind.VwapReversion => new(93000, 160000, 160000, 20, 40, 15, 1.0, 1.0, 1.1, 15),
             StrategyKind.BollingerFade => new(93000, 160000, 160000, 30, 40, 20, 1.0, 1.0, 1.0, 20),

@@ -7,6 +7,7 @@ public sealed partial class StrategyBacktester
     private readonly StrategyKind _strategy;
     private readonly StrategyDefaults _defaults;
     private readonly StrategyTuningParams _params;
+    private IReadOnlyList<MarketBar>? _resampledBars;
 
     public StrategyBacktester(StrategyKind strategy, StrategyTuningParams? tuningParams = null)
     {
@@ -17,6 +18,7 @@ public sealed partial class StrategyBacktester
 
     public IReadOnlyList<StrategyBacktestRow> Run(IReadOnlyList<MarketBar> bars)
     {
+        _resampledBars = TechnicalIndicators.Resample(bars, factor: 3);
         var rows = new List<StrategyBacktestRow>(bars.Count);
         var closes = new List<double>(bars.Count);
         var highs = new List<double>(bars.Count);

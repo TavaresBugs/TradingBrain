@@ -13,7 +13,7 @@ Arquivo de dados: `C:\Users\jhonv\OneDrive\Documentos\MNQ 06-26.Last.txt`
 | Trend | 24 | 0.6903 | -8.2188 | -197.25 | 11 | 0.6138 | -8.25 | -90.75 | Continua negativa; refinamento so reduziu exposicao. |
 | Volatility | 18 | 1.4223 | 3.0972 | 55.75 | 0 | 0 | 0 | 0 | Filtro de squeeze/volume ficou restritivo demais. |
 | Range | 7 | 1.4007 | 7.6429 | 53.50 | 0 | 0 | 0 | 0 | Compressao + banda de 4 ATR ficou restritiva demais. |
-| GoldBreakout | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | Continua sem trades no MNQ com a janela atual. |
+| OrbBreakout | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | Continua sem trades no MNQ com a janela atual. |
 
 ## Conclusoes
 
@@ -24,7 +24,7 @@ Arquivo de dados: `C:\Users\jhonv\OneDrive\Documentos\MNQ 06-26.Last.txt`
   - relaxar squeeze/compressao;
   - usar ranking/score em vez de bloquear totalmente a entrada.
 - `Trend` precisa de revisao mais profunda da premissa de entrada no MNQ.
-- `GoldBreakout` parece desalinhada com o ativo/horario; provavelmente era desenhada para outro instrumento ou sessao.
+- `OrbBreakout` parece desalinhada com o ativo/horario; provavelmente era desenhada para outro instrumento ou sessao.
 
 ## Proximo passo recomendado
 

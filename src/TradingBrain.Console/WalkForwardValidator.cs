@@ -4,9 +4,15 @@ namespace TradingBrain.ConsoleApp;
 
 public static class WalkForwardValidator
 {
+    public const double SplitRatio = 0.70;
     public const int DefaultWindows = 5;
-    public const double SplitRatio = 0.65;
 
+    /// <summary>
+    /// Walk-forward rolling com N janelas.
+    /// Cada janela cobre uma fatia cronológica do dataset.
+    /// IS = 70% da janela, OOS = 30%.
+    /// Com windows=1 comporta-se como split simples IS/OOS.
+    /// </summary>
     public static WalkForwardSummary Run(
         IReadOnlyList<MarketBar> bars,
         StrategyKind strategy,
@@ -14,121 +20,118 @@ public static class WalkForwardValidator
         ExecutionSettings? executionSettings = null)
     {
         ArgumentNullException.ThrowIfNull(bars);
-        ValidateWindowCount(bars, windows);
-        var splits = SplitIndependentWindows(bars, windows);
-        var rows = splits
-            .Select((split, index) => RunWindow(split, index + 1, strategy, executionSettings))
-            .ToList();
+        if (windows < 1)
+            throw new ArgumentOutOfRangeException(nameof(windows), "Windows must be >= 1.");
 
-        return BuildSummary(rows);
-    }
+        var settings = executionSettings ?? ExecutionSettings.MnqDefault;
+        var results = new List<WalkForwardWindow>();
 
-    private static void ValidateWindowCount(IReadOnlyList<MarketBar> bars, int windows)
-    {
-        if (windows <= 0)
-            throw new ArgumentOutOfRangeException(nameof(windows), "Windows must be greater than zero.");
+        var windowSize = bars.Count / windows;
+        if (windowSize < 1)
+            throw new ArgumentException(
+                $"Dataset muito pequeno para {windows} janelas. Mínimo de 1 barra por janela.");
 
-        if (windows > bars.Count / 2)
-            throw new ArgumentException("Not enough bars for independent IS/OOS windows.", nameof(bars));
-    }
-
-    private static IReadOnlyList<DataSplit> SplitIndependentWindows(IReadOnlyList<MarketBar> bars, int windows)
-    {
-        var splits = new List<DataSplit>(windows);
-        var start = 0;
-
-        for (var i = 0; i < windows; i++)
+        for (var w = 0; w < windows; w++)
         {
-            var size = WindowSize(bars.Count, windows, i);
-            var segment = bars.Skip(start).Take(size).ToList();
-            splits.Add(DataSplit.SplitChronological(segment, SplitRatio));
-            start += size;
+            var startIndex = w * windowSize;
+            var endIndex = w == windows - 1 ? bars.Count : startIndex + windowSize;
+            var windowBars = bars.Skip(startIndex).Take(endIndex - startIndex).ToList();
+
+            var splitIndex = Math.Clamp(
+                (int)Math.Floor(windowBars.Count * SplitRatio),
+                1,
+                windowBars.Count - 1);
+
+            var isBars = windowBars.Take(splitIndex).ToList();
+            var oosBars = windowBars.Skip(splitIndex).ToList();
+
+            var isResults = GridSearchRunner.Run(isBars, strategy, settings);
+            if (isResults.Count == 0)
+                continue;
+
+            var isWinner = isResults[0];
+
+            GridSearchResult? oosResult = null;
+            if (oosBars.Count > 0)
+            {
+                var backtester = new StrategyBacktester(isWinner.Strategy, isWinner.Params);
+                var oosSummary = StrategyBacktester.Summarize(
+                    backtester.Run(oosBars), settings) with { IsLabel = "OOS" };
+
+                if (oosSummary.ClosedTrades >= GridSearchRunner.MinTradesOos)
+                    oosResult = isWinner with { Summary = oosSummary };
+            }
+
+            results.Add(new WalkForwardWindow(
+                WindowIndex: w + 1,
+                IsBars: isBars.Count,
+                OosBars: oosBars.Count,
+                IsWinner: isWinner,
+                OosResult: oosResult));
         }
 
-        return splits;
-    }
-
-    private static int WindowSize(int barCount, int windows, int index)
-    {
-        var baseSize = barCount / windows;
-        return baseSize + (index < barCount % windows ? 1 : 0);
-    }
-
-    private static WalkForwardWindow RunWindow(
-        DataSplit split,
-        int index,
-        StrategyKind strategy,
-        ExecutionSettings? executionSettings)
-    {
-        var results = GridSearchRunner.Label(
-            GridSearchRunner.Run(split.InSample, strategy, executionSettings),
-            "IS");
-        var winner = results.FirstOrDefault() ?? BuildFallbackWinner(split.InSample, strategy, executionSettings);
-        var oos = ValidateWinner(split.OutSample, winner, executionSettings);
-
-        return new WalkForwardWindow(index, split.InSample.Count, split.OutSample.Count, winner, oos);
-    }
-
-    private static GridSearchResult BuildFallbackWinner(
-        IReadOnlyList<MarketBar> bars,
-        StrategyKind strategy,
-        ExecutionSettings? executionSettings)
-    {
-        var backtester = new StrategyBacktester(strategy, StrategyTuningParams.RefinedDefault);
-        var summary = StrategyBacktester.Summarize(backtester.Run(bars), executionSettings) with { IsLabel = "IS" };
-        return new GridSearchResult(strategy, StrategyTuningParams.RefinedDefault, summary);
-    }
-
-    private static GridSearchResult ValidateWinner(
-        IReadOnlyList<MarketBar> bars,
-        GridSearchResult winner,
-        ExecutionSettings? executionSettings)
-    {
-        var backtester = new StrategyBacktester(winner.Strategy, winner.Params);
-        var rows = backtester.Run(bars);
-        var summary = StrategyBacktester.Summarize(rows, executionSettings) with { IsLabel = "OOS" };
-        return winner with { Summary = summary };
+        return BuildSummary(results);
     }
 
     private static WalkForwardSummary BuildSummary(IReadOnlyList<WalkForwardWindow> windows)
     {
-        var scores = windows.Select(OosScoreOrFailure).ToList();
-        var trades = windows.Select(w => w.OosResult?.Summary.ClosedTrades ?? 0.0).ToList();
-        var winningScores = scores.Count(s => s > 0);
-        var positivePnl = windows.Count(w => w.OosResult is not null && w.OosResult.Summary.NetPnL > 0);
+        if (windows.Count == 0)
+        {
+            return new WalkForwardSummary(
+                Windows: windows,
+                MedianOosScore: double.NaN,
+                WinRate: 0,
+                MedianOosTrades: 0,
+                ConsistencyRatio: 0);
+        }
+
+        var oosScores = windows
+            .Where(w => w.OosResult is not null)
+            .Select(w => GridSearchRunner.Score(w.OosResult!.Summary))
+            .Where(s => !double.IsNegativeInfinity(s) && !double.IsNaN(s))
+            .OrderBy(s => s)
+            .ToList();
+
+        var oosTrades = windows
+            .Where(w => w.OosResult is not null)
+            .Select(w => (double)w.OosResult!.Summary.ClosedTrades)
+            .OrderBy(t => t)
+            .ToList();
+
+        var positiveOos = windows.Count(w =>
+            w.OosResult is not null &&
+            w.OosResult.Summary.NetExpectancy > 0 &&
+            w.OosResult.Summary.NetProfitFactor > 1.0);
+
+        var medianOosScore = oosScores.Count == 0
+            ? double.NaN
+            : Median(oosScores);
+
+        var medianOosTrades = oosTrades.Count == 0
+            ? 0
+            : Median(oosTrades);
+
+        var winRate = windows.Count == 0
+            ? 0
+            : positiveOos * 100.0 / windows.Count;
+
+        var consistencyRatio = windows.Count == 0
+            ? 0
+            : windows.Count(w => w.OosResult is not null) * 100.0 / windows.Count;
 
         return new WalkForwardSummary(
-            windows,
-            Median(scores),
-            Percent(winningScores, windows.Count),
-            Median(trades),
-            Ratio(positivePnl, windows.Count));
+            Windows: windows,
+            MedianOosScore: medianOosScore,
+            WinRate: winRate,
+            MedianOosTrades: medianOosTrades,
+            ConsistencyRatio: consistencyRatio);
     }
 
-    private static double OosScoreOrFailure(WalkForwardWindow window)
+    private static double Median(IReadOnlyList<double> sorted)
     {
-        return window.OosResult is null
-            ? double.NegativeInfinity
-            : GridSearchRunner.Score(window.OosResult.Summary);
-    }
-
-    private static double Median(IReadOnlyList<double> values)
-    {
-        if (values.Count == 0)
-            return 0;
-
-        var ordered = values.OrderBy(v => v).ToList();
-        var middle = ordered.Count / 2;
-        return ordered.Count % 2 == 1 ? ordered[middle] : (ordered[middle - 1] + ordered[middle]) / 2.0;
-    }
-
-    private static double Percent(int count, int total)
-    {
-        return total == 0 ? 0 : count * 100.0 / total;
-    }
-
-    private static double Ratio(int count, int total)
-    {
-        return total == 0 ? 0 : count / (double)total;
+        var n = sorted.Count;
+        return n % 2 == 0
+            ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
+            : sorted[n / 2];
     }
 }

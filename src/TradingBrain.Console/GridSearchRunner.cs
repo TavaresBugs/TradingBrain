@@ -105,7 +105,7 @@ public static class GridSearchRunner
     public static void ExportCsv(IReadOnlyList<GridSearchResult> results, string path)
     {
         using var writer = new StreamWriter(path);
-        writer.WriteLine("Strategy,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,OrbAtrStop,VwapReversionBand,BbStdDev,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode");
+        writer.WriteLine("Strategy,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,BbStdDev,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode");
 
         foreach (var result in results)
         {
@@ -149,6 +149,13 @@ public static class GridSearchRunner
                 F(p.EmaTrailingAtrOffset),
                 F(p.TrendAtrStopMultiplier),
                 F(p.OrbAtrStopMultiplier),
+                p.OrbRangeStartHHmmss.ToString(CultureInfo.InvariantCulture),
+                p.OrbRangeEndHHmmss.ToString(CultureInfo.InvariantCulture),
+                p.OrbMinWindowBars.ToString(CultureInfo.InvariantCulture),
+                F(p.OrbMinRangeAtrRatio),
+                F(p.OrbBreakoutBuffer),
+                p.OrbRequireVolume,
+                F(p.OrbVolumeRatio),
                 F(p.VwapReversionBand),
                 F(p.BbStdDev),
                 F(p.SessionBreakoutAtrBuffer),
@@ -268,10 +275,19 @@ public static class GridSearchRunner
 
     private static IEnumerable<StrategyTuningParams> OrbBreakoutGrid()
     {
-        foreach (var stop in new[] { 1.2, 1.6, 2.0, 2.5, 3.0 })
+        foreach (var rangeEnd in new[] { 94500, 100000, 101500, 103000 })
+        foreach (var stop in new[] { 0.5, 1.0, 1.5, 2.0 })
+        foreach (var buffer in new[] { 0.0, 0.05, 0.1, 0.2 })
+        foreach (var minRange in new[] { 0.2, 0.3, 0.5, 0.75 })
+        foreach (var requireVolume in new[] { false, true })
             yield return StrategyTuningParams.RefinedDefault with
             {
-                OrbAtrStopMultiplier = stop
+                OrbRangeStartHHmmss = 93000,
+                OrbRangeEndHHmmss = rangeEnd,
+                OrbAtrStopMultiplier = stop,
+                OrbBreakoutBuffer = buffer,
+                OrbMinRangeAtrRatio = minRange,
+                OrbRequireVolume = requireVolume
             };
     }
 

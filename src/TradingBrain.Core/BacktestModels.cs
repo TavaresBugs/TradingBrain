@@ -137,7 +137,14 @@ public sealed record StrategyTuningParams(
     int OvernightRangeEndHHmmss = 93000,
     double SrsAtrBuffer = 0.1,
     double SrsAtrStopMultiplier = 1.5,
-    double SrsAtrTargetMultiplier = 2.0)
+    double SrsAtrTargetMultiplier = 2.0,
+    int OrbRangeStartHHmmss = 93000,
+    int OrbRangeEndHHmmss = 100000,
+    int OrbMinWindowBars = 2,
+    double OrbMinRangeAtrRatio = 0.3,
+    double OrbBreakoutBuffer = 0.05,
+    bool OrbRequireVolume = false,
+    double OrbVolumeRatio = 1.1)
 {
     public static StrategyTuningParams RefinedDefault { get; } = new();
 
@@ -171,7 +178,14 @@ public sealed record StrategyTuningParams(
         OvernightRangeEndHHmmss: 93000,
         SrsAtrBuffer: 0.1,
         SrsAtrStopMultiplier: 1.5,
-        SrsAtrTargetMultiplier: 2.0);
+        SrsAtrTargetMultiplier: 2.0,
+        OrbRangeStartHHmmss: 93000,
+        OrbRangeEndHHmmss: 100000,
+        OrbMinWindowBars: 2,
+        OrbMinRangeAtrRatio: 0.3,
+        OrbBreakoutBuffer: 0.05,
+        OrbRequireVolume: false,
+        OrbVolumeRatio: 1.1);
 }
 
 public sealed record GridSearchResult(

@@ -15,7 +15,8 @@ public sealed partial class StrategyBacktester
         int barsSinceEntry,
         ref int trendState,
         ref int rangeState,
-        ref int schoolRunState)
+        ref int schoolRunState,
+        ref int orbState)
     {
         var usesOwnSessionGate = _strategy is
             StrategyKind.OrbBreakout or
@@ -33,7 +34,7 @@ public sealed partial class StrategyBacktester
             StrategyKind.Trend => EvaluateTrend(bar, m, position, entryPrice, barsSinceEntry, ref trendState),
             StrategyKind.Range => EvaluateRange(bar, m, position, entryPrice, barsSinceEntry, ref rangeState),
             StrategyKind.Momentum => EvaluateMomentum(bar, m, position, entryPrice, barsSinceEntry),
-            StrategyKind.OrbBreakout => EvaluateOrbBreakout(bar, bars, barIndex, m, position, entryPrice, barsSinceEntry),
+            StrategyKind.OrbBreakout => EvaluateOrbBreakout(bar, bars, barIndex, m, position, entryPrice, barsSinceEntry, ref orbState),
             StrategyKind.Ema => EvaluateEma(bar, m, position, entryPrice, barsSinceEntry),
             StrategyKind.VwapReversion => EvaluateVwapReversion(bar, m, position, entryPrice, barsSinceEntry),
             StrategyKind.BollingerFade => EvaluateBollingerFade(bar, m, position, entryPrice, barsSinceEntry),
@@ -250,42 +251,99 @@ public sealed partial class StrategyBacktester
         IReadOnlyDictionary<string, double> m,
         int position,
         double entryPrice,
-        int barsSinceEntry)
+        int barsSinceEntry,
+        ref int orbState)
     {
-        var start = _defaults.SessionStartHHmmss;
-        var end = _defaults.SessionEndHHmmss;
-        var closeAll = _defaults.CloseAllHHmmss;
         var hhmmss = ToHHmmss(bar.Time);
+        var rangeStart = _params.OrbRangeStartHHmmss;
+        var rangeEnd = _params.OrbRangeEndHHmmss;
+        var closeAll = _defaults.CloseAllHHmmss;
+
         if (position != 0 && hhmmss >= closeAll)
-            return new StrategyDecision(SignalAction.Exit, "Fechamento horario");
-        if (position > 0 && bar.Close <= entryPrice - m["ATR"] * _params.OrbAtrStopMultiplier)
-            return new StrategyDecision(SignalAction.Exit, "Stop ATR long");
-        if (position < 0 && bar.Close >= entryPrice + m["ATR"] * _params.OrbAtrStopMultiplier)
-            return new StrategyDecision(SignalAction.Exit, "Stop ATR short");
-        if (position != 0 && barsSinceEntry >= _defaults.TimeExitBars)
-            return new StrategyDecision(SignalAction.Exit, "Tempo");
-        if (position != 0)
-            return new StrategyDecision(SignalAction.None, "Em posicao");
+        {
+            orbState = 2;
+            return new StrategyDecision(SignalAction.Exit, "ORB: fechamento horario");
+        }
+
+        if (position > 0)
+        {
+            var stopLevel = double.IsNaN(_orbWindowLow)
+                ? entryPrice - m["ATR"] * _params.OrbAtrStopMultiplier
+                : _orbWindowLow - m["ATR"] * _params.OrbAtrStopMultiplier * 0.1;
+            if (bar.Close <= stopLevel)
+            {
+                orbState = 2;
+                return new StrategyDecision(SignalAction.Exit, "ORB: stop long");
+            }
+            if (barsSinceEntry >= _defaults.TimeExitBars)
+            {
+                orbState = 2;
+                return new StrategyDecision(SignalAction.Exit, "ORB: tempo");
+            }
+            return new StrategyDecision(SignalAction.None, "ORB: em posicao long");
+        }
+
+        if (position < 0)
+        {
+            var stopLevel = double.IsNaN(_orbWindowHigh)
+                ? entryPrice + m["ATR"] * _params.OrbAtrStopMultiplier
+                : _orbWindowHigh + m["ATR"] * _params.OrbAtrStopMultiplier * 0.1;
+            if (bar.Close >= stopLevel)
+            {
+                orbState = 2;
+                return new StrategyDecision(SignalAction.Exit, "ORB: stop short");
+            }
+            if (barsSinceEntry >= _defaults.TimeExitBars)
+            {
+                orbState = 2;
+                return new StrategyDecision(SignalAction.Exit, "ORB: tempo");
+            }
+            return new StrategyDecision(SignalAction.None, "ORB: em posicao short");
+        }
+
+        if (orbState == 2)
+            return new StrategyDecision(SignalAction.None, "ORB: trade diario encerrado");
+
+        if (hhmmss > AddHoursHHmmss(rangeEnd, 1))
+            return new StrategyDecision(SignalAction.None, "ORB: janela de entrada expirada");
+
+        if (hhmmss <= rangeEnd)
+            return new StrategyDecision(SignalAction.None, "ORB: formando range");
 
         var windowM15 = (_resampledBars ?? bars.Take(barIndex + 1))
-            .Where(b => b.Time.Date == bar.Time.Date && ToHHmmss(b.Time) >= start && ToHHmmss(b.Time) <= end)
+            .Where(b => b.Time.Date == bar.Time.Date &&
+                        ToHHmmss(b.Time) >= rangeStart &&
+                        ToHHmmss(b.Time) <= rangeEnd)
             .ToList();
 
-        if (hhmmss <= end || hhmmss > AddHoursHHmmss(end, 1) || windowM15.Count < 2)
-            return new StrategyDecision(SignalAction.None, "Aguardando rompimento da janela M15");
+        if (windowM15.Count < _params.OrbMinWindowBars)
+            return new StrategyDecision(SignalAction.None, "ORB: barras insuficientes na janela");
 
         var windowHigh = windowM15.Max(b => b.High);
         var windowLow = windowM15.Min(b => b.Low);
         var windowRange = windowHigh - windowLow;
-        if (windowRange <= m["ATR"] * 0.5)
-            return new StrategyDecision(SignalAction.None, "Amplitude baixa");
+        if (windowRange < m["ATR"] * _params.OrbMinRangeAtrRatio)
+            return new StrategyDecision(SignalAction.None, "ORB: amplitude baixa");
 
-        if (bar.Close > windowHigh + m["ATR"] * 0.1)
-            return new StrategyDecision(SignalAction.Buy, "Breakout long com folga");
-        if (bar.Close < windowLow - m["ATR"] * 0.1)
-            return new StrategyDecision(SignalAction.Sell, "Breakout short com folga");
+        var volumeOk = !_params.OrbRequireVolume ||
+                       bar.Volume > m["VolumeSMA"] * _params.OrbVolumeRatio;
 
-        return new StrategyDecision(SignalAction.None, "Sem rompimento");
+        if (bar.Close > windowHigh + m["ATR"] * _params.OrbBreakoutBuffer && volumeOk)
+        {
+            _orbWindowHigh = windowHigh;
+            _orbWindowLow = windowLow;
+            orbState = 2;
+            return new StrategyDecision(SignalAction.Buy, "ORB: breakout long");
+        }
+        if (bar.Close < windowLow - m["ATR"] * _params.OrbBreakoutBuffer && volumeOk)
+        {
+            _orbWindowHigh = windowHigh;
+            _orbWindowLow = windowLow;
+            orbState = 2;
+            return new StrategyDecision(SignalAction.Sell, "ORB: breakout short");
+        }
+
+        return new StrategyDecision(SignalAction.None, "ORB: sem rompimento");
     }
 
     private StrategyDecision EvaluateEma(MarketBar bar, IReadOnlyDictionary<string, double> m, int position, double entryPrice, int barsSinceEntry)

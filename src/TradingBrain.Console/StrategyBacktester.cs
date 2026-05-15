@@ -9,6 +9,8 @@ public sealed partial class StrategyBacktester
     private readonly StrategyTuningParams _params;
     private readonly PrecomputedSeries? _series;
     private IReadOnlyList<MarketBar>? _resampledBars;
+    private double _orbWindowHigh = double.NaN;
+    private double _orbWindowLow = double.NaN;
 
     public StrategyBacktester(
         StrategyKind strategy,
@@ -34,20 +36,26 @@ public sealed partial class StrategyBacktester
         var trendState = 0;
         var rangeState = 0;
         var schoolRunState = 0;
+        var orbState = 0;
 
         for (var i = 0; i < bars.Count; i++)
         {
             var bar = bars[i];
 
             if (i == 0 || bars[i - 1].Time.Date != bar.Time.Date)
+            {
                 schoolRunState = 0;
+                orbState = 0;
+                _orbWindowHigh = double.NaN;
+                _orbWindowLow = double.NaN;
+            }
 
             var metrics = BuildMetrics(series, i);
 
             var openProfit = position == 0 ? 0 : (bar.Close - entryPrice) * position;
             var barsSinceEntry = entryBarIndex < 0 ? 0 : i - entryBarIndex;
             var decision = IndicatorsReady(metrics)
-                ? Evaluate(bar, bars, i, metrics, position, entryPrice, openProfit, barsSinceEntry, ref trendState, ref rangeState, ref schoolRunState)
+                ? Evaluate(bar, bars, i, metrics, position, entryPrice, openProfit, barsSinceEntry, ref trendState, ref rangeState, ref schoolRunState, ref orbState)
                 : new StrategyDecision(SignalAction.None, "Aquecendo indicadores");
 
             var signal = decision.Action;

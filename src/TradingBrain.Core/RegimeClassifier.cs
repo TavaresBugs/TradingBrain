@@ -149,7 +149,7 @@ public static class RegimeClassifier
             return MarketRegime.HighVolatility;
         }
 
-        if (ibToday30MinRatio < 0.30 && gapRatio < 0.20 && overnightRatio < 0.80)
+        if (ibToday30MinRatio < 0.15 && gapRatio < 0.05 && overnightRatio < 0.80)
         {
             reason = $"NonTrend: ib30={ibToday30MinRatio:F2} gap={gapRatio:F2}";
             return MarketRegime.NonTrend;
@@ -186,20 +186,20 @@ public static class RegimeClassifier
             }
         }
 
-        if (ibToday30MinRatio is >= 0.45 and < 0.55 && gapRatio > 0.30)
-        {
-            reason = $"Breakout: gap={gapRatio:F2} ib30={ibToday30MinRatio:F2}";
-            return MarketRegime.Breakout;
-        }
-
-        if (ibToday30MinRatio is >= 0.50 and < 0.60)
+        if (ibToday30MinRatio is >= 0.45 and < 0.60)
         {
             var otfNote = otfDirection != 0 ? $" otf={otfDirection:+0;-0}" : " otf=0(unconfirmed)";
             reason = $"Trend: balancedIB ib30={ibToday30MinRatio:F2}{otfNote}";
             return MarketRegime.Trend;
         }
 
-        if (ibToday30MinRatio is >= 0.30 and < 0.45 && gapRatio < 0.50)
+        if (overnightRatio > 1.20 || gapRatio > 1.00)
+        {
+            reason = $"Breakout: gap={gapRatio:F2} overnight={overnightRatio:F2}";
+            return MarketRegime.Breakout;
+        }
+
+        if (ibToday30MinRatio < 0.45 && gapRatio < 0.75)
         {
             reason = $"Range: compressedIB ib30={ibToday30MinRatio:F2} gap={gapRatio:F2}";
             return MarketRegime.Range;

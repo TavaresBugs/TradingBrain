@@ -31,10 +31,9 @@ public static class StrategyRegimeMap
         Add(map, "Momentum", MarketRegime.Trend);
         Add(map, "Ema", MarketRegime.Trend);
         Add(map, "Trend", MarketRegime.Trend);
-        Add(map, "GoldBreakout", MarketRegime.Breakout);
+        Add(map, "IbBreakout", MarketRegime.Breakout, MarketRegime.Trend);
         Add(map, "OrbBreakout", MarketRegime.Breakout);
-        Add(map, "SessionBreakout", MarketRegime.Breakout);
-        Add(map, "SchoolRun", MarketRegime.Breakout);
+        Add(map, "SchoolRun", MarketRegime.Trend);
         Add(map, "Range", MarketRegime.Range);
         Add(map, "VwapReversion", MarketRegime.Range);
         Add(map, "BollingerFade", MarketRegime.Range);

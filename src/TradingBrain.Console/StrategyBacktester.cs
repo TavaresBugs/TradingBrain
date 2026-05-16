@@ -37,6 +37,7 @@ public sealed partial class StrategyBacktester
         var rangeState = 0;
         var schoolRunState = 0;
         var orbState = 0;
+        var ibState = 0;
 
         for (var i = 0; i < bars.Count; i++)
         {
@@ -46,6 +47,7 @@ public sealed partial class StrategyBacktester
             {
                 schoolRunState = 0;
                 orbState = 0;
+                ibState = 0;
                 _orbWindowHigh = double.NaN;
                 _orbWindowLow = double.NaN;
             }
@@ -55,7 +57,7 @@ public sealed partial class StrategyBacktester
             var openProfit = position == 0 ? 0 : (bar.Close - entryPrice) * position;
             var barsSinceEntry = entryBarIndex < 0 ? 0 : i - entryBarIndex;
             var decision = IndicatorsReady(metrics)
-                ? Evaluate(bar, bars, i, metrics, position, entryPrice, openProfit, barsSinceEntry, ref trendState, ref rangeState, ref schoolRunState, ref orbState)
+                ? Evaluate(bar, bars, i, metrics, position, entryPrice, openProfit, barsSinceEntry, ref trendState, ref rangeState, ref schoolRunState, ref orbState, ref ibState)
                 : new StrategyDecision(SignalAction.None, "Aquecendo indicadores");
 
             var signal = decision.Action;

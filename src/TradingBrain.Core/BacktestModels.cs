@@ -144,7 +144,12 @@ public sealed record StrategyTuningParams(
     double OrbMinRangeAtrRatio = 0.3,
     double OrbBreakoutBuffer = 0.05,
     bool OrbRequireVolume = false,
-    double OrbVolumeRatio = 1.1)
+    double OrbVolumeRatio = 1.1,
+    double IbTargetMultiplier = 1.0,
+    bool IbUseHalfRangeStop = false,
+    double IbMinRangeRatio = 0.30,
+    double IbMaxRangeRatio = 1.80,
+    bool IbRequireVolume = false)
 {
     public static StrategyTuningParams RefinedDefault { get; } = new();
 
@@ -185,7 +190,12 @@ public sealed record StrategyTuningParams(
         OrbMinRangeAtrRatio: 0.3,
         OrbBreakoutBuffer: 0.05,
         OrbRequireVolume: false,
-        OrbVolumeRatio: 1.1);
+        OrbVolumeRatio: 1.1,
+        IbTargetMultiplier: 1.0,
+        IbUseHalfRangeStop: false,
+        IbMinRangeRatio: 0.30,
+        IbMaxRangeRatio: 1.80,
+        IbRequireVolume: false);
 }
 
 public sealed record GridSearchResult(

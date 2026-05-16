@@ -131,7 +131,7 @@ public static class GridSearchRunner
     public static void ExportCsv(IReadOnlyList<GridSearchResult> results, string path)
     {
         using var writer = new StreamWriter(path);
-        writer.WriteLine("Strategy,RegimeFilter,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,BbStdDev,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode");
+        writer.WriteLine("Strategy,RegimeFilter,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,BbStdDev,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode,IbTargetMultiplier,IbUseHalfRangeStop,IbMinRangeRatio,IbMaxRangeRatio,IbRequireVolume");
 
         foreach (var result in results)
         {
@@ -195,11 +195,16 @@ public static class GridSearchRunner
                 F(p.SrsAtrBuffer),
                 F(p.SrsAtrStopMultiplier),
                 F(p.SrsAtrTargetMultiplier),
-                p.UseAntiMode));
+                p.UseAntiMode,
+                F(p.IbTargetMultiplier),
+                p.IbUseHalfRangeStop,
+                F(p.IbMinRangeRatio),
+                F(p.IbMaxRangeRatio),
+                p.IbRequireVolume));
         }
     }
 
-    private static IEnumerable<StrategyTuningParams> BuildParameterGrid(StrategyKind strategy)
+    public static IEnumerable<StrategyTuningParams> BuildParameterGrid(StrategyKind strategy)
     {
         return strategy switch
         {
@@ -211,8 +216,8 @@ public static class GridSearchRunner
             StrategyKind.OrbBreakout => OrbBreakoutGrid(),
             StrategyKind.VwapReversion => VwapReversionGrid(),
             StrategyKind.BollingerFade => BollingerFadeGrid(),
-            StrategyKind.SessionBreakout => SessionBreakoutGrid(),
             StrategyKind.SchoolRun => SchoolRunGrid(),
+            StrategyKind.IbBreakout => IbBreakoutGrid(),
             _ => new[] { StrategyTuningParams.RefinedDefault }
         };
     }
@@ -361,19 +366,6 @@ public static class GridSearchRunner
             };
     }
 
-    private static IEnumerable<StrategyTuningParams> SessionBreakoutGrid()
-    {
-        foreach (var buffer in new[] { 0.0, 0.1, 0.2, 0.3 })
-        foreach (var stop in new[] { 1.5, 2.0, 2.5, 3.0 })
-        foreach (var minRange in new[] { 0.3, 0.5, 0.75, 1.0 })
-            yield return StrategyTuningParams.RefinedDefault with
-            {
-                SessionBreakoutAtrBuffer = buffer,
-                AtrStopMultiplier = stop,
-                SessionMinRangeAtrRatio = minRange
-            };
-    }
-
     private static IEnumerable<StrategyTuningParams> SchoolRunGrid()
     {
         foreach (var refCandle in new[] { 1, 2, 3 })
@@ -388,6 +380,22 @@ public static class GridSearchRunner
                 SrsAtrStopMultiplier = stop,
                 SrsAtrTargetMultiplier = target,
                 UseAntiMode = antiMode
+            };
+    }
+
+    private static IEnumerable<StrategyTuningParams> IbBreakoutGrid()
+    {
+        foreach (var targetMult in new[] { 0.5, 1.0, 1.5, 2.0 })
+        foreach (var halfStop in new[] { false, true })
+        foreach (var minRatio in new[] { 0.30, 0.50 })
+        foreach (var requireVol in new[] { false, true })
+            yield return StrategyTuningParams.RefinedDefault with
+            {
+                IbTargetMultiplier = targetMult,
+                IbUseHalfRangeStop = halfStop,
+                IbMinRangeRatio = minRatio,
+                IbMaxRangeRatio = 1.80,
+                IbRequireVolume = requireVol
             };
     }
 

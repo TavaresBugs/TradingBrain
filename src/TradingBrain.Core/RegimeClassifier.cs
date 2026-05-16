@@ -99,31 +99,35 @@ public static class RegimeClassifier
         double gapRatio,
         out string reason)
     {
+        // 1. Alta volatilidade - sem mudanca, criterio ja correto
         if (rangeRatio > 2.0 || overnightRatio > 2.0)
         {
             reason = $"HighVol: rangeRatio={rangeRatio:F2} overnightRatio={overnightRatio:F2}";
             return MarketRegime.HighVolatility;
         }
 
-        if (gapRatio > 0.5 || overnightRatio > 1.5)
+        // 2. Breakout - relaxado: gap > 0.4 ou overnight > 1.2
+        if (gapRatio > 0.4 || overnightRatio > 1.2)
         {
             reason = $"Breakout: gap={gapRatio:F2} overnightRatio={overnightRatio:F2}";
             return MarketRegime.Breakout;
         }
 
-        if (rangeRatio > 1.5 && (closePosition > 0.65 || closePosition < 0.35))
+        // 3. Tendencia - relaxado: rangeRatio > 1.2, closePos > 0.60 ou < 0.40
+        if (rangeRatio > 1.2 && (closePosition > 0.60 || closePosition < 0.40))
         {
             reason = $"Trend: rangeRatio={rangeRatio:F2} closePos={closePosition:F2}";
             return MarketRegime.Trend;
         }
 
-        if (rangeRatio < 0.9 && gapRatio < 0.25 && overnightRatio < 0.8)
+        // 4. Lateral - relaxado: rangeRatio < 1.1, gap < 0.30, overnight < 1.0
+        if (rangeRatio < 1.1 && gapRatio < 0.30 && overnightRatio < 1.0)
         {
-            reason = $"Range: rangeRatio={rangeRatio:F2} gap={gapRatio:F2}";
+            reason = $"Range: rangeRatio={rangeRatio:F2} gap={gapRatio:F2} overnightRatio={overnightRatio:F2}";
             return MarketRegime.Range;
         }
 
-        reason = $"Undefined: rangeRatio={rangeRatio:F2} closePos={closePosition:F2} gap={gapRatio:F2}";
+        reason = $"Undefined: rangeRatio={rangeRatio:F2} closePos={closePosition:F2} gap={gapRatio:F2} overnightRatio={overnightRatio:F2}";
         return MarketRegime.Undefined;
     }
 

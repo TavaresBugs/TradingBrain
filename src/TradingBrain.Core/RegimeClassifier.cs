@@ -19,6 +19,7 @@ public static class RegimeClassifier
             .ToList();
 
         var atr14ByDate = ComputeDailyAtr14(byDate);
+        var kerByDate = ComputeDailyKer(byDate, period: 10);
         var result = new List<DayRegime>();
 
         for (var d = 1; d < byDate.Count; d++)
@@ -77,7 +78,8 @@ public static class RegimeClassifier
                 ? Math.Abs(firstBar930.Open - prevClose) / atr14
                 : 0;
 
-            var regime = Classify(rangeRatio, closePosition, overnightRatio, gapRatio, out var reason);
+            var ker = kerByDate.TryGetValue(prevDate, out var kerVal) ? kerVal : double.NaN;
+            var regime = Classify(rangeRatio, closePosition, overnightRatio, gapRatio, ker, out var reason);
 
             result.Add(new DayRegime(
                 DateOnly.FromDateTime(today),
@@ -86,6 +88,7 @@ public static class RegimeClassifier
                 closePosition,
                 overnightRatio,
                 gapRatio,
+                ker,
                 reason));
         }
 
@@ -97,37 +100,56 @@ public static class RegimeClassifier
         double closePosition,
         double overnightRatio,
         double gapRatio,
+        double ker,
         out string reason)
     {
-        // 1. Alta volatilidade - sem mudanca, criterio ja correto
+        // 1. Alta volatilidade - criterio de range extremo, sem mudanca
         if (rangeRatio > 2.0 || overnightRatio > 2.0)
         {
             reason = $"HighVol: rangeRatio={rangeRatio:F2} overnightRatio={overnightRatio:F2}";
             return MarketRegime.HighVolatility;
         }
 
-        // 2. Breakout - relaxado: gap > 0.4 ou overnight > 1.2
-        if (gapRatio > 0.4 || overnightRatio > 1.2)
+        var kerAvailable = !double.IsNaN(ker);
+
+        // 2. Breakout - direcional + catalisador externo
+        var directional = kerAvailable ? ker > 0.40 : rangeRatio > 1.2;
+        if (directional && (gapRatio > 0.40 || overnightRatio > 1.2))
         {
-            reason = $"Breakout: gap={gapRatio:F2} overnightRatio={overnightRatio:F2}";
+            reason = $"Breakout: ker={ker:F2} gap={gapRatio:F2} overnightRatio={overnightRatio:F2}";
             return MarketRegime.Breakout;
         }
 
-        // 3. Tendencia - relaxado: rangeRatio > 1.2, closePos > 0.60 ou < 0.40
-        if (rangeRatio > 1.2 && (closePosition > 0.60 || closePosition < 0.40))
+        // 3. Trend - direcional sem catalisador externo forte
+        if (kerAvailable ? ker > 0.40 : rangeRatio > 1.2 && (closePosition > 0.60 || closePosition < 0.40))
         {
-            reason = $"Trend: rangeRatio={rangeRatio:F2} closePos={closePosition:F2}";
+            reason = $"Trend: ker={ker:F2} rangeRatio={rangeRatio:F2} closePos={closePosition:F2}";
             return MarketRegime.Trend;
         }
 
-        // 4. Lateral - relaxado: rangeRatio < 1.1, gap < 0.30, overnight < 1.0
-        if (rangeRatio < 1.1 && gapRatio < 0.30 && overnightRatio < 1.0)
+        // 4. Range - lateral confirmado pelo KER
+        if (kerAvailable ? ker < 0.25 : rangeRatio < 1.1 && gapRatio < 0.30 && overnightRatio < 1.0)
         {
-            reason = $"Range: rangeRatio={rangeRatio:F2} gap={gapRatio:F2} overnightRatio={overnightRatio:F2}";
+            reason = $"Range: ker={ker:F2} rangeRatio={rangeRatio:F2} gap={gapRatio:F2}";
             return MarketRegime.Range;
         }
 
-        reason = $"Undefined: rangeRatio={rangeRatio:F2} closePos={closePosition:F2} gap={gapRatio:F2} overnightRatio={overnightRatio:F2}";
+        if (!kerAvailable)
+        {
+            if (gapRatio > 0.40 || overnightRatio > 1.2)
+            {
+                reason = $"Breakout(noKER): gap={gapRatio:F2} overnight={overnightRatio:F2}";
+                return MarketRegime.Breakout;
+            }
+
+            if (rangeRatio < 1.1 && gapRatio < 0.30)
+            {
+                reason = $"Range(noKER): rangeRatio={rangeRatio:F2}";
+                return MarketRegime.Range;
+            }
+        }
+
+        reason = $"Undefined: ker={ker:F2} rangeRatio={rangeRatio:F2} closePos={closePosition:F2} gap={gapRatio:F2}";
         return MarketRegime.Undefined;
     }
 
@@ -179,6 +201,44 @@ public static class RegimeClassifier
 
             prevClose = dayClose;
             prevDate = group.Key;
+        }
+
+        return result;
+    }
+
+    private static Dictionary<DateTime, double> ComputeDailyKer(
+        IReadOnlyList<IGrouping<DateTime, MarketBar>> byDate,
+        int period = 10)
+    {
+        var result = new Dictionary<DateTime, double>();
+        var dailyCloses = new List<(DateTime Date, double Close)>();
+
+        foreach (var group in byDate)
+        {
+            var sessionBars = group
+                .Where(b => ToHHmm(b.Time) >= SessionOpenHHmm && ToHHmm(b.Time) <= SessionCloseHHmm)
+                .OrderBy(b => b.Time)
+                .ToList();
+
+            if (sessionBars.Count == 0)
+            {
+                continue;
+            }
+
+            dailyCloses.Add((group.Key, sessionBars.Last().Close));
+        }
+
+        for (var i = period; i < dailyCloses.Count; i++)
+        {
+            var netChange = Math.Abs(dailyCloses[i].Close - dailyCloses[i - period].Close);
+            var totalPath = 0.0;
+            for (var j = i - period + 1; j <= i; j++)
+            {
+                totalPath += Math.Abs(dailyCloses[j].Close - dailyCloses[j - 1].Close);
+            }
+
+            var ker = totalPath == 0 ? 0 : netChange / totalPath;
+            result[dailyCloses[i].Date] = ker;
         }
 
         return result;

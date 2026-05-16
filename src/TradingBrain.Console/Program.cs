@@ -44,7 +44,7 @@ if (classifyRegimeIndex >= 0)
 
     var regimeCsvPath = Path.Combine(outputDir, "regime_distribution.csv");
     using var writer = new StreamWriter(regimeCsvPath);
-    writer.WriteLine("Date,Regime,RangeRatio,ClosePosition,OvernightRatio,GapRatio,Reason");
+    writer.WriteLine("Date,Regime,RangeRatio,ClosePosition,OvernightRatio,GapRatio,Ker,Reason");
     foreach (var r in regimes)
     {
         writer.WriteLine(string.Join(",",
@@ -54,6 +54,7 @@ if (classifyRegimeIndex >= 0)
             r.ClosePosition.ToString("0.####", CultureInfo.InvariantCulture),
             r.OvernightRatio.ToString("0.####", CultureInfo.InvariantCulture),
             r.GapRatio.ToString("0.####", CultureInfo.InvariantCulture),
+            r.Ker.ToString("0.####", CultureInfo.InvariantCulture),
             "\"" + r.Reason.Replace("\"", "\"\"") + "\""));
     }
 

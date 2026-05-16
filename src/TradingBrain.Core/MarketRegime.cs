@@ -16,4 +16,5 @@ public sealed record DayRegime(
     double ClosePosition,
     double OvernightRatio,
     double GapRatio,
+    double Ker,
     string Reason);

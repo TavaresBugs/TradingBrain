@@ -176,7 +176,7 @@ Validação OOS: `ClosedTrades >= 15` E `NetPnL > 0`
 | Momentum | Trend |
 | Ema | Trend |
 | Trend | Trend |
-| SchoolRun | Trend |
+| SchoolRun | Trend + Breakout |
 | OrbBreakout | Breakout |
 | IbBreakout | Breakout + Trend |
 | Range | Range |

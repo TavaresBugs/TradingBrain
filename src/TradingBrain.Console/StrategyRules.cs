@@ -560,13 +560,13 @@ public sealed partial class StrategyBacktester
         var ibVolumeAverage = ibBarCount > 0 ? ibVolume / ibBarCount : 0;
         var volumeOk = !_params.IbRequireVolume || bar.Volume >= ibVolumeAverage;
 
-        if (bar.Close > ibHigh && volumeOk)
+        if (bar.High > ibHigh && bar.Close > ibMid && volumeOk)
         {
             ibState = 2;
             return new StrategyDecision(SignalAction.Buy, $"IB: breakout HIGH ib={ibRangeRatio:F2}");
         }
 
-        if (bar.Close < ibLow && volumeOk)
+        if (bar.Low < ibLow && bar.Close < ibMid && volumeOk)
         {
             ibState = 2;
             return new StrategyDecision(SignalAction.Sell, $"IB: breakout LOW ib={ibRangeRatio:F2}");

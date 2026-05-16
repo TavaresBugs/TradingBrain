@@ -387,14 +387,15 @@ public static class GridSearchRunner
     {
         foreach (var targetMult in new[] { 0.5, 1.0, 1.5, 2.0 })
         foreach (var halfStop in new[] { false, true })
-        foreach (var minRatio in new[] { 0.30, 0.50 })
+        foreach (var minRatio in new[] { 0.0, 0.30, 0.50 })
+        foreach (var maxRatio in new[] { 1.80, 3.0, 10.0 })
         foreach (var requireVol in new[] { false, true })
             yield return StrategyTuningParams.RefinedDefault with
             {
                 IbTargetMultiplier = targetMult,
                 IbUseHalfRangeStop = halfStop,
                 IbMinRangeRatio = minRatio,
-                IbMaxRangeRatio = 1.80,
+                IbMaxRangeRatio = maxRatio,
                 IbRequireVolume = requireVol
             };
     }

@@ -28,10 +28,10 @@ public class IbBreakoutStrategyTests
     }
 
     [Fact]
-    public void IbBreakout_GridSearch_Produces32Combinations()
+    public void IbBreakout_GridSearch_Produces144Combinations()
     {
         var results = GridSearchRunner.BuildParameterGrid(StrategyKind.IbBreakout).ToList();
 
-        Assert.Equal(32, results.Count);
+        Assert.Equal(144, results.Count);
     }
 }

@@ -394,7 +394,19 @@ static bool TryReadBars(string inputPath, out IReadOnlyList<MarketBar> bars)
 static IReadOnlyList<StrategyKind> GridSearchStrategies(StrategyKind? requestedStrategy)
 {
     return requestedStrategy is null
-        ? new[] { StrategyKind.Momentum, StrategyKind.OrbBreakout, StrategyKind.Ema, StrategyKind.Range, StrategyKind.VwapReversion, StrategyKind.BollingerFade, StrategyKind.SchoolRun, StrategyKind.IbBreakout }
+        ? new[]
+        {
+            StrategyKind.Momentum,
+            StrategyKind.Ema,
+            StrategyKind.Trend,
+            StrategyKind.SchoolRun,
+            StrategyKind.OrbBreakout,
+            StrategyKind.IbBreakout,
+            StrategyKind.Range,
+            StrategyKind.VwapReversion,
+            StrategyKind.BollingerFade,
+            StrategyKind.Volatility
+        }
         : new[] { requestedStrategy.Value };
 }
 

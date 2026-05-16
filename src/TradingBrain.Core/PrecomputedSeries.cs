@@ -60,8 +60,8 @@ public sealed class PrecomputedSeries
             Lowest(bars, 10),
             Highest(bars, 3),
             Lowest(bars, 3),
-            Highest(bars, 20),
-            Lowest(bars, 20),
+            PreviousHighest(bars, 20),
+            PreviousLowest(bars, 20),
             BollingerUpper(closes, 20, bbStdDev),
             Sma(closes, 20),
             BollingerLower(closes, 20, bbStdDev));
@@ -311,6 +311,20 @@ public sealed class PrecomputedSeries
         return result;
     }
 
+    private static double[] PreviousHighest(IReadOnlyList<MarketBar> bars, int period)
+    {
+        var result = Fill(bars.Count);
+        for (var i = period; i < bars.Count; i++)
+        {
+            var value = double.MinValue;
+            for (var j = i - period; j < i; j++)
+                value = Math.Max(value, bars[j].High);
+            result[i] = value;
+        }
+
+        return result;
+    }
+
     private static double[] Lowest(IReadOnlyList<MarketBar> bars, int period)
     {
         var result = Fill(bars.Count);
@@ -318,6 +332,20 @@ public sealed class PrecomputedSeries
         {
             var value = double.MaxValue;
             for (var j = i - period + 1; j <= i; j++)
+                value = Math.Min(value, bars[j].Low);
+            result[i] = value;
+        }
+
+        return result;
+    }
+
+    private static double[] PreviousLowest(IReadOnlyList<MarketBar> bars, int period)
+    {
+        var result = Fill(bars.Count);
+        for (var i = period; i < bars.Count; i++)
+        {
+            var value = double.MaxValue;
+            for (var j = i - period; j < i; j++)
                 value = Math.Min(value, bars[j].Low);
             result[i] = value;
         }

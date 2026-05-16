@@ -147,8 +147,8 @@ public sealed record StrategyTuningParams(
     double OrbVolumeRatio = 1.1,
     double IbTargetMultiplier = 1.0,
     bool IbUseHalfRangeStop = false,
-    double IbMinRangeRatio = 0.30,
-    double IbMaxRangeRatio = 1.80,
+    double IbMinRangeRatio = 0.0,
+    double IbMaxRangeRatio = 10.0,
     bool IbRequireVolume = false)
 {
     public static StrategyTuningParams RefinedDefault { get; } = new();
@@ -193,8 +193,8 @@ public sealed record StrategyTuningParams(
         OrbVolumeRatio: 1.1,
         IbTargetMultiplier: 1.0,
         IbUseHalfRangeStop: false,
-        IbMinRangeRatio: 0.30,
-        IbMaxRangeRatio: 1.80,
+        IbMinRangeRatio: 0.0,
+        IbMaxRangeRatio: 10.0,
         IbRequireVolume: false);
 }
 

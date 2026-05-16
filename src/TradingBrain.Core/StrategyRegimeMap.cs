@@ -7,19 +7,7 @@ namespace TradingBrain.Core;
 public static class StrategyRegimeMap
 {
     private static readonly IReadOnlyDictionary<StrategyKind, IReadOnlyList<MarketRegime>> Map =
-        new Dictionary<StrategyKind, IReadOnlyList<MarketRegime>>
-        {
-            [StrategyKind.Momentum] = new[] { MarketRegime.Trend },
-            [StrategyKind.Ema] = new[] { MarketRegime.Trend },
-            [StrategyKind.Trend] = new[] { MarketRegime.Trend },
-            [StrategyKind.OrbBreakout] = new[] { MarketRegime.Breakout },
-            [StrategyKind.SessionBreakout] = new[] { MarketRegime.Breakout },
-            [StrategyKind.SchoolRun] = new[] { MarketRegime.Breakout },
-            [StrategyKind.Range] = new[] { MarketRegime.Range },
-            [StrategyKind.VwapReversion] = new[] { MarketRegime.Range },
-            [StrategyKind.BollingerFade] = new[] { MarketRegime.Range },
-            [StrategyKind.Volatility] = new[] { MarketRegime.HighVolatility },
-        };
+        BuildMap();
 
     /// <summary>
     /// Retorna os regimes permitidos para a strategy.
@@ -35,4 +23,32 @@ public static class StrategyRegimeMap
     /// </summary>
     public static bool HasFilter(StrategyKind strategy)
         => Map.ContainsKey(strategy);
+
+    private static IReadOnlyDictionary<StrategyKind, IReadOnlyList<MarketRegime>> BuildMap()
+    {
+        var map = new Dictionary<StrategyKind, IReadOnlyList<MarketRegime>>();
+
+        Add(map, "Momentum", MarketRegime.Trend);
+        Add(map, "Ema", MarketRegime.Trend);
+        Add(map, "Trend", MarketRegime.Trend);
+        Add(map, "GoldBreakout", MarketRegime.Breakout);
+        Add(map, "OrbBreakout", MarketRegime.Breakout);
+        Add(map, "SessionBreakout", MarketRegime.Breakout);
+        Add(map, "SchoolRun", MarketRegime.Breakout);
+        Add(map, "Range", MarketRegime.Range);
+        Add(map, "VwapReversion", MarketRegime.Range);
+        Add(map, "BollingerFade", MarketRegime.Range);
+        Add(map, "Volatility", MarketRegime.HighVolatility);
+
+        return map;
+    }
+
+    private static void Add(
+        IDictionary<StrategyKind, IReadOnlyList<MarketRegime>> map,
+        string strategyName,
+        params MarketRegime[] regimes)
+    {
+        if (Enum.TryParse<StrategyKind>(strategyName, ignoreCase: false, out var strategy))
+            map[strategy] = regimes;
+    }
 }

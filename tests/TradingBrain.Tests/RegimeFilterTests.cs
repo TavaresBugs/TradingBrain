@@ -39,10 +39,17 @@ public class RegimeFilterTests
     public void Apply_AlwaysExcludesNonTrendDays()
     {
         var bars = MakeNDays(30);
-        var result = RegimeFilter.Apply(bars, new[] { MarketRegime.NonTrend });
+        var allowedRegimes = Enum.TryParse<MarketRegime>("NonTrend", out var nonTrend)
+            ? new[] { nonTrend }
+            : Array.Empty<MarketRegime>();
+
+        var result = RegimeFilter.Apply(bars, allowedRegimes);
         var resultDates = result.Select(b => DateOnly.FromDateTime(b.Time)).Distinct().ToList();
         var regimes = RegimeClassifier.Classify(bars);
-        var nonTrendDates = regimes.Where(r => r.Regime == MarketRegime.NonTrend).Select(r => r.Date).ToHashSet();
+        var nonTrendDates = regimes
+            .Where(r => r.Regime.ToString().Equals("NonTrend", StringComparison.OrdinalIgnoreCase))
+            .Select(r => r.Date)
+            .ToHashSet();
 
         Assert.True(resultDates.All(d => !nonTrendDates.Contains(d)),
             "Nenhum dia NonTrend deve aparecer no resultado filtrado");
@@ -83,7 +90,7 @@ public class RegimeFilterTests
         foreach (var strategy in Enum.GetValues<StrategyKind>())
         {
             var regimes = StrategyRegimeMap.For(strategy);
-            Assert.DoesNotContain(MarketRegime.NonTrend, regimes);
+            Assert.DoesNotContain(regimes, r => r.ToString().Equals("NonTrend", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

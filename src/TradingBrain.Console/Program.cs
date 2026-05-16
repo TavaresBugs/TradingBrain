@@ -24,6 +24,55 @@ if (args.Any(arg => arg.Equals("--help", StringComparison.OrdinalIgnoreCase) || 
     return 0;
 }
 
+var classifyRegimeIndex = Array.FindIndex(args, arg => arg.Equals("--classify-regime", StringComparison.OrdinalIgnoreCase));
+if (classifyRegimeIndex >= 0)
+{
+    if (classifyRegimeIndex + 2 >= args.Length)
+    {
+        throw new ArgumentException("Use --classify-regime <input.csv|txt> <pasta-de-saida>.");
+    }
+
+    var inputPath = args[classifyRegimeIndex + 1];
+    var outputDir = args[classifyRegimeIndex + 2];
+    if (!TryReadBars(inputPath, out var regimeBars))
+    {
+        return 1;
+    }
+
+    var regimes = RegimeClassifier.Classify(regimeBars);
+    Directory.CreateDirectory(outputDir);
+
+    var regimeCsvPath = Path.Combine(outputDir, "regime_distribution.csv");
+    using var writer = new StreamWriter(regimeCsvPath);
+    writer.WriteLine("Date,Regime,RangeRatio,ClosePosition,OvernightRatio,GapRatio,Reason");
+    foreach (var r in regimes)
+    {
+        writer.WriteLine(string.Join(",",
+            r.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            r.Regime,
+            r.RangeRatio.ToString("0.####", CultureInfo.InvariantCulture),
+            r.ClosePosition.ToString("0.####", CultureInfo.InvariantCulture),
+            r.OvernightRatio.ToString("0.####", CultureInfo.InvariantCulture),
+            r.GapRatio.ToString("0.####", CultureInfo.InvariantCulture),
+            "\"" + r.Reason.Replace("\"", "\"\"") + "\""));
+    }
+
+    var counts = regimes
+        .GroupBy(r => r.Regime)
+        .OrderByDescending(g => g.Count())
+        .ToList();
+
+    Console.WriteLine($"Dias classificados: {regimes.Count}");
+    Console.WriteLine($"CSV: {regimeCsvPath}");
+    Console.WriteLine();
+    foreach (var g in counts)
+    {
+        Console.WriteLine($"  {g.Key,-15} {g.Count(),4} dias  ({g.Count() * 100.0 / regimes.Count:F1}%)");
+    }
+
+    return 0;
+}
+
 var executionSettings = ReadExecutionSettings(args);
 
 var runAllRequest = ReadRunAllRequest(args);
@@ -643,6 +692,7 @@ static void PrintUsage()
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --run-all <input.csv|txt> <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --grid-search <input.csv|txt> <pasta> [Strategy]");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --walk-forward <input.csv|txt> <pasta> [Strategy] [--windows N]");
+    Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --classify-regime <input.csv|txt> <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --generate-ninja <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --inspect-dll <dll> <relatorio.md>");
     Console.WriteLine();

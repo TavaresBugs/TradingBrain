@@ -199,7 +199,7 @@ public static class RegimeClassifier
             return MarketRegime.Breakout;
         }
 
-        if (ibToday30MinRatio < 0.45 && gapRatio < 0.75)
+        if (ibToday30MinRatio < 0.24 && gapRatio < 0.75)
         {
             reason = $"Range: compressedIB ib30={ibToday30MinRatio:F2} gap={gapRatio:F2}";
             return MarketRegime.Range;

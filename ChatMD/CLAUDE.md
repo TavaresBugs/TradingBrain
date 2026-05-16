@@ -64,16 +64,16 @@ python3 adapters/TradingView/convert_tradingview.py input.csv output.csv --drop-
 - **IB Classifier:** substituiu o KER-based. Classifica cada dia por Initial Balance (9:30-10:30 ET). Regimes: Trend, Breakout, Range, HighVolatility, NonTrend, Undefined
 - **RegimeFilter:** filtra o dataset por regime alvo antes do grid search. `StrategyRegimeMap` define o mapeamento fixo strategy → regime. Flag `--no-regime-filter` para comparação
 - **WalkForward com regime filter:** filtro aplicado antes do split em janelas. Gate de 30 dias mínimos após filtro
-- **Strategy `IbBreakout` canônica:** range 9:30-10:30 direto das barras de 5min, sem resample. Smoke test roda, mas grid/walk-forward filtrados ainda não encontram trades suficientes nos regimes Breakout+Trend.
+- **Validação estatística do IB classifier:** aprovada nos 82k dados reais. Directionality média: Trend 0.556, Breakout 0.539, Range 0.391, NonTrend 0.054.
+- **Strategy `IbBreakout` canônica:** range 9:30-10:30 direto das barras de 5min, sem resample. Smoke sem filtro: 279 trades. Grid filtrado Breakout+Trend aprovado com 3 OOS validados e melhor OOS NetPnL 1042.8 pts.
 
 ### 🔜 Próximos passos (em ordem de prioridade)
 
-1. **Validação estatística do IB classifier** nos 82k dados reais — confirmar que `directionality` de dias Trend > Range após o novo classifier (era o inverso com KER)
-2. **Validar/tunar `IbBreakout`** — default gerou 5 trades no dataset completo, mas 0 resultados no grid filtrado Breakout+Trend; revisar thresholds ou regime alvo antes de considerar produção.
-3. **Mais dados** — baixar 2024 do TradingView (4 arquivos) para ter 2+ anos e validar IB com significância
-4. **WalkForward com regime** — comparar resultados SchoolRun com e sem filtro (baseline: 1/5 janelas OOS positivo sem filtro)
-5. **SchoolRun anti-mode** — testar `UseAntiMode=True` em dias onde preço está dentro do overnight range
-6. **OrbBreakout grid expandido** — adicionar variação da janela de formação (9:30-10:00 vs 9:30-10:30)
+1. **Mais dados** — baixar 2024 do TradingView (4 arquivos) para ter 2+ anos e validar IB com significância.
+2. **WalkForward IbBreakout** — com 84 dias filtrados e 3 janelas, o IS ficou com poucos trades (8/5/4) e não houve OOS validado; repetir com mais dados antes de produção.
+3. **SchoolRun anti-mode** — testar `UseAntiMode=True` em dias onde preço está dentro do overnight range.
+4. **OrbBreakout grid expandido** — adicionar variação da janela de formação (9:30-10:00 vs 9:30-10:30).
+5. **SchoolRun comparação contínua** — filtrado Trend+Breakout teve 2/3 OOS positivos; sem filtro teve 0/3 OOS positivos no grid comparativo.
 
 ---
 

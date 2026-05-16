@@ -110,7 +110,13 @@ if (replayRequest is not null)
 var gridSearchRequest = ReadGridSearchRequest(args);
 if (gridSearchRequest is not null)
 {
-    return RunGridSearch(gridSearchRequest.Value.InputPath, gridSearchRequest.Value.OutputDirectory, gridSearchRequest.Value.Strategy, executionSettings);
+    var applyRegimeFilter = !args.Any(a => a.Equals("--no-regime-filter", StringComparison.OrdinalIgnoreCase));
+    return RunGridSearch(
+        gridSearchRequest.Value.InputPath,
+        gridSearchRequest.Value.OutputDirectory,
+        gridSearchRequest.Value.Strategy,
+        executionSettings,
+        applyRegimeFilter);
 }
 
 var csvPath = args.Length > 0 && !args[0].StartsWith("--", StringComparison.Ordinal)
@@ -250,10 +256,17 @@ static int RunAllStrategies(string inputPath, string outputDirectory, ExecutionS
     return 0;
 }
 
-static int RunGridSearch(string inputPath, string outputDirectory, StrategyKind? requestedStrategy, ExecutionSettings executionSettings)
+static int RunGridSearch(
+    string inputPath,
+    string outputDirectory,
+    StrategyKind? requestedStrategy,
+    ExecutionSettings executionSettings,
+    bool applyRegimeFilter)
 {
     if (!TryReadBars(inputPath, out var bars))
         return 1;
+
+    PrintRegimeDistribution(bars);
 
     const double splitRatio = 0.65;
     var split = DataSplit.SplitChronological(bars, splitRatio);
@@ -266,13 +279,19 @@ static int RunGridSearch(string inputPath, string outputDirectory, StrategyKind?
     var comparisonRows = new List<GridSearchResult>();
 
     foreach (var strategy in strategies)
-        comparisonRows.AddRange(RunGridSearchForStrategy(strategy, split, outputDirectory, executionSettings, outputFiles));
+        comparisonRows.AddRange(RunGridSearchForStrategy(
+            strategy,
+            split,
+            outputDirectory,
+            executionSettings,
+            outputFiles,
+            applyRegimeFilter));
 
     var isVsOosPath = Path.Combine(outputDirectory, "is_vs_oos.csv");
     GridSearchRunner.ExportIsVsOosCsv(comparisonRows, isVsOosPath);
     outputFiles.Add(isVsOosPath);
 
-    var manifestPath = WriteGridSearchManifest(inputPath, outputDirectory, bars.Count, strategies, executionSettings, outputFiles, split, splitRatio, requestedStrategy);
+    var manifestPath = WriteGridSearchManifest(inputPath, outputDirectory, bars.Count, strategies, executionSettings, outputFiles, split, splitRatio, requestedStrategy, applyRegimeFilter);
     Console.WriteLine($"Split IS/OOS: {split.InSample.Count}/{split.OutSample.Count}");
     Console.WriteLine($"IS vs OOS CSV: {isVsOosPath}");
     Console.WriteLine($"Manifesto: {manifestPath}");
@@ -397,9 +416,10 @@ static IReadOnlyList<GridSearchResult> RunGridSearchForStrategy(
     DataSplit split,
     string outputDirectory,
     ExecutionSettings executionSettings,
-    List<string> outputFiles)
+    List<string> outputFiles,
+    bool applyRegimeFilter)
 {
-    var results = GridSearchRunner.Label(GridSearchRunner.Run(split.InSample, strategy, executionSettings), "IS");
+    var results = GridSearchRunner.Label(GridSearchRunner.Run(split.InSample, strategy, executionSettings, applyRegimeFilter), "IS");
     var outputPath = Path.Combine(outputDirectory, strategy.ToString().ToLowerInvariant() + ".grid.csv");
     GridSearchRunner.ExportCsv(results, outputPath);
     outputFiles.Add(outputPath);
@@ -411,9 +431,25 @@ static IReadOnlyList<GridSearchResult> RunGridSearchForStrategy(
     }
 
     var top = results.Take(3).ToList();
-    var oos = GridSearchRunner.ValidateOutOfSample(split.OutSample, top, executionSettings);
+    var oos = GridSearchRunner.ValidateOutOfSample(split.OutSample, top, executionSettings, applyRegimeFilter);
     PrintGridSearchResult(strategy, results, outputPath, oos.Count);
     return GridSearchRunner.BuildIsVsOosRows(top, oos);
+}
+
+static void PrintRegimeDistribution(IReadOnlyList<MarketBar> bars)
+{
+    var regimeCounts = RegimeFilter.CountDaysByRegime(bars);
+    var totalDays = regimeCounts.Values.Sum();
+
+    Console.WriteLine("=== Distribuicao de regimes no dataset ===");
+    foreach (var (regime, count) in regimeCounts.OrderByDescending(kv => kv.Value))
+    {
+        var pct = totalDays > 0 ? 100.0 * count / totalDays : 0;
+        Console.WriteLine($"  {regime,-16} {count,4} dias  ({pct:F1}%)");
+    }
+
+    Console.WriteLine($"  {"TOTAL",-16} {totalDays,4} dias");
+    Console.WriteLine();
 }
 
 static string WriteGridSearchManifest(
@@ -425,7 +461,8 @@ static string WriteGridSearchManifest(
     IReadOnlyList<string> outputFiles,
     DataSplit split,
     double splitRatio,
-    StrategyKind? requestedStrategy)
+    StrategyKind? requestedStrategy,
+    bool applyRegimeFilter)
 {
     return RunManifestWriter.Write(RunManifestWriter.Create(
         "grid-search",
@@ -441,7 +478,9 @@ static string WriteGridSearchManifest(
             SplitRatio = splitRatio,
             InSampleBars = split.InSample.Count,
             OutSampleBars = split.OutSample.Count,
-            MinTradesOos = GridSearchRunner.MinTradesOos
+            ApplyRegimeFilter = applyRegimeFilter,
+            MinTradesOos = GridSearchRunner.MinTradesOos,
+            MinTradesIsScore = GridSearchRunner.MinTradesIsScore
         }), outputDirectory);
 }
 
@@ -753,6 +792,7 @@ static void PrintUsage()
     Console.WriteLine();
     Console.WriteLine("Flags opcionais de execucao:");
     Console.WriteLine("  --tick-size 0.25 --tick-value 0.50 --slippage-ticks 1 --spread-ticks 1 --commission-per-side 0 --quantity 1");
+    Console.WriteLine("  --no-regime-filter    Desativa filtro de regime no grid search (roda em todos os dias)");
     Console.WriteLine();
     Console.WriteLine("Formato NinjaTrader aceito:");
     Console.WriteLine("  yyyyMMdd HHmmss;open;high;low;close;volume");

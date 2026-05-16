@@ -6,21 +6,38 @@ namespace TradingBrain.ConsoleApp;
 
 public static class GridSearchRunner
 {
-    public const int MinTradesOos = 15;
+    public const int MinTradesOos = 10;
+    public const int MinTradesIsScore = 20;
 
     public static IReadOnlyList<GridSearchResult> Run(
         IReadOnlyList<MarketBar> bars,
         StrategyKind strategy,
-        ExecutionSettings? executionSettings = null)
+        ExecutionSettings? executionSettings = null,
+        bool applyRegimeFilter = true)
     {
         var settings = executionSettings ?? ExecutionSettings.MnqDefault;
-        var series = PrecomputedSeries.From(bars);
+        var filteredBars = applyRegimeFilter && StrategyRegimeMap.HasFilter(strategy)
+            ? RegimeFilter.Apply(bars, StrategyRegimeMap.For(strategy))
+            : bars;
+
+        var totalDays = bars.Select(b => b.Time.Date).Distinct().Count();
+        var filteredDays = filteredBars.Select(b => b.Time.Date).Distinct().Count();
+        if (applyRegimeFilter && filteredDays < totalDays)
+        {
+            var regimeLabel = string.Join("|", StrategyRegimeMap.For(strategy).Select(r => r.ToString()));
+            Console.WriteLine($"  [RegimeFilter] {strategy}: {filteredDays}/{totalDays} dias apos filtro de regime ({regimeLabel})");
+        }
+
+        if (filteredBars.Count == 0)
+            return Array.Empty<GridSearchResult>();
+
+        var series = PrecomputedSeries.From(filteredBars);
         var results = new ConcurrentBag<GridSearchResult>();
 
         Parallel.ForEach(BuildParameterGrid(strategy), parameters =>
         {
             var backtester = new StrategyBacktester(strategy, parameters, series);
-            var rows = backtester.Run(bars);
+            var rows = backtester.Run(filteredBars);
             var summary = StrategyBacktester.Summarize(rows, settings);
 
             if (summary.ClosedTrades > 0)
@@ -48,16 +65,24 @@ public static class GridSearchRunner
     public static IReadOnlyList<GridSearchResult> ValidateOutOfSample(
         IReadOnlyList<MarketBar> bars,
         IReadOnlyList<GridSearchResult> winners,
-        ExecutionSettings? executionSettings = null)
+        ExecutionSettings? executionSettings = null,
+        bool applyRegimeFilter = true)
     {
         var settings = executionSettings ?? ExecutionSettings.MnqDefault;
         var results = new List<GridSearchResult>();
-        var oosSeries = PrecomputedSeries.From(bars);
         foreach (var winner in winners.Take(3))
         {
+            var filteredBars = applyRegimeFilter && StrategyRegimeMap.HasFilter(winner.Strategy)
+                ? RegimeFilter.Apply(bars, StrategyRegimeMap.For(winner.Strategy))
+                : bars;
+
+            if (filteredBars.Count == 0)
+                continue;
+
+            var oosSeries = PrecomputedSeries.From(filteredBars);
             var backtester = new StrategyBacktester(winner.Strategy, winner.Params, oosSeries);
-            var summary = StrategyBacktester.Summarize(backtester.Run(bars), settings) with { IsLabel = "OOS" };
-            if (summary.ClosedTrades >= MinTradesOos && summary.NetPnL > 0)
+            var summary = StrategyBacktester.Summarize(backtester.Run(filteredBars), settings) with { IsLabel = "OOS" };
+            if (summary.ClosedTrades >= MinTradesOos)
             {
                 results.Add(winner with { Summary = summary });
             }
@@ -106,14 +131,19 @@ public static class GridSearchRunner
     public static void ExportCsv(IReadOnlyList<GridSearchResult> results, string path)
     {
         using var writer = new StreamWriter(path);
-        writer.WriteLine("Strategy,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,BbStdDev,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode");
+        writer.WriteLine("Strategy,RegimeFilter,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,BbStdDev,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode");
 
         foreach (var result in results)
         {
             var p = result.Params;
             var s = result.Summary;
+            var regimeLabel = StrategyRegimeMap.HasFilter(result.Strategy)
+                ? string.Join("|", StrategyRegimeMap.For(result.Strategy).Select(r => r.ToString()))
+                : "All";
+
             writer.WriteLine(string.Join(",",
                 StrategyBacktester.StrategyName(result.Strategy),
+                regimeLabel,
                 F(Score(s)),
                 s.ClosedTrades.ToString(CultureInfo.InvariantCulture),
                 F(s.WinRate),
@@ -363,7 +393,7 @@ public static class GridSearchRunner
 
     public static double Score(BacktestSummary summary)
     {
-        if (summary.ClosedTrades < 30)
+        if (summary.ClosedTrades < MinTradesIsScore)
         {
             return double.NegativeInfinity;
         }

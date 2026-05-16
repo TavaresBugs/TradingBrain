@@ -4,6 +4,8 @@ public static class RegimeClassifier
 {
     private const int SessionOpenHHmm = 930;
     private const int SessionCloseHHmm = 1600;
+    private const int IbEndHHmm = 1030;
+    private const int IbMid30HHmm = 1000;
     private const int OvernightStartHHmm = 1800;
 
     /// <summary>
@@ -29,11 +31,6 @@ public static class RegimeClassifier
             var prevDate = byDate[d - 1].Key;
             var prevBars = byDate[d - 1].OrderBy(b => b.Time).ToList();
 
-            if (!atr14ByDate.TryGetValue(prevDate, out var atr14) || double.IsNaN(atr14) || atr14 <= 0)
-            {
-                continue;
-            }
-
             var prevSessionBars = prevBars
                 .Where(b => ToHHmm(b.Time) >= SessionOpenHHmm && ToHHmm(b.Time) <= SessionCloseHHmm)
                 .ToList();
@@ -51,6 +48,13 @@ public static class RegimeClassifier
             if (prevRange <= 0)
             {
                 continue;
+            }
+
+            var atr14IsFallback = false;
+            if (!atr14ByDate.TryGetValue(prevDate, out var atr14) || double.IsNaN(atr14) || atr14 <= 0)
+            {
+                atr14 = prevRange;
+                atr14IsFallback = true;
             }
 
             var rangeRatio = prevRange / atr14;
@@ -78,8 +82,35 @@ public static class RegimeClassifier
                 ? Math.Abs(firstBar930.Open - prevClose) / atr14
                 : 0;
 
+            var (ibYestHigh, ibYestLow) = GetIbWindow(prevBars, SessionOpenHHmm, IbEndHHmm);
+
+            var todayIb30Bars = todayBars
+                .Where(b => ToHHmm(b.Time) >= SessionOpenHHmm && ToHHmm(b.Time) < IbMid30HHmm)
+                .ToList();
+            var ibToday30High = todayIb30Bars.Count > 0 ? todayIb30Bars.Max(b => b.High) : double.NaN;
+            var ibToday30Low = todayIb30Bars.Count > 0 ? todayIb30Bars.Min(b => b.Low) : double.NaN;
+            var ibToday30Range = !double.IsNaN(ibToday30High) && !double.IsNaN(ibToday30Low)
+                ? ibToday30High - ibToday30Low
+                : 0;
+            var ibToday30MinRatio = atr14 > 0 ? ibToday30Range / atr14 : 0;
+
+            var otfDirection = CheckOneTimeFraming(todayBars);
+            var openOutside = !double.IsNaN(ibYestHigh) && !double.IsNaN(ibYestLow)
+                && firstBar930 is not null
+                && (firstBar930.Open > ibYestHigh || firstBar930.Open < ibYestLow);
+
+            var regime = ClassifyByIB(
+                ibYestHigh,
+                ibYestLow,
+                firstBar930?.Open ?? double.NaN,
+                ibToday30MinRatio,
+                overnightRatio,
+                gapRatio,
+                otfDirection,
+                atr14IsFallback,
+                out var reason);
+
             var ker = kerByDate.TryGetValue(prevDate, out var kerVal) ? kerVal : double.NaN;
-            var regime = Classify(rangeRatio, closePosition, overnightRatio, gapRatio, ker, out var reason);
 
             result.Add(new DayRegime(
                 DateOnly.FromDateTime(today),
@@ -89,68 +120,130 @@ public static class RegimeClassifier
                 overnightRatio,
                 gapRatio,
                 ker,
-                reason));
+                reason,
+                IbYestHigh: ibYestHigh,
+                IbYestLow: ibYestLow,
+                IbToday30MinRatio: ibToday30MinRatio,
+                OpenOutsideIbYest: openOutside,
+                OneTimeFramingUp: otfDirection == 1,
+                OneTimeFramingDown: otfDirection == -1));
         }
 
         return result;
     }
 
-    private static MarketRegime Classify(
-        double rangeRatio,
-        double closePosition,
+    private static MarketRegime ClassifyByIB(
+        double ibYestHigh,
+        double ibYestLow,
+        double openToday,
+        double ibToday30MinRatio,
         double overnightRatio,
         double gapRatio,
-        double ker,
+        int otfDirection,
+        bool atr14IsFallback,
         out string reason)
     {
-        // 1. Alta volatilidade - criterio de range extremo, sem mudanca
-        if (rangeRatio > 2.0 || overnightRatio > 2.0)
+        if (ibToday30MinRatio > 2.0 || overnightRatio > 2.0)
         {
-            reason = $"HighVol: rangeRatio={rangeRatio:F2} overnightRatio={overnightRatio:F2}";
+            reason = $"HighVol: ib30={ibToday30MinRatio:F2} overnight={overnightRatio:F2}";
             return MarketRegime.HighVolatility;
         }
 
-        var kerAvailable = !double.IsNaN(ker);
-
-        // 2. Breakout - direcional + catalisador externo
-        var directional = kerAvailable ? ker > 0.40 : rangeRatio > 1.2;
-        if (directional && (gapRatio > 0.40 || overnightRatio > 1.2))
+        if (ibToday30MinRatio < 0.30 && gapRatio < 0.20 && overnightRatio < 0.80)
         {
-            reason = $"Breakout: ker={ker:F2} gap={gapRatio:F2} overnightRatio={overnightRatio:F2}";
-            return MarketRegime.Breakout;
+            reason = $"NonTrend: ib30={ibToday30MinRatio:F2} gap={gapRatio:F2}";
+            return MarketRegime.NonTrend;
         }
 
-        // 3. Trend - direcional sem catalisador externo forte
-        if (kerAvailable ? ker > 0.40 : rangeRatio > 1.2 && (closePosition > 0.60 || closePosition < 0.40))
-        {
-            reason = $"Trend: ker={ker:F2} rangeRatio={rangeRatio:F2} closePos={closePosition:F2}";
-            return MarketRegime.Trend;
-        }
+        var ibYestValid = !double.IsNaN(ibYestHigh) && !double.IsNaN(ibYestLow);
+        var openOutside = ibYestValid && (openToday > ibYestHigh || openToday < ibYestLow);
 
-        // 4. Range - lateral confirmado pelo KER
-        if (kerAvailable ? ker < 0.25 : rangeRatio < 1.1 && gapRatio < 0.30 && overnightRatio < 1.0)
+        if (atr14IsFallback)
         {
-            reason = $"Range: ker={ker:F2} rangeRatio={rangeRatio:F2} gap={gapRatio:F2}";
-            return MarketRegime.Range;
-        }
-
-        if (!kerAvailable)
-        {
-            if (gapRatio > 0.40 || overnightRatio > 1.2)
+            if (gapRatio > 0.50 && ibToday30MinRatio < 0.55)
             {
-                reason = $"Breakout(noKER): gap={gapRatio:F2} overnight={overnightRatio:F2}";
+                reason = $"Breakout: gap={gapRatio:F2} ib30={ibToday30MinRatio:F2}";
                 return MarketRegime.Breakout;
             }
 
-            if (rangeRatio < 1.1 && gapRatio < 0.30)
+            if (openOutside && ibToday30MinRatio < 0.60)
             {
-                reason = $"Range(noKER): rangeRatio={rangeRatio:F2}";
+                var otfNote = otfDirection != 0 ? $" otf={otfDirection:+0;-0}" : " otf=0(unconfirmed)";
+                reason = $"Trend: openOutsideIB ib30={ibToday30MinRatio:F2}{otfNote}";
+                return MarketRegime.Trend;
+            }
+
+            if (!openOutside && ibToday30MinRatio is >= 0.60 and <= 2.00)
+            {
+                reason = $"Range: openInsideIB ib30={ibToday30MinRatio:F2}";
                 return MarketRegime.Range;
+            }
+
+            if (!openOutside && ibToday30MinRatio < 0.60 && gapRatio > 0.20)
+            {
+                reason = $"Breakout(lateGap): openInsideIB ib30={ibToday30MinRatio:F2} gap={gapRatio:F2}";
+                return MarketRegime.Breakout;
             }
         }
 
-        reason = $"Undefined: ker={ker:F2} rangeRatio={rangeRatio:F2} closePos={closePosition:F2} gap={gapRatio:F2}";
+        if (ibToday30MinRatio is >= 0.45 and < 0.55 && gapRatio > 0.30)
+        {
+            reason = $"Breakout: gap={gapRatio:F2} ib30={ibToday30MinRatio:F2}";
+            return MarketRegime.Breakout;
+        }
+
+        if (ibToday30MinRatio is >= 0.50 and < 0.60)
+        {
+            var otfNote = otfDirection != 0 ? $" otf={otfDirection:+0;-0}" : " otf=0(unconfirmed)";
+            reason = $"Trend: balancedIB ib30={ibToday30MinRatio:F2}{otfNote}";
+            return MarketRegime.Trend;
+        }
+
+        if (ibToday30MinRatio is >= 0.30 and < 0.45 && gapRatio < 0.50)
+        {
+            reason = $"Range: compressedIB ib30={ibToday30MinRatio:F2} gap={gapRatio:F2}";
+            return MarketRegime.Range;
+        }
+
+        reason = $"Undefined: openOut={openOutside} ib30={ibToday30MinRatio:F2} gap={gapRatio:F2} overnight={overnightRatio:F2}";
         return MarketRegime.Undefined;
+    }
+
+    private static (double High, double Low) GetIbWindow(
+        IEnumerable<MarketBar> bars,
+        int startHHmm,
+        int endHHmm)
+    {
+        var window = bars
+            .Where(b => ToHHmm(b.Time) >= startHHmm && ToHHmm(b.Time) < endHHmm)
+            .ToList();
+
+        if (window.Count == 0)
+        {
+            return (double.NaN, double.NaN);
+        }
+
+        return (window.Max(b => b.High), window.Min(b => b.Low));
+    }
+
+    private static int CheckOneTimeFraming(IEnumerable<MarketBar> bars930to1030)
+    {
+        var closes = bars930to1030
+            .Where(b => ToHHmm(b.Time) >= SessionOpenHHmm && ToHHmm(b.Time) <= IbEndHHmm)
+            .OrderBy(b => b.Time)
+            .Select(b => b.Close)
+            .ToList();
+
+        if (closes.Count < 4)
+        {
+            return 0;
+        }
+
+        var sample = closes.TakeLast(Math.Min(closes.Count, 6)).ToList();
+        var allUp = sample.Zip(sample.Skip(1)).All(p => p.Second > p.First);
+        var allDown = sample.Zip(sample.Skip(1)).All(p => p.Second < p.First);
+
+        return allUp ? 1 : allDown ? -1 : 0;
     }
 
     /// <summary>

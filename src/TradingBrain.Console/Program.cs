@@ -44,7 +44,7 @@ if (classifyRegimeIndex >= 0)
 
     var regimeCsvPath = Path.Combine(outputDir, "regime_distribution.csv");
     using var writer = new StreamWriter(regimeCsvPath);
-    writer.WriteLine("Date,Regime,RangeRatio,ClosePosition,OvernightRatio,GapRatio,Ker,Reason");
+    writer.WriteLine("Date,Regime,RangeRatio,ClosePosition,OvernightRatio,GapRatio,Ker,IbYestHigh,IbYestLow,IbToday30MinRatio,OpenOutsideIbYest,OTF_Up,OTF_Down,Reason");
     foreach (var r in regimes)
     {
         writer.WriteLine(string.Join(",",
@@ -55,6 +55,12 @@ if (classifyRegimeIndex >= 0)
             r.OvernightRatio.ToString("0.####", CultureInfo.InvariantCulture),
             r.GapRatio.ToString("0.####", CultureInfo.InvariantCulture),
             r.Ker.ToString("0.####", CultureInfo.InvariantCulture),
+            r.IbYestHigh.ToString("0.####", CultureInfo.InvariantCulture),
+            r.IbYestLow.ToString("0.####", CultureInfo.InvariantCulture),
+            r.IbToday30MinRatio.ToString("0.####", CultureInfo.InvariantCulture),
+            r.OpenOutsideIbYest,
+            r.OneTimeFramingUp,
+            r.OneTimeFramingDown,
             "\"" + r.Reason.Replace("\"", "\"\"") + "\""));
     }
 
@@ -93,6 +99,14 @@ if (walkForwardRequest is not null)
         executionSettings);
 }
 
+var replayRequest = ReadReplayRequest(args);
+if (replayRequest is not null)
+{
+    return ReplayViewer.Run(
+        replayRequest.Value.SignalsPath,
+        replayRequest.Value.DelayMs);
+}
+
 var gridSearchRequest = ReadGridSearchRequest(args);
 if (gridSearchRequest is not null)
 {
@@ -102,10 +116,11 @@ if (gridSearchRequest is not null)
 var csvPath = args.Length > 0 && !args[0].StartsWith("--", StringComparison.Ordinal)
     ? args[0]
     : Path.Combine(AppContext.BaseDirectory, "sample-bars.csv");
-var outputPath = args.Length > 1 && !args[1].StartsWith("--", StringComparison.Ordinal)
+var requestedOutputPath = args.Length > 1 && !args[1].StartsWith("--", StringComparison.Ordinal)
     ? args[1]
     : Path.Combine(Environment.CurrentDirectory, "volatility-signals-output.csv");
 var strategy = ReadStrategy(args);
+var outputPath = ResolveSingleBacktestOutputPath(requestedOutputPath, strategy);
 
 if (!File.Exists(csvPath))
 {
@@ -361,6 +376,22 @@ static IReadOnlyList<StrategyKind> GridSearchStrategies(StrategyKind? requestedS
         : new[] { requestedStrategy.Value };
 }
 
+static string ResolveSingleBacktestOutputPath(string outputPath, StrategyKind strategy)
+{
+    var isDirectory = outputPath.EndsWith(Path.DirectorySeparatorChar) ||
+                      outputPath.EndsWith(Path.AltDirectorySeparatorChar) ||
+                      Directory.Exists(outputPath) ||
+                      string.IsNullOrWhiteSpace(Path.GetExtension(outputPath));
+
+    if (!isDirectory)
+    {
+        return outputPath;
+    }
+
+    var slug = strategy.ToString().ToLowerInvariant();
+    return Path.Combine(outputPath, slug + ".signals.csv");
+}
+
 static IReadOnlyList<GridSearchResult> RunGridSearchForStrategy(
     StrategyKind strategy,
     DataSplit split,
@@ -556,6 +587,28 @@ static (string InputPath, string OutputDirectory)? ReadRunAllRequest(string[] ar
     return null;
 }
 
+static (string SignalsPath, int DelayMs)? ReadReplayRequest(string[] args)
+{
+    for (var i = 0; i < args.Length; i++)
+    {
+        if (!args[i].Equals("--replay", StringComparison.OrdinalIgnoreCase))
+        {
+            continue;
+        }
+
+        if (i + 1 >= args.Length)
+        {
+            throw new ArgumentException("Use --replay <signals.csv> [--delay <ms>].");
+        }
+
+        var signalsPath = args[i + 1];
+        var delayMs = ReadIntOption(args, "--delay", 0);
+        return (signalsPath, delayMs);
+    }
+
+    return null;
+}
+
 static (string InputPath, string OutputDirectory, StrategyKind? Strategy)? ReadGridSearchRequest(string[] args)
 {
     for (var i = 0; i < args.Length; i++)
@@ -694,6 +747,7 @@ static void PrintUsage()
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --grid-search <input.csv|txt> <pasta> [Strategy]");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --walk-forward <input.csv|txt> <pasta> [Strategy] [--windows N]");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --classify-regime <input.csv|txt> <pasta>");
+    Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --replay <signals.csv> [--delay 200]");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --generate-ninja <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --inspect-dll <dll> <relatorio.md>");
     Console.WriteLine();

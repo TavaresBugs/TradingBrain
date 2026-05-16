@@ -70,7 +70,7 @@ public static class GridSearchRunner
     {
         var settings = executionSettings ?? ExecutionSettings.MnqDefault;
         var results = new List<GridSearchResult>();
-        foreach (var winner in winners.Take(3))
+        foreach (var winner in winners.Where(r => Score(r.Summary) > double.NegativeInfinity).Take(3))
         {
             var filteredBars = applyRegimeFilter && StrategyRegimeMap.HasFilter(winner.Strategy)
                 ? RegimeFilter.Apply(bars, StrategyRegimeMap.For(winner.Strategy))
@@ -131,7 +131,7 @@ public static class GridSearchRunner
     public static void ExportCsv(IReadOnlyList<GridSearchResult> results, string path)
     {
         using var writer = new StreamWriter(path);
-        writer.WriteLine("Strategy,RegimeFilter,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,BbStdDev,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode,IbTargetMultiplier,IbUseHalfRangeStop,IbMinRangeRatio,IbMaxRangeRatio,IbRequireVolume");
+        writer.WriteLine("Strategy,RegimeFilter,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,TrendTimeExitBars,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,RsiOversold,RsiOverbought,VwapReversionVolumeRatio,BbStdDev,BbFadeRsiOversold,BbFadeRsiOverbought,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode,IbTargetMultiplier,IbUseHalfRangeStop,IbMinRangeRatio,IbMaxRangeRatio,IbRequireVolume");
 
         foreach (var result in results)
         {
@@ -179,6 +179,7 @@ public static class GridSearchRunner
                 p.TrailingActivationBars.ToString(CultureInfo.InvariantCulture),
                 F(p.EmaTrailingAtrOffset),
                 F(p.TrendAtrStopMultiplier),
+                p.TrendTimeExitBars.ToString(CultureInfo.InvariantCulture),
                 F(p.OrbAtrStopMultiplier),
                 p.OrbRangeStartHHmmss.ToString(CultureInfo.InvariantCulture),
                 p.OrbRangeEndHHmmss.ToString(CultureInfo.InvariantCulture),
@@ -188,7 +189,12 @@ public static class GridSearchRunner
                 p.OrbRequireVolume,
                 F(p.OrbVolumeRatio),
                 F(p.VwapReversionBand),
+                p.RsiOversold.ToString(CultureInfo.InvariantCulture),
+                p.RsiOverbought.ToString(CultureInfo.InvariantCulture),
+                F(p.VwapReversionVolumeRatio),
                 F(p.BbStdDev),
+                p.BbFadeRsiOversold.ToString(CultureInfo.InvariantCulture),
+                p.BbFadeRsiOverbought.ToString(CultureInfo.InvariantCulture),
                 F(p.SessionBreakoutAtrBuffer),
                 F(p.SessionMinRangeAtrRatio),
                 p.SrsReferenceCandle.ToString(CultureInfo.InvariantCulture),
@@ -303,9 +309,11 @@ public static class GridSearchRunner
     private static IEnumerable<StrategyTuningParams> TrendGrid()
     {
         foreach (var stop in new[] { 1.2, 1.6, 2.0, 2.5, 3.0 })
+        foreach (var exitBars in new[] { 30, 45, 60, 80, 100, 120 })
             yield return StrategyTuningParams.RefinedDefault with
             {
-                TrendAtrStopMultiplier = stop
+                TrendAtrStopMultiplier = stop,
+                TrendTimeExitBars = exitBars
             };
     }
 
@@ -344,25 +352,28 @@ public static class GridSearchRunner
 
     private static IEnumerable<StrategyTuningParams> VwapReversionGrid()
     {
-        foreach (var band in new[] { 0.001, 0.002, 0.003, 0.005 })
+        foreach (var band in new[] { 0.002, 0.003, 0.004, 0.005, 0.007, 0.010 })
         foreach (var stop in new[] { 1.0, 1.5, 2.0, 2.5 })
-        foreach (var volume in new[] { 1.0, 1.1, 1.2, 1.4 })
+        foreach (var rsiOversold in new[] { 25, 30, 40 })
             yield return StrategyTuningParams.RefinedDefault with
             {
                 VwapReversionBand = band,
                 AtrStopMultiplier = stop,
-                VwapReversionVolumeRatio = volume
+                RsiOversold = rsiOversold,
+                RsiOverbought = 100 - rsiOversold,
+                VwapReversionVolumeRatio = 1.0
             };
     }
 
     private static IEnumerable<StrategyTuningParams> BollingerFadeGrid()
     {
-        foreach (var stdDev in new[] { 1.5, 2.0, 2.5 })
         foreach (var stop in new[] { 1.0, 1.5, 2.0, 2.5 })
+        foreach (var rsiOversold in new[] { 25, 30, 35, 40 })
             yield return StrategyTuningParams.RefinedDefault with
             {
-                BbStdDev = stdDev,
-                AtrStopMultiplier = stop
+                AtrStopMultiplier = stop,
+                BbFadeRsiOversold = rsiOversold,
+                BbFadeRsiOverbought = 100 - rsiOversold
             };
     }
 

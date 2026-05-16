@@ -144,6 +144,13 @@ public sealed partial class StrategyBacktester
 
     private StrategyDecision EvaluateTrend(MarketBar bar, IReadOnlyDictionary<string, double> m, int position, double entryPrice, int barsSinceEntry, ref int trendState)
     {
+        var today = DateOnly.FromDateTime(bar.Time);
+        if (today != _lastTrendDate)
+        {
+            trendState = 0;
+            _lastTrendDate = today;
+        }
+
         var mid = (m["Highest10"] + m["Lowest10"]) / 2.0;
         var upper = mid + m["ATR"] * _defaults.AtrMultiplier;
         var lower = mid - m["ATR"] * _defaults.AtrMultiplier;
@@ -155,7 +162,7 @@ public sealed partial class StrategyBacktester
                 return new StrategyDecision(SignalAction.Exit, "Stop dinamico long");
             if (newTrend < 0)
                 return new StrategyDecision(SignalAction.Exit, "Trend virou contra long");
-            if (barsSinceEntry >= _defaults.TimeExitBars)
+            if (barsSinceEntry >= _params.TrendTimeExitBars)
                 return new StrategyDecision(SignalAction.Exit, "Tempo long");
             return new StrategyDecision(SignalAction.None, "Em tendencia long");
         }
@@ -166,7 +173,7 @@ public sealed partial class StrategyBacktester
                 return new StrategyDecision(SignalAction.Exit, "Stop dinamico short");
             if (newTrend > 0)
                 return new StrategyDecision(SignalAction.Exit, "Trend virou contra short");
-            if (barsSinceEntry >= _defaults.TimeExitBars)
+            if (barsSinceEntry >= _params.TrendTimeExitBars)
                 return new StrategyDecision(SignalAction.Exit, "Tempo short");
             return new StrategyDecision(SignalAction.None, "Em tendencia short");
         }
@@ -184,6 +191,13 @@ public sealed partial class StrategyBacktester
 
     private StrategyDecision EvaluateRange(MarketBar bar, IReadOnlyDictionary<string, double> m, int position, double entryPrice, int barsSinceEntry, ref int rangeState)
     {
+        var today = DateOnly.FromDateTime(bar.Time);
+        if (today != _lastRangeDate)
+        {
+            rangeState = 0;
+            _lastRangeDate = today;
+        }
+
         var filter = m["RangeFilter"];
         var band = m["ATR"] * _defaults.AtrMultiplier;
         var newState = bar.Close > filter + band ? 1 : bar.Close < filter - band ? -1 : rangeState;
@@ -445,8 +459,8 @@ public sealed partial class StrategyBacktester
         if (position == 0 && IsAtOrAfterCloseAll(bar.Time))
             return new StrategyDecision(SignalAction.None, "Fora da janela operacional");
 
-        var bbUpper = m["BbMiddle"] + (m["BbUpper"] - m["BbMiddle"]) * (_params.BbStdDev / 2.0);
-        var bbLower = m["BbMiddle"] - (m["BbMiddle"] - m["BbLower"]) * (_params.BbStdDev / 2.0);
+        var bbUpper = m["BbUpper"];
+        var bbLower = m["BbLower"];
         var stop = m["ATR"] * _params.AtrStopMultiplier;
         if (position > 0)
         {

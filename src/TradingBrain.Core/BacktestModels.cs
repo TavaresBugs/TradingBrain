@@ -149,7 +149,8 @@ public sealed record StrategyTuningParams(
     bool IbUseHalfRangeStop = false,
     double IbMinRangeRatio = 0.0,
     double IbMaxRangeRatio = 10.0,
-    bool IbRequireVolume = false)
+    bool IbRequireVolume = false,
+    int TrendTimeExitBars = 60)
 {
     public static StrategyTuningParams RefinedDefault { get; } = new();
 

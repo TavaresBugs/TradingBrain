@@ -11,6 +11,8 @@ public sealed partial class StrategyBacktester
     private IReadOnlyList<MarketBar>? _resampledBars;
     private double _orbWindowHigh = double.NaN;
     private double _orbWindowLow = double.NaN;
+    private DateOnly _lastTrendDate;
+    private DateOnly _lastRangeDate;
 
     public StrategyBacktester(
         StrategyKind strategy,

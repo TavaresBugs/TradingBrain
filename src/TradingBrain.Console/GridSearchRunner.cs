@@ -52,11 +52,12 @@ public static class GridSearchRunner
     {
         var settings = executionSettings ?? ExecutionSettings.MnqDefault;
         var results = new List<GridSearchResult>();
+        var oosSeries = PrecomputedSeries.From(bars);
         foreach (var winner in winners.Take(3))
         {
-            var backtester = new StrategyBacktester(winner.Strategy, winner.Params);
+            var backtester = new StrategyBacktester(winner.Strategy, winner.Params, oosSeries);
             var summary = StrategyBacktester.Summarize(backtester.Run(bars), settings) with { IsLabel = "OOS" };
-            if (summary.ClosedTrades >= MinTradesOos)
+            if (summary.ClosedTrades >= MinTradesOos && summary.NetPnL > 0)
             {
                 results.Add(winner with { Summary = summary });
             }
@@ -93,7 +94,7 @@ public static class GridSearchRunner
             writer.WriteLine(string.Join(",",
                 StrategyBacktester.StrategyName(result.Strategy),
                 s.IsLabel,
-                F(Score(s)),
+                F(ScoreForExport(s)),
                 s.ClosedTrades.ToString(CultureInfo.InvariantCulture),
                 F(s.WinRate),
                 F(s.NetPnL),
@@ -275,19 +276,34 @@ public static class GridSearchRunner
 
     private static IEnumerable<StrategyTuningParams> OrbBreakoutGrid()
     {
-        foreach (var rangeEnd in new[] { 94500, 100000, 101500, 103000 })
-        foreach (var stop in new[] { 0.5, 1.0, 1.5, 2.0 })
-        foreach (var buffer in new[] { 0.0, 0.05, 0.1, 0.2 })
-        foreach (var minRange in new[] { 0.2, 0.3, 0.5, 0.75 })
-        foreach (var requireVolume in new[] { false, true })
+        foreach (var stop in new[] { 0.5, 1.0, 1.5, 2.0, 2.5 })
             yield return StrategyTuningParams.RefinedDefault with
             {
-                OrbRangeStartHHmmss = 93000,
-                OrbRangeEndHHmmss = rangeEnd,
-                OrbAtrStopMultiplier = stop,
+                OrbAtrStopMultiplier = stop
+            };
+
+        foreach (var buffer in new[] { 0.0, 0.05, 0.1, 0.15 })
+        foreach (var stop in new[] { 1.0, 1.5, 2.0 })
+            yield return StrategyTuningParams.RefinedDefault with
+            {
                 OrbBreakoutBuffer = buffer,
+                OrbAtrStopMultiplier = stop
+            };
+
+        foreach (var minRange in new[] { 0.2, 0.3, 0.5 })
+        foreach (var stop in new[] { 1.0, 1.5, 2.0 })
+            yield return StrategyTuningParams.RefinedDefault with
+            {
                 OrbMinRangeAtrRatio = minRange,
-                OrbRequireVolume = requireVolume
+                OrbAtrStopMultiplier = stop
+            };
+
+        foreach (var stop in new[] { 1.0, 1.5, 2.0 })
+            yield return StrategyTuningParams.RefinedDefault with
+            {
+                OrbRequireVolume = true,
+                OrbVolumeRatio = 1.1,
+                OrbAtrStopMultiplier = stop
             };
     }
 
@@ -363,6 +379,26 @@ public static class GridSearchRunner
         var expectancyFactor = Math.Max(summary.NetExpectancy, 0.0);
 
         return pf * expectancyFactor * confidence * (1.0 + rtd * 0.1);
+    }
+
+    private static double ScoreForExport(BacktestSummary summary)
+    {
+        if (summary.IsLabel != "OOS")
+        {
+            return Score(summary);
+        }
+
+        if (summary.ClosedTrades < MinTradesOos || summary.NetPnL <= 0)
+        {
+            return double.NegativeInfinity;
+        }
+
+        var pf = Math.Min(summary.NetProfitFactor, 10.0);
+        var rtd = Math.Min(Math.Max(summary.ReturnToDrawdown, -5.0), 20.0);
+        var confidence = Math.Log10(summary.ClosedTrades + 1);
+        var pnlFactor = summary.NetPnL / summary.ClosedTrades;
+
+        return pf * pnlFactor * confidence * (1.0 + rtd * 0.1);
     }
 
     private static string F(double value)

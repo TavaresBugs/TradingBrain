@@ -4,20 +4,21 @@ namespace TradingBrain.ConsoleApp;
 
 public static class WalkForwardValidator
 {
-    public const double SplitRatio = 0.70;
+    public const double SplitRatio = 0.65;
     public const int DefaultWindows = 5;
 
     /// <summary>
     /// Walk-forward rolling com N janelas.
     /// Cada janela cobre uma fatia cronológica do dataset.
-    /// IS = 70% da janela, OOS = 30%.
+    /// IS = 65% da janela, OOS = 35%.
     /// Com windows=1 comporta-se como split simples IS/OOS.
     /// </summary>
     public static WalkForwardSummary Run(
         IReadOnlyList<MarketBar> bars,
         StrategyKind strategy,
         int windows = DefaultWindows,
-        ExecutionSettings? executionSettings = null)
+        ExecutionSettings? executionSettings = null,
+        bool applyRegimeFilter = true)
     {
         ArgumentNullException.ThrowIfNull(bars);
         if (windows < 1)
@@ -25,8 +26,27 @@ public static class WalkForwardValidator
 
         var settings = executionSettings ?? ExecutionSettings.MnqDefault;
         var results = new List<WalkForwardWindow>();
+        var barsToSplit = applyRegimeFilter && StrategyRegimeMap.HasFilter(strategy)
+            ? RegimeFilter.Apply(bars, StrategyRegimeMap.For(strategy))
+            : bars;
 
-        var windowSize = bars.Count / windows;
+        var totalDays = bars.Select(b => b.Time.Date).Distinct().Count();
+        var filteredDays = barsToSplit.Select(b => b.Time.Date).Distinct().Count();
+        if (applyRegimeFilter && filteredDays < totalDays)
+        {
+            var targetRegime = StrategyRegimeMap.HasFilter(strategy)
+                ? string.Join("+", StrategyRegimeMap.For(strategy))
+                : "all";
+            Console.WriteLine($"  [WF RegimeFilter] {strategy}: {filteredDays}/{totalDays} dias uteis ({targetRegime})");
+        }
+
+        if (filteredDays < 30)
+        {
+            Console.WriteLine($"  [WF RegimeFilter] {strategy}: dias insuficientes apos filtro ({filteredDays}). Pulando walk-forward.");
+            return BuildSummary(Array.Empty<WalkForwardWindow>());
+        }
+
+        var windowSize = barsToSplit.Count / windows;
         if (windowSize < 1)
             throw new ArgumentException(
                 $"Dataset muito pequeno para {windows} janelas. Mínimo de 1 barra por janela.");
@@ -34,8 +54,8 @@ public static class WalkForwardValidator
         for (var w = 0; w < windows; w++)
         {
             var startIndex = w * windowSize;
-            var endIndex = w == windows - 1 ? bars.Count : startIndex + windowSize;
-            var windowBars = bars.Skip(startIndex).Take(endIndex - startIndex).ToList();
+            var endIndex = w == windows - 1 ? barsToSplit.Count : startIndex + windowSize;
+            var windowBars = barsToSplit.Skip(startIndex).Take(endIndex - startIndex).ToList();
 
             var splitIndex = Math.Clamp(
                 (int)Math.Floor(windowBars.Count * SplitRatio),
@@ -45,7 +65,7 @@ public static class WalkForwardValidator
             var isBars = windowBars.Take(splitIndex).ToList();
             var oosBars = windowBars.Skip(splitIndex).ToList();
 
-            var isResults = GridSearchRunner.Run(isBars, strategy, settings);
+            var isResults = GridSearchRunner.Run(isBars, strategy, settings, applyRegimeFilter: false);
             if (isResults.Count == 0)
                 continue;
 
@@ -67,7 +87,9 @@ public static class WalkForwardValidator
                 IsBars: isBars.Count,
                 OosBars: oosBars.Count,
                 IsWinner: isWinner,
-                OosResult: oosResult));
+                OosResult: oosResult,
+                FilteredDaysTotal: filteredDays,
+                TotalDaysTotal: totalDays));
         }
 
         return BuildSummary(results);

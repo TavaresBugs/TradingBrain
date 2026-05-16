@@ -96,7 +96,8 @@ if (walkForwardRequest is not null)
         walkForwardRequest.Value.OutputDirectory,
         walkForwardRequest.Value.Strategy,
         walkForwardRequest.Value.Windows,
-        executionSettings);
+        executionSettings,
+        !args.Any(a => a.Equals("--no-regime-filter", StringComparison.OrdinalIgnoreCase)));
 }
 
 var replayRequest = ReadReplayRequest(args);
@@ -303,13 +304,14 @@ static int RunWalkForward(
     string outputDirectory,
     StrategyKind strategy,
     int windows,
-    ExecutionSettings executionSettings)
+    ExecutionSettings executionSettings,
+    bool applyRegimeFilter)
 {
     if (!TryReadBars(inputPath, out var bars))
         return 1;
 
     Directory.CreateDirectory(outputDirectory);
-    var summary = WalkForwardValidator.Run(bars, strategy, windows, executionSettings);
+    var summary = WalkForwardValidator.Run(bars, strategy, windows, executionSettings, applyRegimeFilter);
     var csvPath = Path.Combine(outputDirectory, "walk_forward.csv");
     ExportWalkForwardCsv(summary, csvPath);
     var manifestPath = WriteWalkForwardManifest(inputPath, outputDirectory, bars.Count, strategy, executionSettings, csvPath, summary);
@@ -348,7 +350,8 @@ static string BuildWalkForwardWindowCsv(WalkForwardWindow window)
         FormatCsvNumber(OosScore(oosSummary)),
         FormatCsvInt(oosSummary?.ClosedTrades),
         FormatCsvNumber(oosSummary?.NetPnL),
-        "",
+        window.FilteredDaysTotal.ToString(CultureInfo.InvariantCulture),
+        window.TotalDaysTotal.ToString(CultureInfo.InvariantCulture),
         "",
         "",
         "");
@@ -792,7 +795,7 @@ static void PrintUsage()
     Console.WriteLine();
     Console.WriteLine("Flags opcionais de execucao:");
     Console.WriteLine("  --tick-size 0.25 --tick-value 0.50 --slippage-ticks 1 --spread-ticks 1 --commission-per-side 0 --quantity 1");
-    Console.WriteLine("  --no-regime-filter    Desativa filtro de regime no grid search (roda em todos os dias)");
+    Console.WriteLine("  --no-regime-filter    Desativa filtro de regime no grid search/walk-forward (roda em todos os dias)");
     Console.WriteLine();
     Console.WriteLine("Formato NinjaTrader aceito:");
     Console.WriteLine("  yyyyMMdd HHmmss;open;high;low;close;volume");

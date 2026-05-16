@@ -198,7 +198,9 @@ public sealed record WalkForwardWindow(
     int IsBars,
     int OosBars,
     GridSearchResult IsWinner,
-    GridSearchResult? OosResult);
+    GridSearchResult? OosResult,
+    int FilteredDaysTotal = 0,
+    int TotalDaysTotal = 0);
 
 public sealed record WalkForwardSummary(
     IReadOnlyList<WalkForwardWindow> Windows,

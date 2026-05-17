@@ -82,6 +82,17 @@ if (classifyRegimeIndex >= 0)
 
 var executionSettings = ReadExecutionSettings(args);
 
+var backtestRegimeRequest = ReadBacktestRegimeRequest(args);
+if (backtestRegimeRequest is not null)
+{
+    return RunBacktestRegime(
+        backtestRegimeRequest.Value.InputPath,
+        backtestRegimeRequest.Value.OutputDirectory,
+        backtestRegimeRequest.Value.Strategy,
+        backtestRegimeRequest.Value.ParamsFromPath,
+        executionSettings);
+}
+
 var analyzeTradesRequest = ReadAnalyzeTradesRequest(args);
 if (analyzeTradesRequest is not null)
 {
@@ -355,6 +366,68 @@ static int RunWalkForward(
     return 0;
 }
 
+static int RunBacktestRegime(
+    string inputPath,
+    string outputDirectory,
+    StrategyKind strategy,
+    string? paramsFromPath,
+    ExecutionSettings executionSettings)
+{
+    if (!TryReadBars(inputPath, out var allBars))
+        return 1;
+
+    var regimes = RegimeClassifier.Classify(allBars);
+    var allowedRegimes = StrategyRegimeMap.For(strategy);
+    if (allowedRegimes.Count == 0)
+        return FailExit($"Strategy sem regime alvo definido: {strategy}");
+
+    var allowedSet = allowedRegimes.ToHashSet();
+    var regimesByDate = regimes.ToDictionary(r => r.Date);
+    var filteredBars = allBars
+        .Where(b =>
+        {
+            var date = DateOnly.FromDateTime(b.Time);
+            return regimesByDate.TryGetValue(date, out var dayRegime)
+                && allowedSet.Contains(dayRegime.Regime);
+        })
+        .ToList();
+    var filteredDays = regimes.Count(r => allowedSet.Contains(r.Regime));
+    var regimeLabel = string.Join("|", allowedRegimes);
+
+    Console.WriteLine($"[BacktestRegime] {strategy}: {filteredDays} dias no regime {regimeLabel}");
+    Console.WriteLine($"[BacktestRegime] Barras filtradas: {filteredBars.Count} de {allBars.Count}");
+
+    if (filteredBars.Count == 0)
+        return FailExit("[BacktestRegime] Nenhuma barra restante apos filtro de regime.");
+
+    var tuningParams = StrategyTuningParams.RefinedDefault;
+    if (!string.IsNullOrWhiteSpace(paramsFromPath))
+    {
+        tuningParams = ReadBestParamsFromGrid(paramsFromPath);
+        Console.WriteLine($"[BacktestRegime] Parametros carregados de: {paramsFromPath}");
+    }
+
+    Directory.CreateDirectory(outputDirectory);
+    var backtester = new StrategyBacktester(strategy, tuningParams);
+    var rows = backtester.Run(filteredBars);
+    var summary = StrategyBacktester.Summarize(rows, executionSettings);
+    var trades = StrategyBacktester.ExtractTrades(rows, executionSettings);
+    var slug = strategy.ToString().ToLowerInvariant();
+    var signalsPath = Path.Combine(outputDirectory, $"{slug}.signals.csv");
+    var tradesPath = Path.Combine(outputDirectory, $"{slug}.trades.csv");
+    var monthlyPath = Path.Combine(outputDirectory, "monthly_equity.csv");
+
+    StrategyBacktester.ExportCsv(rows, signalsPath);
+    StrategyBacktester.ExportTradesCsv(trades, tradesPath);
+    ExportMonthlyEquityCsv(trades, monthlyPath);
+    PrintBacktestSummary(summary, strategy);
+
+    Console.WriteLine($"Signals CSV: {signalsPath}");
+    Console.WriteLine($"Trades CSV: {tradesPath}");
+    Console.WriteLine($"Monthly equity: {monthlyPath}");
+    return 0;
+}
+
 static void ExportWalkForwardCsv(WalkForwardSummary summary, string path)
 {
     using var writer = new StreamWriter(path);
@@ -363,6 +436,37 @@ static void ExportWalkForwardCsv(WalkForwardSummary summary, string path)
         writer.WriteLine(BuildWalkForwardWindowCsv(window));
 
     writer.WriteLine(BuildWalkForwardSummaryCsv(summary));
+}
+
+static void ExportMonthlyEquityCsv(IReadOnlyList<TradeResult> trades, string path)
+{
+    var byMonth = trades
+        .GroupBy(t => t.EntryTime.ToString("yyyy-MM", CultureInfo.InvariantCulture))
+        .OrderBy(g => g.Key)
+        .ToList();
+
+    using var writer = new StreamWriter(path);
+    writer.WriteLine("Month,Trades,Wins,WinRate,GrossPts,NetPts,CumulativeNetPts");
+
+    var cumulative = 0.0;
+    foreach (var g in byMonth)
+    {
+        var count = g.Count();
+        var wins = g.Count(t => t.GrossPoints > 0);
+        var winRate = count == 0 ? 0 : wins * 100.0 / count;
+        var grossPts = g.Sum(t => t.GrossPoints);
+        var netPts = g.Sum(t => t.NetPoints);
+        cumulative += netPts;
+
+        writer.WriteLine(string.Join(",",
+            g.Key,
+            count.ToString(CultureInfo.InvariantCulture),
+            wins.ToString(CultureInfo.InvariantCulture),
+            winRate.ToString("0.##", CultureInfo.InvariantCulture),
+            grossPts.ToString("0.##", CultureInfo.InvariantCulture),
+            netPts.ToString("0.##", CultureInfo.InvariantCulture),
+            cumulative.ToString("0.##", CultureInfo.InvariantCulture)));
+    }
 }
 
 static string BuildWalkForwardWindowCsv(WalkForwardWindow window)
@@ -587,6 +691,21 @@ static int FailExit(string message)
     return 1;
 }
 
+static void PrintBacktestSummary(BacktestSummary summary, StrategyKind strategy)
+{
+    Console.WriteLine($"Strategy testada: {strategy}");
+    Console.WriteLine($"Sinais gerados: {summary.Signals}");
+    Console.WriteLine($"Trades fechados: {summary.ClosedTrades}");
+    Console.WriteLine($"Win rate: {summary.WinRate:0.##}%");
+    Console.WriteLine($"Profit factor: {summary.ProfitFactor:0.##}");
+    Console.WriteLine($"Expectancy/trade: {summary.Expectancy:0.####}");
+    Console.WriteLine($"Gross PnL points: {summary.GrossPnL:0.##}");
+    Console.WriteLine($"Net PnL points: {summary.NetPnL:0.##}");
+    Console.WriteLine($"Total costs currency: {summary.TotalCosts:0.##}");
+    Console.WriteLine($"Net currency: {summary.NetCurrency:0.##}");
+    Console.WriteLine($"Max drawdown: {summary.MaxDrawdown:0.##}");
+}
+
 static StrategyKind ReadStrategy(string[] args)
 {
     for (var i = 0; i < args.Length; i++)
@@ -672,6 +791,31 @@ static (string InputPath, string OutputDirectory)? ReadRunAllRequest(string[] ar
     return null;
 }
 
+static (string InputPath, string OutputDirectory, StrategyKind Strategy, string? ParamsFromPath)? ReadBacktestRegimeRequest(string[] args)
+{
+    for (var i = 0; i < args.Length; i++)
+    {
+        if (!args[i].Equals("--backtest-regime", StringComparison.OrdinalIgnoreCase))
+        {
+            continue;
+        }
+
+        if (i + 3 >= args.Length)
+        {
+            throw new ArgumentException("Use --backtest-regime <input.csv|txt> <pasta-de-saida> <Strategy> [--params-from <grid.csv>].");
+        }
+
+        if (!Enum.TryParse<StrategyKind>(args[i + 3], ignoreCase: true, out var strategy))
+        {
+            throw new ArgumentException("Strategy invalida: " + args[i + 3]);
+        }
+
+        return (args[i + 1], args[i + 2], strategy, ReadStringOption(args, "--params-from"));
+    }
+
+    return null;
+}
+
 static (string InputPath, string OutputDirectory)? ReadAnalyzeTradesRequest(string[] args)
 {
     for (var i = 0; i < args.Length; i++)
@@ -712,6 +856,103 @@ static (string SignalsPath, int DelayMs)? ReadReplayRequest(string[] args)
     }
 
     return null;
+}
+
+static StrategyTuningParams ReadBestParamsFromGrid(string path)
+{
+    if (!File.Exists(path))
+    {
+        Console.Error.WriteLine($"[BacktestRegime] Aviso: grid CSV nao encontrado: {path}. Usando RefinedDefault.");
+        return StrategyTuningParams.RefinedDefault;
+    }
+
+    try
+    {
+        using var reader = new StreamReader(path);
+        var headerLine = reader.ReadLine();
+        var valueLine = reader.ReadLine();
+        if (string.IsNullOrWhiteSpace(headerLine) || string.IsNullOrWhiteSpace(valueLine))
+        {
+            Console.Error.WriteLine($"[BacktestRegime] Aviso: grid CSV sem primeira linha de dados: {path}. Usando RefinedDefault.");
+            return StrategyTuningParams.RefinedDefault;
+        }
+
+        var headers = SplitCsvLine(headerLine);
+        var values = SplitCsvLine(valueLine);
+        if (headers.Count != values.Count)
+        {
+            Console.Error.WriteLine($"[BacktestRegime] Aviso: grid CSV invalido: {path}. Usando RefinedDefault.");
+            return StrategyTuningParams.RefinedDefault;
+        }
+
+        var row = headers
+            .Select((header, index) => new { header, value = values[index] })
+            .ToDictionary(x => x.header, x => x.value, StringComparer.OrdinalIgnoreCase);
+        var defaults = StrategyTuningParams.RefinedDefault;
+
+        return new StrategyTuningParams(
+            VolatilityMinAtrRatio: ReadGridDouble(row, defaults.VolatilityMinAtrRatio, "VolatilityMinAtrRatio", "VolMinAtr"),
+            VolatilityMinVolumeRatio: ReadGridDouble(row, defaults.VolatilityMinVolumeRatio, "VolatilityMinVolumeRatio", "VolMinVolume"),
+            UseSqueezeFilter: ReadGridBool(row, defaults.UseSqueezeFilter, "UseSqueezeFilter", "UseSqueeze"),
+            VolatilitySqueezeRatio: ReadGridDouble(row, defaults.VolatilitySqueezeRatio, "VolatilitySqueezeRatio", "SqueezeRatio"),
+            VolatilityRangeMultiplier: ReadGridDouble(row, defaults.VolatilityRangeMultiplier, "VolatilityRangeMultiplier", "VolRangeMultiplier"),
+            VolatilityExpansionMode: ReadGridEnum(row, defaults.VolatilityExpansionMode, "VolatilityExpansionMode", "VolExpansionMode"),
+            VwapMinDistance: ReadGridDouble(row, defaults.VwapMinDistance, "VwapMinDistance"),
+            RsiLongMax: ReadGridDouble(row, defaults.RsiLongMax, "RsiLongMax"),
+            RsiShortMin: ReadGridDouble(row, defaults.RsiShortMin, "RsiShortMin"),
+            VolatilityTrailingMode: ReadGridEnum(row, defaults.VolatilityTrailingMode, "VolatilityTrailingMode", "VolTrailingMode"),
+            AtrChandelierMultiplier: ReadGridDouble(row, defaults.AtrChandelierMultiplier, "AtrChandelierMultiplier", "AtrChandelier"),
+            MaxBarsWithoutProfit: ReadGridInt(row, defaults.MaxBarsWithoutProfit, "MaxBarsWithoutProfit"),
+            MinProfitAtrRatio: ReadGridDouble(row, defaults.MinProfitAtrRatio, "MinProfitAtrRatio"),
+            RangeCompressionRatio: ReadGridDouble(row, defaults.RangeCompressionRatio, "RangeCompressionRatio", "RangeCompression"),
+            MomentumMinMacdAtrRatio: ReadGridDouble(row, defaults.MomentumMinMacdAtrRatio, "MomentumMinMacdAtrRatio", "MomentumMacdAtr"),
+            MomentumVolumeRatio: ReadGridDouble(row, defaults.MomentumVolumeRatio, "MomentumVolumeRatio", "MomentumVolume"),
+            EmaVolumeRatio: ReadGridDouble(row, defaults.EmaVolumeRatio, "EmaVolumeRatio", "EmaVolume"),
+            AtrStopMultiplier: ReadGridDouble(row, defaults.AtrStopMultiplier, "AtrStopMultiplier", "AtrStop"),
+            TrailingActivationBars: ReadGridInt(row, defaults.TrailingActivationBars, "TrailingActivationBars", "TrailingBars"),
+            EmaTrailingAtrOffset: ReadGridDouble(row, defaults.EmaTrailingAtrOffset, "EmaTrailingAtrOffset", "EmaTrailingOffset"),
+            TrendAtrStopMultiplier: ReadGridDouble(row, defaults.TrendAtrStopMultiplier, "TrendAtrStopMultiplier", "TrendAtrStop"),
+            OrbAtrStopMultiplier: ReadGridDouble(row, defaults.OrbAtrStopMultiplier, "OrbAtrStopMultiplier", "OrbAtrStop"),
+            VwapReversionBand: ReadGridDouble(row, defaults.VwapReversionBand, "VwapReversionBand"),
+            RsiOversold: ReadGridInt(row, defaults.RsiOversold, "RsiOversold"),
+            RsiOverbought: ReadGridInt(row, defaults.RsiOverbought, "RsiOverbought"),
+            VwapReversionVolumeRatio: ReadGridDouble(row, defaults.VwapReversionVolumeRatio, "VwapReversionVolumeRatio"),
+            BbStdDev: ReadGridDouble(row, defaults.BbStdDev, "BbStdDev"),
+            BbFadeRsiOversold: ReadGridInt(row, defaults.BbFadeRsiOversold, "BbFadeRsiOversold"),
+            BbFadeRsiOverbought: ReadGridInt(row, defaults.BbFadeRsiOverbought, "BbFadeRsiOverbought"),
+            SessionBreakoutAtrBuffer: ReadGridDouble(row, defaults.SessionBreakoutAtrBuffer, "SessionBreakoutAtrBuffer"),
+            SessionMinRangeAtrRatio: ReadGridDouble(row, defaults.SessionMinRangeAtrRatio, "SessionMinRangeAtrRatio"),
+            UseAntiMode: ReadGridBool(row, defaults.UseAntiMode, "UseAntiMode", "SrsAntiMode"),
+            SrsReferenceCandle: ReadGridInt(row, defaults.SrsReferenceCandle, "SrsReferenceCandle", "SrsRefCandle"),
+            OvernightRangeStartHHmmss: ReadGridInt(row, defaults.OvernightRangeStartHHmmss, "OvernightRangeStartHHmmss"),
+            OvernightRangeEndHHmmss: ReadGridInt(row, defaults.OvernightRangeEndHHmmss, "OvernightRangeEndHHmmss"),
+            SrsAtrBuffer: ReadGridDouble(row, defaults.SrsAtrBuffer, "SrsAtrBuffer", "SrsBuffer"),
+            SrsAtrStopMultiplier: ReadGridDouble(row, defaults.SrsAtrStopMultiplier, "SrsAtrStopMultiplier", "SrsStop"),
+            SrsAtrTargetMultiplier: ReadGridDouble(row, defaults.SrsAtrTargetMultiplier, "SrsAtrTargetMultiplier", "SrsTarget"),
+            OrbRangeStartHHmmss: ReadGridInt(row, defaults.OrbRangeStartHHmmss, "OrbRangeStartHHmmss", "OrbRangeStart"),
+            OrbRangeEndHHmmss: ReadGridInt(row, defaults.OrbRangeEndHHmmss, "OrbRangeEnd", "OrbRangeEndHHmmss"),
+            OrbMinWindowBars: ReadGridInt(row, defaults.OrbMinWindowBars, "OrbMinWindowBars"),
+            OrbMinRangeAtrRatio: ReadGridDouble(row, defaults.OrbMinRangeAtrRatio, "OrbMinRangeAtrRatio"),
+            OrbBreakoutBuffer: ReadGridDouble(row, defaults.OrbBreakoutBuffer, "OrbBreakoutBuffer"),
+            OrbRequireVolume: ReadGridBool(row, defaults.OrbRequireVolume, "OrbRequireVolume"),
+            OrbVolumeRatio: ReadGridDouble(row, defaults.OrbVolumeRatio, "OrbVolumeRatio"),
+            IbTargetMultiplier: ReadGridDouble(row, defaults.IbTargetMultiplier, "IbTargetMultiplier"),
+            IbUseHalfRangeStop: ReadGridBool(row, defaults.IbUseHalfRangeStop, "IbUseHalfRangeStop"),
+            IbMinRangeRatio: ReadGridDouble(row, defaults.IbMinRangeRatio, "IbMinRangeRatio"),
+            IbMaxRangeRatio: ReadGridDouble(row, defaults.IbMaxRangeRatio, "IbMaxRangeRatio"),
+            IbRequireVolume: ReadGridBool(row, defaults.IbRequireVolume, "IbRequireVolume"),
+            TrendTimeExitBars: ReadGridInt(row, defaults.TrendTimeExitBars, "TrendTimeExitBars"),
+            BeActivationRMultiple: ReadGridDouble(row, defaults.BeActivationRMultiple, "BeActivationRMultiple", "BeActivationR"),
+            ChandelierActivationRMultiple: ReadGridDouble(row, defaults.ChandelierActivationRMultiple, "ChandelierActivationRMultiple", "ChandelierActivationR"),
+            ChandelierTrailMultiplier: ReadGridDouble(row, defaults.ChandelierTrailMultiplier, "ChandelierTrailMultiplier"),
+            RangeTargetRatio: ReadGridDouble(row, defaults.RangeTargetRatio, "RangeTargetRatio"),
+            BbFadeTargetRatio: ReadGridDouble(row, defaults.BbFadeTargetRatio, "BbFadeTargetRatio"));
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException or ArgumentException)
+    {
+        Console.Error.WriteLine($"[BacktestRegime] Aviso: falha ao ler grid CSV ({ex.Message}). Usando RefinedDefault.");
+        return StrategyTuningParams.RefinedDefault;
+    }
 }
 
 static (string InputPath, string OutputDirectory, StrategyKind? Strategy)? ReadGridSearchRequest(string[] args)
@@ -770,6 +1011,26 @@ static (string InputPath, string OutputDirectory, StrategyKind Strategy, int Win
 
         var windows = ReadIntOption(args, "--windows", WalkForwardValidator.DefaultWindows);
         return (args[i + 1], args[i + 2], strategy, windows);
+    }
+
+    return null;
+}
+
+static string? ReadStringOption(string[] args, string name)
+{
+    for (var i = 0; i < args.Length; i++)
+    {
+        if (!args[i].Equals(name, StringComparison.OrdinalIgnoreCase))
+        {
+            continue;
+        }
+
+        if (i + 1 >= args.Length || args[i + 1].StartsWith("--", StringComparison.Ordinal))
+        {
+            throw new ArgumentException($"Use {name} <valor>.");
+        }
+
+        return args[i + 1];
     }
 
     return null;
@@ -844,11 +1105,101 @@ static int ReadIntOption(string[] args, string name, int defaultValue)
     return defaultValue;
 }
 
+static IReadOnlyList<string> SplitCsvLine(string line)
+{
+    var values = new List<string>();
+    var current = new System.Text.StringBuilder();
+    var inQuotes = false;
+
+    for (var i = 0; i < line.Length; i++)
+    {
+        var ch = line[i];
+        if (ch == '"')
+        {
+            if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+            {
+                current.Append('"');
+                i++;
+                continue;
+            }
+
+            inQuotes = !inQuotes;
+            continue;
+        }
+
+        if (ch == ',' && !inQuotes)
+        {
+            values.Add(current.ToString());
+            current.Clear();
+            continue;
+        }
+
+        current.Append(ch);
+    }
+
+    values.Add(current.ToString());
+    return values;
+}
+
+static double ReadGridDouble(IReadOnlyDictionary<string, string> row, double defaultValue, params string[] names)
+{
+    if (!TryGetGridValue(row, out var raw, names))
+        return defaultValue;
+
+    if (raw.Equals("Infinity", StringComparison.OrdinalIgnoreCase))
+        return double.PositiveInfinity;
+
+    if (raw.Equals("-Infinity", StringComparison.OrdinalIgnoreCase))
+        return double.NegativeInfinity;
+
+    return double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+        ? value
+        : defaultValue;
+}
+
+static int ReadGridInt(IReadOnlyDictionary<string, string> row, int defaultValue, params string[] names)
+{
+    return TryGetGridValue(row, out var raw, names)
+        && int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : defaultValue;
+}
+
+static bool ReadGridBool(IReadOnlyDictionary<string, string> row, bool defaultValue, params string[] names)
+{
+    return TryGetGridValue(row, out var raw, names)
+        && bool.TryParse(raw, out var value)
+            ? value
+            : defaultValue;
+}
+
+static TEnum ReadGridEnum<TEnum>(IReadOnlyDictionary<string, string> row, TEnum defaultValue, params string[] names)
+    where TEnum : struct
+{
+    return TryGetGridValue(row, out var raw, names)
+        && Enum.TryParse<TEnum>(raw, ignoreCase: true, out var value)
+            ? value
+            : defaultValue;
+}
+
+static bool TryGetGridValue(IReadOnlyDictionary<string, string> row, out string value, params string[] names)
+{
+    foreach (var name in names)
+    {
+        if (row.TryGetValue(name, out value!) && !string.IsNullOrWhiteSpace(value))
+            return true;
+    }
+
+    value = "";
+    return false;
+}
+
 static void PrintUsage()
 {
     Console.WriteLine("Uso:");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- <input.csv|txt> <output.csv> --strategy Volatility");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --run-all <input.csv|txt> <pasta>");
+    Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --backtest-regime <input.csv|txt> <pasta> <Strategy> [--params-from <grid.csv>]");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --grid-search <input.csv|txt> <pasta> [Strategy]");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --analyze-trades <trades.csv|pasta> <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --walk-forward <input.csv|txt> <pasta> [Strategy] [--windows N]");

@@ -237,9 +237,10 @@ public static class GridSearchRunner
     {
         foreach (var macdAtr in new[] { 0.0, 0.03, 0.06, 0.1 })
         foreach (var volume in new[] { 1.0, 1.1, 1.2, 1.35 })
-        foreach (var stop in new[] { 1.2, 1.5, 1.8, 2.2 })
-        foreach (var beR in new[] { 0.75, 1.0, 1.25 })
+        foreach (var stop in new[] { 0.4, 0.5, 0.6, 0.75, 1.0, 1.25, 1.5 })
+        foreach (var beR in new[] { 0.5, 0.75, 1.0 })
         foreach (var trailR in new[] { 1.25, 1.5, 1.75 })
+        foreach (var trailMult in new[] { 1.5, 2.0, 2.5, 3.0 })
             yield return StrategyTuningParams.RefinedDefault with
             {
                 MomentumMinMacdAtrRatio = macdAtr,
@@ -247,7 +248,7 @@ public static class GridSearchRunner
                 AtrStopMultiplier = stop,
                 BeActivationRMultiple = beR,
                 ChandelierActivationRMultiple = trailR,
-                ChandelierTrailMultiplier = 2.0
+                ChandelierTrailMultiplier = trailMult
             };
     }
 

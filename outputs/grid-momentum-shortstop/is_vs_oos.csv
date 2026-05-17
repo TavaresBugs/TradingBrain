@@ -1,0 +1,7 @@
+Strategy,Split,Score,Trades,WinRate,NetPnL,MaxDrawdown,ReturnToDrawdown
+TradingBrain.Momentum,IS,10.13224395,113,30.97345133,443.94,631.25,0.70327129
+TradingBrain.Momentum,OOS,-Infinity,27,29.62962963,-213.74,614,-0.34811075
+TradingBrain.Momentum,IS,10.08744888,147,27.89115646,537.36,739.5,0.72665314
+TradingBrain.Momentum,OOS,4.993239,37,24.32432432,102.31,289.5,0.35340242
+TradingBrain.Momentum,IS,9.58590812,117,31.62393162,432.21,631.25,0.68468911
+TradingBrain.Momentum,OOS,-Infinity,28,28.57142857,-23.61,507.5,-0.04652217

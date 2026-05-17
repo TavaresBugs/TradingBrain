@@ -281,15 +281,13 @@ public static class RegimeClassifier
             return MarketRegime.Trend;
         }
 
-        if (ibTodayFullRatio is >= 0.50 and <= 1.50 && !openOutside && cperiodInsideIb)
+        if (ibTodayFullRatio is >= 0.40 and <= 1.80
+            && !openOutside
+            && gapRatio < 0.50
+            && overnightRatio < 1.20)
         {
-            reason = $"Range: ibFull={ibTodayFullRatio:F2} cperiodInside openInsideIB";
-            return MarketRegime.Range;
-        }
-
-        if (ibTodayFullRatio is >= 0.24 and < 0.50 && !openOutside && !cperiodAboveIb && !cperiodBelowIb)
-        {
-            reason = $"Range: compressedIB ibFull={ibTodayFullRatio:F2} noCperiodBreakout";
+            var cNote = cperiodInsideIb ? "cperiodConfirmed" : "cperiodNotConfirmed";
+            reason = $"Range: ibFull={ibTodayFullRatio:F2} {cNote}";
             return MarketRegime.Range;
         }
 

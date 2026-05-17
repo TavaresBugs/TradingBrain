@@ -803,12 +803,12 @@ public sealed partial class StrategyBacktester
         if (position != 0 && IsAtOrAfterCloseAll(bar.Time))
             return new StrategyDecision(SignalAction.Exit, "SRS: fechamento forcado");
 
-        var stop = m["ATR"] * _params.SrsAtrStopMultiplier;
         var target = m["ATR"] * _params.SrsAtrTargetMultiplier;
 
         if (position > 0)
         {
-            if (bar.Close <= entryPrice - stop)
+            var stopPrice = ComputeActiveSrsStopPrice(entryPrice, bar.Time.Date, SignalAction.Buy, m["ATR"]);
+            if (bar.Close <= stopPrice)
                 return new StrategyDecision(SignalAction.Exit, "SRS: stop long");
             if (bar.Close >= entryPrice + target)
                 return new StrategyDecision(SignalAction.Exit, "SRS: target long");
@@ -819,7 +819,8 @@ public sealed partial class StrategyBacktester
 
         if (position < 0)
         {
-            if (bar.Close >= entryPrice + stop)
+            var stopPrice = ComputeActiveSrsStopPrice(entryPrice, bar.Time.Date, SignalAction.Sell, m["ATR"]);
+            if (bar.Close >= stopPrice)
                 return new StrategyDecision(SignalAction.Exit, "SRS: stop short");
             if (bar.Close <= entryPrice - target)
                 return new StrategyDecision(SignalAction.Exit, "SRS: target short");
@@ -833,32 +834,29 @@ public sealed partial class StrategyBacktester
         if (IsAtOrAfterCloseAll(bar.Time) || ToHHmmss(bar.Time) > _defaults.SessionEndHHmmss)
             return new StrategyDecision(SignalAction.None, "SRS: fora da janela");
 
-        var m15Today = (_resampledBars ?? Array.Empty<MarketBar>())
-            .Where(b => b.Time.Date == bar.Time.Date)
-            .ToList();
-
-        if (m15Today.Count < _params.SrsReferenceCandle)
+        if (!TryGetSrsContext(bar.Time, out var refCandle, out var overnightHigh, out var overnightLow))
             return new StrategyDecision(SignalAction.None, "SRS: aguardando candle de referencia M15");
 
-        var refCandle = m15Today[_params.SrsReferenceCandle - 1];
         var refCloseTime = refCandle.Time.AddMinutes(15);
         schoolRunState = 1;
 
         if (bar.Time <= refCloseTime)
             return new StrategyDecision(SignalAction.None, "SRS: candle de referencia ainda aberto");
 
-        var overnightBars = (_resampledBars ?? Array.Empty<MarketBar>())
-            .Where(b => b.Time.Date == bar.Time.Date &&
-                        ToHHmmss(b.Time) >= _params.OvernightRangeStartHHmmss &&
-                        ToHHmmss(b.Time) <= _params.OvernightRangeEndHHmmss)
-            .ToList();
+        if (bar.Time > refCloseTime.AddHours(1))
+            return new StrategyDecision(SignalAction.None, "SRS: janela de entrada expirada");
 
-        var overnightHigh = overnightBars.Count > 0 ? overnightBars.Max(b => b.High) : double.NaN;
-        var overnightLow = overnightBars.Count > 0 ? overnightBars.Min(b => b.Low) : double.NaN;
+        var refRange = refCandle.High - refCandle.Low;
+        if (refRange < m["ATR"] * _params.SrsMinRangeAtrRatio)
+            return new StrategyDecision(SignalAction.None, "SRS: ref candle range pequeno");
+
+        var refClose = refCandle.Close;
+        var aboveOvernight = !double.IsNaN(overnightHigh) && refClose > overnightHigh;
+        var belowOvernight = !double.IsNaN(overnightLow) && refClose < overnightLow;
         var insideOvernight = !double.IsNaN(overnightHigh) &&
                               !double.IsNaN(overnightLow) &&
-                              bar.Close < overnightHigh &&
-                              bar.Close > overnightLow;
+                              !aboveOvernight &&
+                              !belowOvernight;
 
         var buffer = m["ATR"] * _params.SrsAtrBuffer;
         var rawLong = bar.Close > refCandle.High + buffer;
@@ -869,7 +867,7 @@ public sealed partial class StrategyBacktester
 
         SignalAction action;
         string reason;
-        if (_params.UseAntiMode && insideOvernight)
+        if (insideOvernight)
         {
             action = rawLong ? SignalAction.Sell : SignalAction.Buy;
             reason = rawLong ? "Anti-SRS: long dentro do overnight -> short" : "Anti-SRS: short dentro do overnight -> long";
@@ -921,7 +919,7 @@ public sealed partial class StrategyBacktester
                 bar.Close - sign * atr * _params.AtrStopMultiplier,
 
             StrategyKind.SchoolRun =>
-                bar.Close - sign * atr * _params.SrsAtrStopMultiplier,
+                ComputeSrsStopPrice(bar, direction, atr),
 
             StrategyKind.IbBreakout =>
                 ComputeIbStopPrice(bar, bars, barIndex, direction, atr),
@@ -956,6 +954,38 @@ public sealed partial class StrategyBacktester
 
             _ => 0.0
         };
+    }
+
+    private double ComputeSrsStopPrice(MarketBar bar, SignalAction direction, double atr)
+    {
+        var sign = direction == SignalAction.Buy ? 1 : -1;
+        if (!_params.SrsUseRefCandleStop)
+            return bar.Close - sign * atr * _params.SrsAtrStopMultiplier;
+
+        if (!TryGetSrsReferenceCandle(bar.Time.Date, out var refCandle))
+            return bar.Close - sign * atr * _params.SrsAtrStopMultiplier;
+
+        return direction == SignalAction.Buy
+            ? refCandle.Low - atr * _params.SrsAtrStopMultiplier
+            : refCandle.High + atr * _params.SrsAtrStopMultiplier;
+    }
+
+    private double ComputeActiveSrsStopPrice(
+        double entryPrice,
+        DateTime date,
+        SignalAction direction,
+        double atr)
+    {
+        var sign = direction == SignalAction.Buy ? 1 : -1;
+        if (!_params.SrsUseRefCandleStop)
+            return entryPrice - sign * atr * _params.SrsAtrStopMultiplier;
+
+        if (!TryGetSrsReferenceCandle(date, out var refCandle))
+            return entryPrice - sign * atr * _params.SrsAtrStopMultiplier;
+
+        return direction == SignalAction.Buy
+            ? refCandle.Low - atr * _params.SrsAtrStopMultiplier
+            : refCandle.High + atr * _params.SrsAtrStopMultiplier;
     }
 
     private double ComputeIbStopPrice(
@@ -1033,6 +1063,61 @@ public sealed partial class StrategyBacktester
     {
         var required = new[] { "EMA9", "EMA21", "RSI", "VWAP", "ATR", "ATRSMA", "CandleRangeSMA", "VolumeSMA", "Highest3", "Lowest3", "BbUpper", "BbLower" };
         return required.All(k => !double.IsNaN(metrics[k]) && !double.IsInfinity(metrics[k]));
+    }
+
+    private bool TryGetSrsReferenceCandle(DateTime date, out MarketBar refCandle)
+    {
+        return TryGetSrsContext(date, out refCandle, out _, out _);
+    }
+
+    private bool TryGetSrsContext(
+        DateTime date,
+        out MarketBar refCandle,
+        out double overnightHigh,
+        out double overnightLow)
+    {
+        var today = DateOnly.FromDateTime(date);
+        if (_srsContextDate != today)
+            BuildSrsContextCache(today);
+
+        refCandle = _srsContextRefCandle!;
+        overnightHigh = _srsContextOvernightHigh;
+        overnightLow = _srsContextOvernightLow;
+        return _srsContextRefCandle is not null;
+    }
+
+    private void BuildSrsContextCache(DateOnly today)
+    {
+        _srsContextDate = today;
+        _srsContextRefCandle = null;
+        _srsContextOvernightHigh = double.NaN;
+        _srsContextOvernightLow = double.NaN;
+
+        var sessionCandleCount = 0;
+        foreach (var candidate in _resampledBars ?? Array.Empty<MarketBar>())
+        {
+            if (DateOnly.FromDateTime(candidate.Time) != today)
+                continue;
+
+            var hhmmss = ToHHmmss(candidate.Time);
+            if (hhmmss >= _params.OvernightRangeStartHHmmss &&
+                hhmmss <= _params.OvernightRangeEndHHmmss)
+            {
+                _srsContextOvernightHigh = double.IsNaN(_srsContextOvernightHigh)
+                    ? candidate.High
+                    : Math.Max(_srsContextOvernightHigh, candidate.High);
+                _srsContextOvernightLow = double.IsNaN(_srsContextOvernightLow)
+                    ? candidate.Low
+                    : Math.Min(_srsContextOvernightLow, candidate.Low);
+            }
+
+            if (hhmmss < _defaults.SessionStartHHmmss || hhmmss > _defaults.SessionEndHHmmss)
+                continue;
+
+            sessionCandleCount++;
+            if (sessionCandleCount == _params.SrsReferenceCandle)
+                _srsContextRefCandle = candidate;
+        }
     }
 
     private bool IsInsideSession(DateTime time)

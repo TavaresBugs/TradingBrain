@@ -13,6 +13,10 @@ public sealed partial class StrategyBacktester
     private double _orbWindowLow = double.NaN;
     private DateOnly _lastTrendDate;
     private DateOnly _lastRangeDate;
+    private DateOnly _srsContextDate = DateOnly.MinValue;
+    private MarketBar? _srsContextRefCandle;
+    private double _srsContextOvernightHigh = double.NaN;
+    private double _srsContextOvernightLow = double.NaN;
 
     public StrategyBacktester(
         StrategyKind strategy,
@@ -30,6 +34,10 @@ public sealed partial class StrategyBacktester
         var rows = new List<StrategyBacktestRow>(bars.Count);
         var series = _series ?? PrecomputedSeries.From(bars);
         _resampledBars = TechnicalIndicators.Resample(bars, targetMinutes: 15);
+        _srsContextDate = DateOnly.MinValue;
+        _srsContextRefCandle = null;
+        _srsContextOvernightHigh = double.NaN;
+        _srsContextOvernightLow = double.NaN;
         var position = 0;
         var entryPrice = 0.0;
         var entryBarIndex = -1;

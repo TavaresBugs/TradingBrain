@@ -90,11 +90,10 @@ public class RegimeFilterTests
         AssertMapping("Momentum", MarketRegime.Trend);
         AssertMapping("Ema", MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion, MarketRegime.HighVolatility);
         AssertMapping("Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
-        AssertMapping("IbBreakout", MarketRegime.Breakout);
-        // OrbBreakout: Trend removido (-22.7 pts/trade × 49 trades confirmado pela matrix)
-        AssertMapping("OrbBreakout", MarketRegime.Breakout, MarketRegime.IntradayExpansion);
-        // SchoolRun: Range (+3.5 pts/19t) e HighVolatility (+18.5 pts/7t) adicionados
-        AssertMapping("SchoolRun", MarketRegime.Breakout, MarketRegime.Range, MarketRegime.HighVolatility);
+        AssertMapping("IbBreakout", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion, MarketRegime.HighVolatility);
+        AssertMapping("OrbBreakout", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
+        // SchoolRun agora e comparado ao ORB no mesmo conjunto direcional.
+        AssertMapping("SchoolRun", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
         AssertMapping("Range", MarketRegime.Range);
         // VwapReversion: HighVolatility adicionado (+33.8 pts/trade × 17 trades)
         AssertMapping("VwapReversion", MarketRegime.Range, MarketRegime.HighVolatility);
@@ -103,12 +102,13 @@ public class RegimeFilterTests
     }
 
     [Fact]
-    public void StrategyRegimeMap_NeverReturnsNonTrendAsTarget()
+    public void StrategyRegimeMap_NeverReturnsBlockedRegimesAsTarget()
     {
         foreach (var strategy in Enum.GetValues<StrategyKind>())
         {
             var regimes = StrategyRegimeMap.For(strategy);
             Assert.DoesNotContain(regimes, r => r.ToString().Equals("NonTrend", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(MarketRegime.Limbo, regimes);
         }
     }
 

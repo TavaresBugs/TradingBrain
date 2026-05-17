@@ -46,4 +46,13 @@ public class StrategyRegimeMapTests
 
         Assert.Contains(MarketRegime.Range, regimes);
     }
+
+    [Fact]
+    public void SchoolRun_UsesSameDirectionalRegimesAsOrbBreakout()
+    {
+        var srs = StrategyRegimeMap.For(StrategyKind.SchoolRun);
+        var orb = StrategyRegimeMap.For(StrategyKind.OrbBreakout);
+
+        Assert.Equal(orb, srs);
+    }
 }

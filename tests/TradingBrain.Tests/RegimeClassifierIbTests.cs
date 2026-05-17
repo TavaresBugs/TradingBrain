@@ -37,7 +37,10 @@ public class RegimeClassifierIbTests
             cperiodHigh: 21340,
             cperiodLow: 21260,
             overnightHigh: 21500,
-            overnightLow: 21000);
+            overnightLow: 21000,
+            sessionTailHigh: 21480,
+            sessionTailLow: 21250,
+            sessionClose: 21470);
 
         var last = RegimeClassifier.Classify(bars).Last();
 

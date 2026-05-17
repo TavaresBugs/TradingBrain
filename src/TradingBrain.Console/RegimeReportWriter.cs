@@ -81,7 +81,6 @@ public static class RegimeReportWriter
             StrategyKind.SchoolRun,
             StrategyKind.Momentum,
             StrategyKind.Ema,
-            StrategyKind.Range,
             StrategyKind.Volatility,
         };
 
@@ -244,7 +243,7 @@ public static class RegimeReportWriter
         IReadOnlyList<DayRegime> regimes,
         ExecutionSettings settings)
     {
-        // Target regimes (columns) — excludes NonTrend and Undefined per project rules
+        // Target regimes (columns) - includes blocked regimes for diagnostics.
         var targetRegimes = new[]
         {
             MarketRegime.Trend,
@@ -252,6 +251,7 @@ public static class RegimeReportWriter
             MarketRegime.Range,
             MarketRegime.HighVolatility,
             MarketRegime.NonTrend,
+            MarketRegime.Limbo,
         };
 
         // Build date→regime lookup
@@ -262,7 +262,7 @@ public static class RegimeReportWriter
             StrategyKind.Trend, StrategyKind.Momentum, StrategyKind.Ema,
             StrategyKind.SchoolRun, StrategyKind.OrbBreakout, StrategyKind.IbBreakout,
             StrategyKind.VwapReversion, StrategyKind.BollingerFade,
-            StrategyKind.Range, StrategyKind.Volatility,
+            StrategyKind.Volatility,
         };
 
         // Header row
@@ -371,6 +371,7 @@ public static class RegimeReportWriter
         MarketRegime.Range => "#ff9800",
         MarketRegime.HighVolatility => "#f44336",
         MarketRegime.NonTrend => "#9e9e9e",
+        MarketRegime.Limbo => "#795548",
         MarketRegime.Undefined => "#673ab7",
         _ => "#555"
     };

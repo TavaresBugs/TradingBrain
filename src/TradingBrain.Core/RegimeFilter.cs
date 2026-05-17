@@ -11,7 +11,7 @@ public static class RegimeFilter
     /// <summary>
     /// Classifica os dias do dataset completo e devolve apenas as barras
     /// dos dias que pertencem a um dos <paramref name="allowedRegimes"/>.
-    /// NonTrend é sempre excluído quando existir no enum, independente de allowedRegimes.
+    /// NonTrend e Limbo sao sempre excluidos, independente de allowedRegimes.
     /// </summary>
     public static IReadOnlyList<MarketBar> Apply(
         IReadOnlyList<MarketBar> allBars,
@@ -25,7 +25,7 @@ public static class RegimeFilter
             .ToDictionary(r => r.Date);
 
         var allowedSet = allowedRegimes
-            .Where(r => !IsNonTrend(r))
+            .Where(r => !IsBlockedRegime(r))
             .ToHashSet();
 
         if (allowedSet.Count == 0)
@@ -38,7 +38,7 @@ public static class RegimeFilter
                 if (!regimesByDate.TryGetValue(date, out var dayRegime))
                     return false;
 
-                return !IsNonTrend(dayRegime.Regime)
+                return !IsBlockedRegime(dayRegime.Regime)
                     && (allowedSet.Contains(dayRegime.Regime)
                         || (includeUndefined && dayRegime.Regime == MarketRegime.Undefined));
             })
@@ -58,6 +58,6 @@ public static class RegimeFilter
             .ToDictionary(g => g.Key, g => g.Count());
     }
 
-    private static bool IsNonTrend(MarketRegime regime)
-        => regime.ToString().Equals("NonTrend", StringComparison.OrdinalIgnoreCase);
+    private static bool IsBlockedRegime(MarketRegime regime)
+        => regime is MarketRegime.NonTrend or MarketRegime.Limbo;
 }

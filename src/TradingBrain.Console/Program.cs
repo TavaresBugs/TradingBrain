@@ -44,7 +44,7 @@ if (classifyRegimeIndex >= 0)
 
     var regimeCsvPath = Path.Combine(outputDir, "regime_distribution.csv");
     using var writer = new StreamWriter(regimeCsvPath);
-    writer.WriteLine("Date,Regime,Reason,IbHighYest,IbLowYest,IbFullYest,IbFullToday,OpenOutside,CperiodInside,OvernightRatio,GapRatio,Atr14");
+    writer.WriteLine("Date,Regime,Reason,IbHighYest,IbLowYest,IbFullYest,IbFullToday,OpenOutside,CperiodInside,OvernightRatio,GapRatio,Atr14,DayRangeAtr,CloseLocation,DirectionalEfficiency,IbExtensionAtr,CloseOutsideIb,BrokeBothIbSides,VwapCrossCount");
     foreach (var r in regimes)
     {
         writer.WriteLine(string.Join(",",
@@ -59,7 +59,14 @@ if (classifyRegimeIndex >= 0)
             r.CperiodInside,
             r.OvernightRatio.ToString("0.####", CultureInfo.InvariantCulture),
             r.GapRatio.ToString("0.####", CultureInfo.InvariantCulture),
-            r.Atr14.ToString("0.####", CultureInfo.InvariantCulture)));
+            r.Atr14.ToString("0.####", CultureInfo.InvariantCulture),
+            r.DayRangeAtr.ToString("0.####", CultureInfo.InvariantCulture),
+            r.CloseLocation.ToString("0.####", CultureInfo.InvariantCulture),
+            r.DirectionalEfficiency.ToString("0.####", CultureInfo.InvariantCulture),
+            r.IbExtensionAtr.ToString("0.####", CultureInfo.InvariantCulture),
+            r.CloseOutsideIb,
+            r.BrokeBothIbSides,
+            r.VwapCrossCount.ToString(CultureInfo.InvariantCulture)));
     }
 
     var counts = regimes
@@ -1075,7 +1082,6 @@ static StrategyTuningParams ReadBestParamsFromGrid(string path)
             BbFadeRsiOverbought: ReadGridInt(row, defaults.BbFadeRsiOverbought, "BbFadeRsiOverbought"),
             SessionBreakoutAtrBuffer: ReadGridDouble(row, defaults.SessionBreakoutAtrBuffer, "SessionBreakoutAtrBuffer"),
             SessionMinRangeAtrRatio: ReadGridDouble(row, defaults.SessionMinRangeAtrRatio, "SessionMinRangeAtrRatio"),
-            UseAntiMode: ReadGridBool(row, defaults.UseAntiMode, "UseAntiMode", "SrsAntiMode"),
             SrsReferenceCandle: ReadGridInt(row, defaults.SrsReferenceCandle, "SrsReferenceCandle", "SrsRefCandle"),
             OvernightRangeStartHHmmss: ReadGridInt(row, defaults.OvernightRangeStartHHmmss, "OvernightRangeStartHHmmss"),
             OvernightRangeEndHHmmss: ReadGridInt(row, defaults.OvernightRangeEndHHmmss, "OvernightRangeEndHHmmss"),
@@ -1099,7 +1105,9 @@ static StrategyTuningParams ReadBestParamsFromGrid(string path)
             ChandelierActivationRMultiple: ReadGridDouble(row, defaults.ChandelierActivationRMultiple, "ChandelierActivationRMultiple", "ChandelierActivationR"),
             ChandelierTrailMultiplier: ReadGridDouble(row, defaults.ChandelierTrailMultiplier, "ChandelierTrailMultiplier"),
             RangeTargetRatio: ReadGridDouble(row, defaults.RangeTargetRatio, "RangeTargetRatio"),
-            BbFadeTargetRatio: ReadGridDouble(row, defaults.BbFadeTargetRatio, "BbFadeTargetRatio"));
+            BbFadeTargetRatio: ReadGridDouble(row, defaults.BbFadeTargetRatio, "BbFadeTargetRatio"),
+            SrsMinRangeAtrRatio: ReadGridDouble(row, defaults.SrsMinRangeAtrRatio, "SrsMinRangeAtrRatio", "SrsMinRange"),
+            SrsUseRefCandleStop: ReadGridBool(row, defaults.SrsUseRefCandleStop, "SrsUseRefCandleStop", "SrsUseRefStop"));
     }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException or ArgumentException)
     {

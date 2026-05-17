@@ -88,6 +88,32 @@ if (classifyRegimeIndex >= 0)
     return 0;
 }
 
+var regimeReportIndex = Array.FindIndex(args, a =>
+    a.Equals("--regime-report", StringComparison.OrdinalIgnoreCase));
+if (regimeReportIndex >= 0)
+{
+    if (regimeReportIndex + 2 >= args.Length)
+    {
+        Console.WriteLine("Uso: --regime-report <barras.csv> <output_dir>");
+        return 1;
+    }
+
+    var rrBarsPath = args[regimeReportIndex + 1];
+    var rrOutputDir = args[regimeReportIndex + 2];
+    var rrSettings = ReadExecutionSettings(args);
+    if (!TryReadBars(rrBarsPath, out var rrBars))
+    {
+        return 1;
+    }
+
+    Directory.CreateDirectory(rrOutputDir);
+    var rrHtml = RegimeReportWriter.Build(rrBars, rrSettings);
+    var rrPath = Path.Combine(rrOutputDir, "regime_report.html");
+    await File.WriteAllTextAsync(rrPath, rrHtml);
+    Console.WriteLine($"Relatorio gerado: {rrPath}");
+    return 0;
+}
+
 var executionSettings = ReadExecutionSettings(args);
 
 var backtestRegimeRequest = ReadBacktestRegimeRequest(args);
@@ -1212,6 +1238,7 @@ static void PrintUsage()
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --analyze-trades <trades.csv|pasta> <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --walk-forward <input.csv|txt> <pasta> [Strategy] [--windows N]");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --classify-regime <input.csv|txt> <pasta>");
+    Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --regime-report <input.csv|txt> <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --replay <signals.csv> [--delay 200]");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --generate-ninja <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --inspect-dll <dll> <relatorio.md>");

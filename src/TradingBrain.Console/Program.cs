@@ -633,7 +633,7 @@ static void ExportMonthlyEquityCsv(IReadOnlyList<TradeResult> trades, string pat
 static string BuildWalkForwardWindowCsv(WalkForwardWindow window)
 {
     var isSummary = window.IsWinner.Summary;
-    var oosSummary = window.OosResult?.Summary;
+    var oosSummary = window.RawOosResult?.Summary;
     return string.Join(",",
         "WINDOW",
         window.WindowIndex.ToString(CultureInfo.InvariantCulture),

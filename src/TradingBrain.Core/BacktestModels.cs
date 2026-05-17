@@ -248,6 +248,7 @@ public sealed record WalkForwardWindow(
     int OosBars,
     GridSearchResult IsWinner,
     GridSearchResult? OosResult,
+    GridSearchResult? RawOosResult = null,
     int FilteredDaysTotal = 0,
     int TotalDaysTotal = 0);
 

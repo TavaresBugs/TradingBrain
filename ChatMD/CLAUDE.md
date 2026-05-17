@@ -1,7 +1,7 @@
 # TradingBrain — CLAUDE.md
 
 > Leia este arquivo antes de qualquer sessão. Ele é a fonte única de verdade sobre o estado do projeto.  
-> Última atualização: 2026-05-17 | Testes: 74+ | Dataset: mnq_5m_12mo.csv (82.659 barras, mar/2025–mai/2026)
+> Última atualização: 2026-05-17 | Testes: 95 | Dataset: mnq_5m_12mo.csv (82.659 barras, mar/2025–mai/2026)
 
 ---
 
@@ -70,6 +70,21 @@ Breakeven (BE) e chandelier trailing por strategy. Lógica em `StrategyRules.cs`
 - **Range e BollingerFade:** sem BE, sem trailing. Target fixo configurável via `RangeTargetRatio` e `BbFadeTargetRatio`.
 
 **Bug crítico corrigido:** chandelier stop é capped em entryPrice quando `beActivated = true`, evitando perda mesmo com expansão de ATR pós-ativação.
+
+### Walk-forward dos candidatos fortes ⚠️
+Sessão `feat/walk-forward-validation` rodou WF com 5 janelas e params MNQ padrão para Trend, OrbBreakout, IbBreakout, Momentum e SchoolRun.
+
+Resultado: nenhuma strategy teve janela OOS significativa pelo critério mínimo de 5 trades. Portanto não há candidato aprovado para produção com 12 meses filtrados por regime.
+
+```
+Trend:       0/5 janelas significativas | OOS trades: 0, 0, 1, 0, 1
+OrbBreakout: 0/5 janelas significativas | OOS trades: 0, 1, 2, 3, 3
+IbBreakout:  0/5 janelas significativas | OOS trades: 0, 3, 3, 1, 2
+Momentum:    0/0 janelas                | filtro deixou só 18 dias, WF pulado
+SchoolRun:   0/5 janelas significativas | OOS trades: 0, 3, 3, 3, 3
+```
+
+Diagnóstico de regime (`outputs/wf-regime-diag/regime_distribution.csv`): dataset tem 226 dias classificados, mas só 38 dias úteis passam no filtro Trend/ORB/SRS e 41 para IB. A falha atual é principalmente amostra OOS insuficiente após regime filter, não evidência forte de overfitting.
 
 ### Análise de excursão (4.157 trades) ✅
 Dados em `outputs/run-all-excursion-validation/`. Revelou:
@@ -215,13 +230,13 @@ src/TradingBrain.Console/
 
 ## Próximos passos em ordem de prioridade
 
-1. **`feat/chandelier-fix-range-rr`** — fix do chandelier + RR configurável para Range e BollingerFade. Grid vai revelar se 1.2:1 é realmente o sweet spot. *Prompt gerado e pronto para execução.*
+1. **Mais dados (2024)** — baixar via TradingView para ter 2+ anos e revalidar Trend, OrbBreakout, IbBreakout e SchoolRun com janelas OOS que tenham pelo menos 5 trades.
 
-2. **Walk-forward com novos params** — após confirmar o chandelier fix, rodar walk-forward de Trend e Momentum com os params ótimos do grid (stop 3xATR, BE+1R, chandelier+0.75R para Trend; stop 1.2xATR, BE+0.75R, chandelier+1.25R para Momentum).
+2. **Morning brief (`--morning-brief`)** — gerar fluxo manual diário apenas depois de WF com amostra suficiente validar candidatos.
 
-3. **Calcular % de stop-outs recuperados** — analisar os `*.trades.csv` para descobrir quantos trades stopados em Trend tinham preço se recuperando nas próximas 3-5 barras. Se > 40%, implementar re-entrada com stop no mínimo da varredura.
+3. **Adapter NinjaTrader** — só vale após pelo menos uma strategy passar WF com significância estatística.
 
-4. **Mais dados (2024)** — baixar via TradingView para ter 2+ anos e validar tudo com significância estatística real.
+4. **Calcular % de stop-outs recuperados** — analisar os `*.trades.csv` para descobrir quantos trades stopados em Trend tinham preço se recuperando nas próximas 3-5 barras. Se > 40%, implementar re-entrada com stop no mínimo da varredura.
 
 ---
 

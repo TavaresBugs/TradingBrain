@@ -6,6 +6,7 @@ public static class WalkForwardValidator
 {
     public const double SplitRatio = 0.65;
     public const int DefaultWindows = 5;
+    public const int MinSignificantOosTrades = 5;
 
     /// <summary>
     /// Walk-forward rolling com N janelas.
@@ -71,6 +72,7 @@ public static class WalkForwardValidator
 
             var isWinner = isResults[0];
 
+            GridSearchResult? rawOosResult = null;
             GridSearchResult? oosResult = null;
             if (oosBars.Count > 0)
             {
@@ -78,8 +80,9 @@ public static class WalkForwardValidator
                 var oosSummary = StrategyBacktester.Summarize(
                     backtester.Run(oosBars), settings) with { IsLabel = "OOS" };
 
-                if (oosSummary.ClosedTrades >= GridSearchRunner.MinTradesOos)
-                    oosResult = isWinner with { Summary = oosSummary };
+                rawOosResult = isWinner with { Summary = oosSummary };
+                if (oosSummary.ClosedTrades >= MinSignificantOosTrades)
+                    oosResult = rawOosResult;
             }
 
             results.Add(new WalkForwardWindow(
@@ -88,6 +91,7 @@ public static class WalkForwardValidator
                 OosBars: oosBars.Count,
                 IsWinner: isWinner,
                 OosResult: oosResult,
+                RawOosResult: rawOosResult,
                 FilteredDaysTotal: filteredDays,
                 TotalDaysTotal: totalDays));
         }

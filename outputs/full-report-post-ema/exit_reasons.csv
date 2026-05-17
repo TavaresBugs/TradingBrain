@@ -1,0 +1,59 @@
+Strategy,ExitReason,Count,Percent
+TradingBrain.BollingerFade,"Alvo Bollinger long 1.0x",9,36
+TradingBrain.BollingerFade,"Alvo Bollinger short 1.0x",6,24
+TradingBrain.BollingerFade,"Stop banda long",5,20
+TradingBrain.BollingerFade,"Stop banda short",5,20
+TradingBrain.EMA,"RSI sobrevendido",70,27.7778
+TradingBrain.EMA,"Perdeu EMA21",61,24.2063
+TradingBrain.EMA,"Stop short",46,18.254
+TradingBrain.EMA,"Stop long",28,11.1111
+TradingBrain.EMA,"RSI sobrecomprado",25,9.9206
+TradingBrain.EMA,"Tempo long",9,3.5714
+TradingBrain.EMA,"Stop BE short",8,3.1746
+TradingBrain.EMA,"Stop BE long",3,1.1905
+TradingBrain.EMA,"Tempo short",2,0.7937
+TradingBrain.IbBreakout,"IB: fim de sessao",23,54.7619
+TradingBrain.IbBreakout,"IB: target hit",14,33.3333
+TradingBrain.IbBreakout,"IB: stop hit",5,11.9048
+TradingBrain.Momentum,"Stop short",72,20.1117
+TradingBrain.Momentum,"Stop long",69,19.2737
+TradingBrain.Momentum,"Chandelier trail short",60,16.7598
+TradingBrain.Momentum,"Chandelier trail long",40,11.1732
+TradingBrain.Momentum,"MACD contra e RSI fraco",36,10.0559
+TradingBrain.Momentum,"MACD contra e RSI forte",34,9.4972
+TradingBrain.Momentum,"Stop BE short",23,6.4246
+TradingBrain.Momentum,"Stop BE long",18,5.0279
+TradingBrain.Momentum,"Tempo long",4,1.1173
+TradingBrain.Momentum,"Tempo short",2,0.5587
+TradingBrain.ORB,"ORB: tempo",54,84.375
+TradingBrain.ORB,"ORB: stop long",6,9.375
+TradingBrain.ORB,"ORB: stop short",4,6.25
+TradingBrain.SRS,"SRS: target long",18,25.3521
+TradingBrain.SRS,"SRS: target short",14,19.7183
+TradingBrain.SRS,"SRS: stop short",12,16.9014
+TradingBrain.SRS,"SRS: stop long",10,14.0845
+TradingBrain.SRS,"SRS: timeout short",10,14.0845
+TradingBrain.SRS,"SRS: timeout long",7,9.8592
+TradingBrain.Trend,"Chandelier trail short",22,24.1758
+TradingBrain.Trend,"Chandelier trail long",20,21.978
+TradingBrain.Trend,"Stop dinamico long",18,19.7802
+TradingBrain.Trend,"Stop dinamico short",13,14.2857
+TradingBrain.Trend,"Trend virou contra long",8,8.7912
+TradingBrain.Trend,"Stop BE short",5,5.4945
+TradingBrain.Trend,"Stop BE long",3,3.2967
+TradingBrain.Trend,"Trend virou contra short",2,2.1978
+TradingBrain.Volatility,"Tempo maximo sem lucro minimo",15,23.8095
+TradingBrain.Volatility,"Stop ATR short",14,22.2222
+TradingBrain.Volatility,"Fora da janela operacional",11,17.4603
+TradingBrain.Volatility,"Chandelier long - fechamento abaixo do trailing",7,11.1111
+TradingBrain.Volatility,"Chandelier short - fechamento acima do trailing",7,11.1111
+TradingBrain.Volatility,"Stop ATR long",5,7.9365
+TradingBrain.Volatility,"RSI extremo long",2,3.1746
+TradingBrain.Volatility,"RSI extremo short",2,3.1746
+TradingBrain.VwapReversion,"Retorno ao VWAP long",11,18.0328
+TradingBrain.VwapReversion,"Stop ATR short",11,18.0328
+TradingBrain.VwapReversion,"Stop ATR long",10,16.3934
+TradingBrain.VwapReversion,"Retorno ao VWAP short",9,14.7541
+TradingBrain.VwapReversion,"Fechamento horario",8,13.1148
+TradingBrain.VwapReversion,"Tempo long",7,11.4754
+TradingBrain.VwapReversion,"Tempo short",5,8.1967

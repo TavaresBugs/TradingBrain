@@ -1,0 +1,38 @@
+{
+  "RunName": "grid-ema-focused",
+  "Mode": "grid-search",
+  "GeneratedAtUtc": "2026-05-17T17:14:34.9115375+00:00",
+  "Dataset": "/home/jhontavares/Documents/Programacao/tradingbrain/outputs/tv-bars/mnq_5m_12mo.csv",
+  "Bars": 82659,
+  "Strategies": [
+    "Ema"
+  ],
+  "Parameters": {
+    "RequestedStrategy": "Ema",
+    "Grid": "default",
+    "SplitRatio": 0.65,
+    "InSampleBars": 53728,
+    "OutSampleBars": 28931,
+    "ApplyRegimeFilter": true,
+    "MinTradesOos": 10,
+    "MinTradesIsScore": 20
+  },
+  "Execution": {
+    "TickSize": 0.25,
+    "TickValue": 0.5,
+    "SlippageTicks": 1,
+    "SpreadTicks": 1,
+    "CommissionPerSide": 0.62,
+    "Quantity": 1,
+    "SlippageCostCurrency": 1,
+    "SpreadCostCurrency": 0.5,
+    "CommissionCostCurrency": 1.24,
+    "TotalRoundTripCostCurrency": 2.74
+  },
+  "CodeVersion": "17710ca",
+  "OutputFiles": [
+    "/home/jhontavares/Documents/Programacao/tradingbrain/outputs/grid-ema-focused/ema.grid.csv",
+    "/home/jhontavares/Documents/Programacao/tradingbrain/outputs/grid-ema-focused/is_vs_oos.csv",
+    "/home/jhontavares/Documents/Programacao/tradingbrain/outputs/grid-ema-focused/dashboard.html"
+  ]
+}

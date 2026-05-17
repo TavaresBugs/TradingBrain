@@ -1,0 +1,87 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TradingBrain OLD vs NEW</title>
+<style>
+:root{color-scheme:dark;--bg:#050604;--panel:#20211f;--line:#d8d0bd;--old:#aaa79f;--new:#22a77e;--warn:#c17a17;--bad:#d84a4a;--text:#eee9dc;--muted:#bbb4a6}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial,sans-serif}main{max-width:1180px;margin:0 auto;padding:28px 20px 42px}h1,h2{font-size:18px;margin:0 0 14px}h2{margin-top:28px}p{color:var(--muted)}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:var(--panel);border-radius:8px;padding:16px 18px}.label{color:var(--muted);font-size:13px}.value{font-size:28px;margin-top:6px}.delta.good,.good{color:#69c14f}.delta.bad,.bad{color:var(--bad)}.delta.warn,.warn{color:var(--warn)}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}.bargrid{display:grid;gap:11px;margin-top:14px}.barrow{display:grid;grid-template-columns:120px 1fr 88px;gap:12px;align-items:center}.bars{height:24px;display:grid;gap:2px}.bar{height:11px;border-radius:4px}.old{background:var(--old)}.new{background:var(--new)}.notes{display:grid;gap:10px;margin-top:12px}.note{padding:14px 16px;border-radius:8px;background:#272313}.note.bad{background:#5b2424;color:#f4e4df}.note.good{background:#193b2f;color:#dcf7ec}@media(max-width:780px){.cards{grid-template-columns:1fr}.barrow{grid-template-columns:1fr}.value{font-size:24px}th,td{font-size:12px;padding:7px 6px}}
+</style>
+</head><body><main>
+<h1>TradingBrain full-report compare - OLD vs NEW</h1>
+<p>OLD: outputs/full-report-old &nbsp; NEW: outputs/full-report-post-ema</p>
+<section class="cards">
+<div class="card"><div class="label">lucro combinado OLD</div><div class="value">$31,187</div><div class="delta ">10 strategies</div></div>
+<div class="card"><div class="label">lucro combinado NEW</div><div class="value">$33,786</div><div class="delta good">+$2,599</div></div>
+<div class="card"><div class="label">EMA edge</div><div class="value">0.29R</div><div class="delta good">+0.15R</div></div>
+<div class="card"><div class="label">EMA recovery</div><div class="value">2.12x</div><div class="delta good">+1.93x</div></div>
+</section>
+<h2>NetCurrency por strategy</h2>
+<div class="bargrid">
+<div class="barrow">
+<div>BollingerFade</div><div class="bars"><div class="bar old" style="width:8.784818014960914%"></div><div class="bar new" style="width:8.784818014960914%"></div></div><div>$772</div>
+</div>
+<div class="barrow">
+<div>EMA</div><div class="bars"><div class="bar old" style="width:8.410681428951577%"></div><div class="bar new" style="width:37.96542477580235%"></div></div><div>$3,339</div>
+</div>
+<div class="barrow">
+<div>IbBreakout</div><div class="bars"><div class="bar old" style="width:46.254426524805595%"></div><div class="bar new" style="width:46.254426524805595%"></div></div><div>$4,067</div>
+</div>
+<div class="barrow">
+<div>Momentum</div><div class="bars"><div class="bar old" style="width:100%"></div><div class="bar new" style="width:100%"></div></div><div>$8,794</div>
+</div>
+<div class="barrow">
+<div>OrbBreakout</div><div class="bars"><div class="bar old" style="width:60.443414400050955%"></div><div class="bar new" style="width:60.443414400050955%"></div></div><div>$5,315</div>
+</div>
+<div class="barrow">
+<div>Range</div><div class="bars"><div class="bar old" style="width:2%"></div><div class="bar new" style="width:2%"></div></div><div>$0</div>
+</div>
+<div class="barrow">
+<div>SchoolRun</div><div class="bars"><div class="bar old" style="width:20.01414668428558%"></div><div class="bar new" style="width:20.01414668428558%"></div></div><div>$1,760</div>
+</div>
+<div class="barrow">
+<div>Trend</div><div class="bars"><div class="bar old" style="width:78.38855164790677%"></div><div class="bar new" style="width:78.38855164790677%"></div></div><div>$6,893</div>
+</div>
+<div class="barrow">
+<div>Volatility</div><div class="bars"><div class="bar old" style="width:10.955492529777406%"></div><div class="bar new" style="width:10.955492529777406%"></div></div><div>$963</div>
+</div>
+<div class="barrow">
+<div>VwapReversion</div><div class="bars"><div class="bar old" style="width:21.40038528108006%"></div><div class="bar new" style="width:21.40038528108006%"></div></div><div>$1,882</div>
+</div>
+</div>
+<h2>Resumo por strategy</h2>
+<table><thead><tr><th>strategy</th><th>Net OLD</th><th>Net NEW</th><th>delta</th><th>trades OLD</th><th>trades NEW</th><th>edge OLD</th><th>edge NEW</th><th>rec NEW</th><th>grid NetPF NEW</th></tr></thead><tbody>
+<tr><td>BollingerFade</td><td>$772</td><td>$772</td><td class="warn">+$0</td><td>25</td><td>25</td><td>0.48R</td><td>0.48R</td><td>1.85x</td><td>2.05</td></tr>
+<tr><td>EMA</td><td>$740</td><td>$3,339</td><td class="good">+$2,599</td><td>685</td><td>252</td><td>0.14R</td><td>0.29R</td><td>2.12x</td><td>1.72</td></tr>
+<tr><td>IbBreakout</td><td>$4,067</td><td>$4,067</td><td class="warn">+$0</td><td>42</td><td>42</td><td>0.33R</td><td>0.33R</td><td>2.87x</td><td>2.43</td></tr>
+<tr><td>Momentum</td><td>$8,794</td><td>$8,794</td><td class="warn">+$0</td><td>358</td><td>358</td><td>1.22R</td><td>1.22R</td><td>4.79x</td><td>1.53</td></tr>
+<tr><td>OrbBreakout</td><td>$5,315</td><td>$5,315</td><td class="warn">+$0</td><td>64</td><td>64</td><td>1.04R</td><td>1.04R</td><td>4.26x</td><td>2.97</td></tr>
+<tr><td>Range</td><td>$0</td><td>$0</td><td class="warn">+$0</td><td>0</td><td>0</td><td></td><td></td><td>0.00x</td><td></td></tr>
+<tr><td>SchoolRun</td><td>$1,760</td><td>$1,760</td><td class="warn">+$0</td><td>71</td><td>71</td><td>0.73R</td><td>0.73R</td><td>5.11x</td><td>2.43</td></tr>
+<tr><td>Trend</td><td>$6,893</td><td>$6,893</td><td class="warn">+$0</td><td>91</td><td>91</td><td>0.59R</td><td>0.59R</td><td>2.87x</td><td>3.11</td></tr>
+<tr><td>Volatility</td><td>$963</td><td>$963</td><td class="warn">+$0</td><td>63</td><td>63</td><td>0.59R</td><td>0.59R</td><td>1.01x</td><td>1.83</td></tr>
+<tr><td>VwapReversion</td><td>$1,882</td><td>$1,882</td><td class="warn">+$0</td><td>61</td><td>61</td><td>0.69R</td><td>0.69R</td><td>2.84x</td><td>6.26</td></tr>
+</tbody></table>
+<h2>EMA foco</h2>
+<table><thead><tr><th>metrica</th><th>OLD</th><th>NEW</th><th>delta</th></tr></thead><tbody>
+<tr><td>regime</td><td>Trend|Breakout|WideIbBreakout|IntradayExpansion</td><td>WideIbBreakout|IntradayExpansion|HighVolatility</td><td></td></tr>
+<tr><td>trades full-report</td><td>685</td><td>252</td><td class="bad">-433</td></tr>
+<tr><td>NetPF full-report</td><td>1.0194</td><td>1.2448</td><td class="good">+0.2255</td></tr>
+<tr><td>NetCurrency full-report</td><td>$740</td><td>$3,339</td><td class="good">+$2,599</td></tr>
+<tr><td>Recovery full-report</td><td>0.1917</td><td>2.121</td><td class="good">+1.9294</td></tr>
+<tr><td>R medio / edge</td><td>0.1394</td><td>0.2856</td><td class="good">+0.1462</td></tr>
+<tr><td>MAE/stop</td><td>0.956</td><td>0.904</td><td class="good">-0.052</td></tr>
+<tr><td>Stop antes de 1R %</td><td>32.7007</td><td>30.5556</td><td class="good">-2.1451</td></tr>
+<tr><td>grid IS trades</td><td>424</td><td>138</td><td class="bad">-286</td></tr>
+<tr><td>grid IS NetPF</td><td>1.2225</td><td>1.7173</td><td class="good">+0.4949</td></tr>
+<tr><td>grid IS NetExpectancy</td><td>4.7391</td><td>12.947</td><td class="good">+8.2079</td></tr>
+<tr><td>grid IS Recovery</td><td>2.0369</td><td>5.2744</td><td class="good">+3.2375</td></tr>
+</tbody></table>
+<h2>Diagnostico</h2><div class="notes">
+<div class="note good">EMA grid focado: NetPF IS 1.72 com 138 trades IS. Criterio NetPF &gt; 1.50 aprovado.</div>
+<div class="note good">EMA edge full-report: 0.14R para 0.29R.</div>
+<div class="note good">EMA recovery full-report: 2.12x.</div>
+<div class="note warn">O full-report nao grava OOS por strategy; use o grid completo para OOSValidated. No run atual da EMA: OOSValidated=3.</div>
+</div>
+</main></body></html>

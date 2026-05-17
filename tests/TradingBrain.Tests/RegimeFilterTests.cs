@@ -88,7 +88,7 @@ public class RegimeFilterTests
     public void StrategyRegimeMap_UsesValidatedIbPureMappings()
     {
         AssertMapping("Momentum", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
-        AssertMapping("Ema", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
+        AssertMapping("Ema", MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion, MarketRegime.HighVolatility);
         AssertMapping("Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
         AssertMapping("IbBreakout", MarketRegime.Breakout);
         // OrbBreakout: Trend removido (-22.7 pts/trade × 49 trades confirmado pela matrix)

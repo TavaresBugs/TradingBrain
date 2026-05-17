@@ -1,0 +1,1123 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TradingBrain Grid Search Dashboard</title>
+<style>
+:root {
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --ink: #172033;
+  --muted: #697386;
+  --line: #d9e0ea;
+  --is: #378ADD;
+  --oos: #1D9E75;
+  --neg: #E24B4A;
+  --warn: #b7791f;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+}
+.page { max-width: 1480px; margin: 0 auto; padding: 28px; }
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+.eyebrow {
+  color: var(--is);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+h1, h2 { margin: 0; letter-spacing: 0; }
+h1 { font-size: 30px; line-height: 1.2; }
+h2 { font-size: 16px; }
+.run-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  color: var(--muted);
+}
+.run-meta span {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: var(--panel);
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.card, .panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(23, 32, 51, 0.05);
+}
+.card { padding: 16px; }
+.card span, .card small { display: block; color: var(--muted); }
+.card strong {
+  display: block;
+  margin: 8px 0 2px;
+  font-size: 26px;
+  line-height: 1.1;
+}
+.panel { padding: 16px; margin-bottom: 16px; }
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.grid-two {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 16px;
+}
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 900px; }
+th, td {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 9px;
+  text-align: left;
+  white-space: nowrap;
+}
+th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+tr:last-child td { border-bottom: 0; }
+.num, td:nth-child(n+3) { font-variant-numeric: tabular-nums; }
+.pos { color: var(--oos); }
+.neg { color: var(--neg); }
+.metric-bar {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 56px;
+  align-items: center;
+  gap: 8px;
+}
+.metric-bar span {
+  display: block;
+  height: 9px;
+  min-width: 2px;
+  border-radius: 999px;
+  background: var(--is);
+}
+.metric-bar strong { font-size: 13px; font-variant-numeric: tabular-nums; }
+.badge, .split {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.badge.good, .split.oos { background: rgba(29, 158, 117, 0.12); color: var(--oos); }
+.badge.bad { background: rgba(226, 75, 74, 0.12); color: var(--neg); }
+.badge.muted { background: #eef2f7; color: var(--muted); }
+.split.is { background: rgba(55, 138, 221, 0.12); color: var(--is); }
+.hbar-row {
+  display: grid;
+  grid-template-columns: 112px minmax(80px, 1fr) 94px;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0;
+}
+.hbar-label, .hbar-value, .pnl-label { color: var(--muted); font-variant-numeric: tabular-nums; }
+.hbar-track, .pnl-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ecf1f7;
+}
+.hbar-fill, .pnl-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 999px;
+}
+.hbar-fill { background: var(--is); }
+.pnl-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.pnl-row:last-child { border-bottom: 0; }
+.pnl-bar-line {
+  display: grid;
+  grid-template-columns: 34px minmax(90px, 1fr) 84px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.pnl-fill.is { background: var(--is); }
+.pnl-fill.oos { background: var(--oos); }
+.pnl-fill.neg { background: var(--neg); }
+/* ── Equity curve & scatter extras ── */
+.eq-legend { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
+.eq-legend-item { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); }
+.eq-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.eq-metrics-grid { display:flex; flex-wrap:wrap; gap:12px; margin-top:14px; }
+.eq-strat-card { background:#f6f8fb; border-radius:8px; padding:12px 14px; flex:1 1 220px; }
+.eq-strat-name { font-weight:700; font-size:13px; margin-bottom:8px; }
+.eq-strat-metrics { display:flex; flex-wrap:wrap; gap:8px; }
+.eq-chip { background:#fff; border:1px solid var(--line); border-radius:6px; padding:5px 9px; font-size:12px; display:flex; flex-direction:column; }
+.eq-chip-label { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.5px; }
+.eq-chip-value { font-weight:600; margin-top:2px; }
+/* Scatter layout */
+.scatter-layout { display:grid; grid-template-columns:minmax(0,1.4fr) 280px; gap:20px; align-items:start; }
+.scatter-metrics { display:flex; flex-direction:column; gap:10px; padding-top:4px; }
+.scatter-metric { padding:12px 14px; border-radius:8px; border-left:4px solid transparent; background:#f6f8fb; }
+.scatter-metric.good { border-color:var(--oos); }
+.scatter-metric.bad  { border-color:var(--neg); }
+.scatter-metric.warn { border-color:#b7791f; }
+.sm-label { display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+.sm-value { font-size:14px; font-weight:600; }
+/* Trade detail table */
+.trade-detail-table { min-width:1100px; }
+.trade-win td { background:rgba(29,158,117,0.06); }
+.trade-loss td { background:rgba(226,75,74,0.06); }
+@media (max-width: 980px) {
+  .page { padding: 18px; }
+  .header { align-items: flex-start; flex-direction: column; }
+  .run-meta { justify-content: flex-start; }
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-two { grid-template-columns: 1fr; }
+  .scatter-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  h1 { font-size: 24px; }
+  .cards { grid-template-columns: 1fr; }
+  .hbar-row { grid-template-columns: 1fr; gap: 5px; }
+  .pnl-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+<header class="header">
+<div>
+<p class="eyebrow">TradingBrain</p>
+<h1>Grid Search Dashboard - All Strategies</h1>
+</div>
+<div class="run-meta">
+<span>Tick 0.25</span>
+<span>Slippage 1</span>
+<span>Spread 1</span>
+<span>Commission 0.62</span>
+</div>
+</header>
+<section class="cards">
+<article class="card">
+<span>Strategies</span>
+<strong>9</strong>
+<small>with IS rows</small>
+</article>
+<article class="card">
+<span>OOS Validated</span>
+<strong>21</strong>
+<small>rows in OOS</small>
+</article>
+<article class="card">
+<span>Dataset Days</span>
+<strong>365</strong>
+<small>237 IS days shown</small>
+</article>
+<article class="card">
+<span>Best IS NetPF</span>
+<strong>6.26</strong>
+<small>top in-sample</small>
+</article>
+<article class="card">
+<span>Best OOS NetPnL</span>
+<strong>2895.54</strong>
+<small>points</small>
+</article>
+</section>
+<section class="panel">
+<div class="section-title"><h2>Strategy Summary</h2></div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Strategy</th><th>Regime Filter</th><th>IS Days</th><th>IS Trades</th><th>IS NetPF</th><th>IS NetPnL</th><th>OOS NetPnL</th><th>OOS Validated</th><th>Status</th></tr></thead>
+<tbody>
+<tr>
+<td>TradingBrain.BollingerFade</td>
+<td>Range</td>
+<td>237</td>
+<td>22</td>
+<td><div class="metric-bar"><span style="width:41.09%"></span><strong>2.05</strong></div></td>
+<td class="num pos">280.61</td>
+<td class="num pos">-</td>
+<td>0</td>
+<td><span class="badge muted">NO OOS</span></td>
+</tr>
+<tr>
+<td>TradingBrain.EMA</td>
+<td>WideIbBreakout|IntradayExpansion|HighVolatility</td>
+<td>237</td>
+<td>138</td>
+<td><div class="metric-bar"><span style="width:34.35%"></span><strong>1.72</strong></div></td>
+<td class="num pos">1786.69</td>
+<td class="num pos">1276.91</td>
+<td>3</td>
+<td><span class="badge good">OOS+</span></td>
+</tr>
+<tr>
+<td>TradingBrain.IbBreakout</td>
+<td>Breakout</td>
+<td>237</td>
+<td>25</td>
+<td><div class="metric-bar"><span style="width:48.56%"></span><strong>2.43</strong></div></td>
+<td class="num pos">1329.75</td>
+<td class="num pos">287.83</td>
+<td>3</td>
+<td><span class="badge good">OOS+</span></td>
+</tr>
+<tr>
+<td>TradingBrain.Momentum</td>
+<td>Trend|Breakout|WideIbBreakout|IntradayExpansion</td>
+<td>237</td>
+<td>224</td>
+<td><div class="metric-bar"><span style="width:30.69%"></span><strong>1.53</strong></div></td>
+<td class="num pos">3123.12</td>
+<td class="num pos">2895.54</td>
+<td>3</td>
+<td><span class="badge good">OOS+</span></td>
+</tr>
+<tr>
+<td>TradingBrain.ORB</td>
+<td>Breakout|IntradayExpansion</td>
+<td>237</td>
+<td>29</td>
+<td><div class="metric-bar"><span style="width:59.41%"></span><strong>2.97</strong></div></td>
+<td class="num pos">2127.52</td>
+<td class="num pos">256.1</td>
+<td>3</td>
+<td><span class="badge good">OOS+</span></td>
+</tr>
+<tr>
+<td>TradingBrain.SRS</td>
+<td>Breakout|Range|HighVolatility</td>
+<td>237</td>
+<td>43</td>
+<td><div class="metric-bar"><span style="width:48.5%"></span><strong>2.43</strong></div></td>
+<td class="num pos">666.84</td>
+<td class="num pos">507.5</td>
+<td>3</td>
+<td><span class="badge good">OOS+</span></td>
+</tr>
+<tr>
+<td>TradingBrain.Trend</td>
+<td>Trend|Breakout|WideIbBreakout|IntradayExpansion</td>
+<td>237</td>
+<td>50</td>
+<td><div class="metric-bar"><span style="width:62.12%"></span><strong>3.11</strong></div></td>
+<td class="num pos">3569.5</td>
+<td class="num pos">603.55</td>
+<td>3</td>
+<td><span class="badge good">OOS+</span></td>
+</tr>
+<tr>
+<td>TradingBrain.Volatility</td>
+<td>IntradayExpansion|HighVolatility</td>
+<td>237</td>
+<td>32</td>
+<td><div class="metric-bar"><span style="width:36.58%"></span><strong>1.83</strong></div></td>
+<td class="num pos">544.66</td>
+<td class="num pos">52.74</td>
+<td>3</td>
+<td><span class="badge good">OOS+</span></td>
+</tr>
+<tr>
+<td>TradingBrain.VwapReversion</td>
+<td>Range|HighVolatility</td>
+<td>237</td>
+<td>20</td>
+<td><div class="metric-bar"><span style="width:100%"></span><strong>6.26</strong></div></td>
+<td class="num pos">1140.35</td>
+<td class="num pos">-</td>
+<td>0</td>
+<td><span class="badge muted">NO OOS</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="grid-two">
+<section class="panel">
+<div class="section-title"><h2>Regime Distribution</h2></div>
+<div class="hbar-row">
+<span class="hbar-label">Trend</span>
+<div class="hbar-track">
+<span class="hbar-fill" style="width:100%"></span>
+</div>
+<span class="hbar-value">83 (22.74%)</span>
+</div>
+<div class="hbar-row">
+<span class="hbar-label">NonTrend</span>
+<div class="hbar-track">
+<span class="hbar-fill" style="width:71.08%"></span>
+</div>
+<span class="hbar-value">59 (16.16%)</span>
+</div>
+<div class="hbar-row">
+<span class="hbar-label">Breakout</span>
+<div class="hbar-track">
+<span class="hbar-fill" style="width:54.22%"></span>
+</div>
+<span class="hbar-value">45 (12.33%)</span>
+</div>
+<div class="hbar-row">
+<span class="hbar-label">IntradayExpansion</span>
+<div class="hbar-track">
+<span class="hbar-fill" style="width:46.99%"></span>
+</div>
+<span class="hbar-value">39 (10.68%)</span>
+</div>
+<div class="hbar-row">
+<span class="hbar-label">WideIbBreakout</span>
+<div class="hbar-track">
+<span class="hbar-fill" style="width:26.51%"></span>
+</div>
+<span class="hbar-value">22 (6.03%)</span>
+</div>
+<div class="hbar-row">
+<span class="hbar-label">Range</span>
+<div class="hbar-track">
+<span class="hbar-fill" style="width:22.89%"></span>
+</div>
+<span class="hbar-value">19 (5.21%)</span>
+</div>
+<div class="hbar-row">
+<span class="hbar-label">Undefined</span>
+<div class="hbar-track">
+<span class="hbar-fill" style="width:13.25%"></span>
+</div>
+<span class="hbar-value">11 (3.01%)</span>
+</div>
+<div class="hbar-row">
+<span class="hbar-label">HighVolatility</span>
+<div class="hbar-track">
+<span class="hbar-fill" style="width:8.43%"></span>
+</div>
+<span class="hbar-value">7 (1.92%)</span>
+</div>
+</section>
+<section class="panel">
+<div class="section-title"><h2>IS vs OOS NetPnL</h2></div>
+<div class="pnl-row">
+<span class="pnl-label">BollingerFade</span>
+<div class="pnl-bar-line">
+<span>IS</span>
+<div class="pnl-track">
+<span class="pnl-fill is" style="width:7.86%"></span>
+</div>
+<strong class="pos">280.61</strong>
+</div>
+<div class="pnl-bar-line">
+<span>OOS</span>
+<div class="pnl-track">
+<span class="pnl-fill oos" style="width:0%"></span>
+</div>
+<strong class="pos">0</strong>
+</div>
+</div>
+<div class="pnl-row">
+<span class="pnl-label">Ema</span>
+<div class="pnl-bar-line">
+<span>IS</span>
+<div class="pnl-track">
+<span class="pnl-fill is" style="width:50.05%"></span>
+</div>
+<strong class="pos">1786.69</strong>
+</div>
+<div class="pnl-bar-line">
+<span>OOS</span>
+<div class="pnl-track">
+<span class="pnl-fill oos" style="width:35.77%"></span>
+</div>
+<strong class="pos">1276.91</strong>
+</div>
+</div>
+<div class="pnl-row">
+<span class="pnl-label">IbBreakout</span>
+<div class="pnl-bar-line">
+<span>IS</span>
+<div class="pnl-track">
+<span class="pnl-fill is" style="width:37.25%"></span>
+</div>
+<strong class="pos">1329.75</strong>
+</div>
+<div class="pnl-bar-line">
+<span>OOS</span>
+<div class="pnl-track">
+<span class="pnl-fill oos" style="width:8.06%"></span>
+</div>
+<strong class="pos">287.83</strong>
+</div>
+</div>
+<div class="pnl-row">
+<span class="pnl-label">Momentum</span>
+<div class="pnl-bar-line">
+<span>IS</span>
+<div class="pnl-track">
+<span class="pnl-fill is" style="width:87.49%"></span>
+</div>
+<strong class="pos">3123.12</strong>
+</div>
+<div class="pnl-bar-line">
+<span>OOS</span>
+<div class="pnl-track">
+<span class="pnl-fill oos" style="width:81.12%"></span>
+</div>
+<strong class="pos">2895.54</strong>
+</div>
+</div>
+<div class="pnl-row">
+<span class="pnl-label">OrbBreakout</span>
+<div class="pnl-bar-line">
+<span>IS</span>
+<div class="pnl-track">
+<span class="pnl-fill is" style="width:59.6%"></span>
+</div>
+<strong class="pos">2127.52</strong>
+</div>
+<div class="pnl-bar-line">
+<span>OOS</span>
+<div class="pnl-track">
+<span class="pnl-fill oos" style="width:7.17%"></span>
+</div>
+<strong class="pos">256.1</strong>
+</div>
+</div>
+<div class="pnl-row">
+<span class="pnl-label">SchoolRun</span>
+<div class="pnl-bar-line">
+<span>IS</span>
+<div class="pnl-track">
+<span class="pnl-fill is" style="width:18.68%"></span>
+</div>
+<strong class="pos">666.84</strong>
+</div>
+<div class="pnl-bar-line">
+<span>OOS</span>
+<div class="pnl-track">
+<span class="pnl-fill oos" style="width:14.22%"></span>
+</div>
+<strong class="pos">507.5</strong>
+</div>
+</div>
+<div class="pnl-row">
+<span class="pnl-label">Trend</span>
+<div class="pnl-bar-line">
+<span>IS</span>
+<div class="pnl-track">
+<span class="pnl-fill is" style="width:100%"></span>
+</div>
+<strong class="pos">3569.5</strong>
+</div>
+<div class="pnl-bar-line">
+<span>OOS</span>
+<div class="pnl-track">
+<span class="pnl-fill oos" style="width:16.91%"></span>
+</div>
+<strong class="pos">603.55</strong>
+</div>
+</div>
+<div class="pnl-row">
+<span class="pnl-label">Volatility</span>
+<div class="pnl-bar-line">
+<span>IS</span>
+<div class="pnl-track">
+<span class="pnl-fill is" style="width:15.26%"></span>
+</div>
+<strong class="pos">544.66</strong>
+</div>
+<div class="pnl-bar-line">
+<span>OOS</span>
+<div class="pnl-track">
+<span class="pnl-fill oos" style="width:1.48%"></span>
+</div>
+<strong class="pos">52.74</strong>
+</div>
+</div>
+<div class="pnl-row">
+<span class="pnl-label">VwapReversion</span>
+<div class="pnl-bar-line">
+<span>IS</span>
+<div class="pnl-track">
+<span class="pnl-fill is" style="width:31.95%"></span>
+</div>
+<strong class="pos">1140.35</strong>
+</div>
+<div class="pnl-bar-line">
+<span>OOS</span>
+<div class="pnl-track">
+<span class="pnl-fill oos" style="width:0%"></span>
+</div>
+<strong class="pos">0</strong>
+</div>
+</div>
+</section>
+</section>
+<section class="panel">
+<div class="section-title"><h2>IS vs OOS Detail</h2></div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Strategy</th><th>Split</th><th>Trades</th><th>Win %</th><th>NetPF</th><th>NetPnL</th><th>MaxDD</th><th>RTD</th><th>Score</th></tr></thead>
+<tbody>
+<tr>
+<td>TradingBrain.BollingerFade</td>
+<td><span class="split is">IS</span></td>
+<td>22</td>
+<td>68.18</td>
+<td>2.05</td>
+<td class="num pos">280.61</td>
+<td>153</td>
+<td>1.83</td>
+<td>42.23</td>
+</tr>
+<tr>
+<td>TradingBrain.BollingerFade</td>
+<td><span class="split is">IS</span></td>
+<td>22</td>
+<td>68.18</td>
+<td>2.05</td>
+<td class="num pos">280.61</td>
+<td>153</td>
+<td>1.83</td>
+<td>42.23</td>
+</tr>
+<tr>
+<td>TradingBrain.BollingerFade</td>
+<td><span class="split is">IS</span></td>
+<td>22</td>
+<td>68.18</td>
+<td>2.05</td>
+<td class="num pos">280.61</td>
+<td>153</td>
+<td>1.83</td>
+<td>42.23</td>
+</tr>
+<tr>
+<td>TradingBrain.EMA</td>
+<td><span class="split is">IS</span></td>
+<td>138</td>
+<td>39.13</td>
+<td>1.72</td>
+<td class="num pos">1786.69</td>
+<td>338.75</td>
+<td>5.27</td>
+<td>72.78</td>
+</tr>
+<tr>
+<td>TradingBrain.EMA</td>
+<td><span class="split is">IS</span></td>
+<td>137</td>
+<td>43.07</td>
+<td>1.67</td>
+<td class="num pos">1880.56</td>
+<td>442.25</td>
+<td>4.25</td>
+<td>70.11</td>
+</tr>
+<tr>
+<td>TradingBrain.EMA</td>
+<td><span class="split is">IS</span></td>
+<td>133</td>
+<td>43.61</td>
+<td>1.66</td>
+<td class="num pos">1808.54</td>
+<td>411.5</td>
+<td>4.39</td>
+<td>69.17</td>
+</tr>
+<tr>
+<td>TradingBrain.EMA</td>
+<td><span class="split oos">OOS</span></td>
+<td>114</td>
+<td>38.6</td>
+<td>1.32</td>
+<td class="num pos">885.32</td>
+<td>474</td>
+<td>1.87</td>
+<td>25.11</td>
+</tr>
+<tr>
+<td>TradingBrain.EMA</td>
+<td><span class="split oos">OOS</span></td>
+<td>119</td>
+<td>41.18</td>
+<td>1.3</td>
+<td class="num pos">956.72</td>
+<td>613.75</td>
+<td>1.56</td>
+<td>25.14</td>
+</tr>
+<tr>
+<td>TradingBrain.EMA</td>
+<td><span class="split oos">OOS</span></td>
+<td>107</td>
+<td>42.99</td>
+<td>1.45</td>
+<td class="num pos">1276.91</td>
+<td>427</td>
+<td>2.99</td>
+<td>45.77</td>
+</tr>
+<tr>
+<td>TradingBrain.IbBreakout</td>
+<td><span class="split is">IS</span></td>
+<td>25</td>
+<td>52</td>
+<td>2.43</td>
+<td class="num pos">1329.75</td>
+<td>375</td>
+<td>3.55</td>
+<td>247.54</td>
+</tr>
+<tr>
+<td>TradingBrain.IbBreakout</td>
+<td><span class="split is">IS</span></td>
+<td>25</td>
+<td>52</td>
+<td>2.43</td>
+<td class="num pos">1329.75</td>
+<td>375</td>
+<td>3.55</td>
+<td>247.54</td>
+</tr>
+<tr>
+<td>TradingBrain.IbBreakout</td>
+<td><span class="split is">IS</span></td>
+<td>25</td>
+<td>52</td>
+<td>2.43</td>
+<td class="num pos">1329.75</td>
+<td>375</td>
+<td>3.55</td>
+<td>247.54</td>
+</tr>
+<tr>
+<td>TradingBrain.IbBreakout</td>
+<td><span class="split oos">OOS</span></td>
+<td>16</td>
+<td>56.25</td>
+<td>1.39</td>
+<td class="num pos">287.83</td>
+<td>498</td>
+<td>0.58</td>
+<td>-Infinity</td>
+</tr>
+<tr>
+<td>TradingBrain.IbBreakout</td>
+<td><span class="split oos">OOS</span></td>
+<td>16</td>
+<td>56.25</td>
+<td>1.39</td>
+<td class="num pos">287.83</td>
+<td>498</td>
+<td>0.58</td>
+<td>-Infinity</td>
+</tr>
+<tr>
+<td>TradingBrain.IbBreakout</td>
+<td><span class="split oos">OOS</span></td>
+<td>16</td>
+<td>56.25</td>
+<td>1.39</td>
+<td class="num pos">287.83</td>
+<td>498</td>
+<td>0.58</td>
+<td>-Infinity</td>
+</tr>
+<tr>
+<td>TradingBrain.Momentum</td>
+<td><span class="split is">IS</span></td>
+<td>224</td>
+<td>37.95</td>
+<td>1.53</td>
+<td class="num pos">3123.12</td>
+<td>686.5</td>
+<td>4.55</td>
+<td>73.21</td>
+</tr>
+<tr>
+<td>TradingBrain.Momentum</td>
+<td><span class="split is">IS</span></td>
+<td>220</td>
+<td>39.55</td>
+<td>1.52</td>
+<td class="num pos">3073.6</td>
+<td>771.25</td>
+<td>3.99</td>
+<td>69.41</td>
+</tr>
+<tr>
+<td>TradingBrain.Momentum</td>
+<td><span class="split is">IS</span></td>
+<td>231</td>
+<td>37.66</td>
+<td>1.5</td>
+<td class="num pos">2991.78</td>
+<td>709.25</td>
+<td>4.22</td>
+<td>65.24</td>
+</tr>
+<tr>
+<td>TradingBrain.Momentum</td>
+<td><span class="split oos">OOS</span></td>
+<td>108</td>
+<td>37.96</td>
+<td>1.82</td>
+<td class="num pos">2895.54</td>
+<td>600</td>
+<td>4.83</td>
+<td>147.36</td>
+</tr>
+<tr>
+<td>TradingBrain.Momentum</td>
+<td><span class="split oos">OOS</span></td>
+<td>108</td>
+<td>37.96</td>
+<td>1.75</td>
+<td class="num pos">2761.04</td>
+<td>661.5</td>
+<td>4.17</td>
+<td>129.41</td>
+</tr>
+<tr>
+<td>TradingBrain.Momentum</td>
+<td><span class="split oos">OOS</span></td>
+<td>113</td>
+<td>36.28</td>
+<td>1.73</td>
+<td class="num pos">2742.69</td>
+<td>663.75</td>
+<td>4.13</td>
+<td>122.38</td>
+</tr>
+<tr>
+<td>TradingBrain.ORB</td>
+<td><span class="split is">IS</span></td>
+<td>29</td>
+<td>62.07</td>
+<td>2.97</td>
+<td class="num pos">2127.52</td>
+<td>491</td>
+<td>4.33</td>
+<td>461.38</td>
+</tr>
+<tr>
+<td>TradingBrain.ORB</td>
+<td><span class="split is">IS</span></td>
+<td>29</td>
+<td>62.07</td>
+<td>2.97</td>
+<td class="num pos">2127.52</td>
+<td>491</td>
+<td>4.33</td>
+<td>461.38</td>
+</tr>
+<tr>
+<td>TradingBrain.ORB</td>
+<td><span class="split is">IS</span></td>
+<td>29</td>
+<td>62.07</td>
+<td>2.92</td>
+<td class="num pos">2109.02</td>
+<td>509.5</td>
+<td>4.14</td>
+<td>443.59</td>
+</tr>
+<tr>
+<td>TradingBrain.ORB</td>
+<td><span class="split oos">OOS</span></td>
+<td>20</td>
+<td>55</td>
+<td>1.29</td>
+<td class="num pos">256.1</td>
+<td>652.5</td>
+<td>0.39</td>
+<td>22.67</td>
+</tr>
+<tr>
+<td>TradingBrain.ORB</td>
+<td><span class="split oos">OOS</span></td>
+<td>20</td>
+<td>55</td>
+<td>1.29</td>
+<td class="num pos">256.1</td>
+<td>652.5</td>
+<td>0.39</td>
+<td>22.67</td>
+</tr>
+<tr>
+<td>TradingBrain.ORB</td>
+<td><span class="split oos">OOS</span></td>
+<td>20</td>
+<td>55</td>
+<td>1.29</td>
+<td class="num pos">256.1</td>
+<td>652.5</td>
+<td>0.39</td>
+<td>22.67</td>
+</tr>
+<tr>
+<td>TradingBrain.SRS</td>
+<td><span class="split is">IS</span></td>
+<td>43</td>
+<td>48.84</td>
+<td>2.43</td>
+<td class="num pos">666.84</td>
+<td>263.75</td>
+<td>2.53</td>
+<td>77.44</td>
+</tr>
+<tr>
+<td>TradingBrain.SRS</td>
+<td><span class="split is">IS</span></td>
+<td>43</td>
+<td>48.84</td>
+<td>2.4</td>
+<td class="num pos">653.09</td>
+<td>263.75</td>
+<td>2.48</td>
+<td>74.61</td>
+</tr>
+<tr>
+<td>TradingBrain.SRS</td>
+<td><span class="split is">IS</span></td>
+<td>43</td>
+<td>58.14</td>
+<td>2.24</td>
+<td class="num pos">535.34</td>
+<td>177.5</td>
+<td>3.02</td>
+<td>59.77</td>
+</tr>
+<tr>
+<td>TradingBrain.SRS</td>
+<td><span class="split oos">OOS</span></td>
+<td>25</td>
+<td>68</td>
+<td>2.62</td>
+<td class="num pos">459.25</td>
+<td>165.75</td>
+<td>2.77</td>
+<td>87.07</td>
+</tr>
+<tr>
+<td>TradingBrain.SRS</td>
+<td><span class="split oos">OOS</span></td>
+<td>25</td>
+<td>72</td>
+<td>2.98</td>
+<td class="num pos">507.5</td>
+<td>165.75</td>
+<td>3.06</td>
+<td>111.87</td>
+</tr>
+<tr>
+<td>TradingBrain.SRS</td>
+<td><span class="split oos">OOS</span></td>
+<td>25</td>
+<td>80</td>
+<td>3.44</td>
+<td class="num pos">453</td>
+<td>97.5</td>
+<td>4.65</td>
+<td>129.21</td>
+</tr>
+<tr>
+<td>TradingBrain.Trend</td>
+<td><span class="split is">IS</span></td>
+<td>50</td>
+<td>58</td>
+<td>3.11</td>
+<td class="num pos">3569.5</td>
+<td>327</td>
+<td>10.92</td>
+<td>791.91</td>
+</tr>
+<tr>
+<td>TradingBrain.Trend</td>
+<td><span class="split is">IS</span></td>
+<td>50</td>
+<td>60</td>
+<td>3.12</td>
+<td class="num pos">3586</td>
+<td>342.25</td>
+<td>10.48</td>
+<td>781.78</td>
+</tr>
+<tr>
+<td>TradingBrain.Trend</td>
+<td><span class="split is">IS</span></td>
+<td>52</td>
+<td>53.85</td>
+<td>3.13</td>
+<td class="num pos">3441.76</td>
+<td>331.5</td>
+<td>10.38</td>
+<td>728.61</td>
+</tr>
+<tr>
+<td>TradingBrain.Trend</td>
+<td><span class="split oos">OOS</span></td>
+<td>35</td>
+<td>40</td>
+<td>1.3</td>
+<td class="num pos">603.55</td>
+<td>1177.25</td>
+<td>0.51</td>
+<td>36.81</td>
+</tr>
+<tr>
+<td>TradingBrain.Trend</td>
+<td><span class="split oos">OOS</span></td>
+<td>35</td>
+<td>40</td>
+<td>1.26</td>
+<td class="num pos">506.05</td>
+<td>1202.25</td>
+<td>0.42</td>
+<td>29.44</td>
+</tr>
+<tr>
+<td>TradingBrain.Trend</td>
+<td><span class="split oos">OOS</span></td>
+<td>36</td>
+<td>36.11</td>
+<td>1.18</td>
+<td class="num pos">320.43</td>
+<td>1177.25</td>
+<td>0.27</td>
+<td>16.96</td>
+</tr>
+<tr>
+<td>TradingBrain.Volatility</td>
+<td><span class="split is">IS</span></td>
+<td>32</td>
+<td>37.5</td>
+<td>1.83</td>
+<td class="num pos">544.66</td>
+<td>325.75</td>
+<td>1.67</td>
+<td>55.17</td>
+</tr>
+<tr>
+<td>TradingBrain.Volatility</td>
+<td><span class="split is">IS</span></td>
+<td>32</td>
+<td>37.5</td>
+<td>1.83</td>
+<td class="num pos">544.66</td>
+<td>325.75</td>
+<td>1.67</td>
+<td>55.17</td>
+</tr>
+<tr>
+<td>TradingBrain.Volatility</td>
+<td><span class="split is">IS</span></td>
+<td>33</td>
+<td>36.36</td>
+<td>1.74</td>
+<td class="num pos">503.29</td>
+<td>361.75</td>
+<td>1.39</td>
+<td>46.2</td>
+</tr>
+<tr>
+<td>TradingBrain.Volatility</td>
+<td><span class="split oos">OOS</span></td>
+<td>23</td>
+<td>34.78</td>
+<td>0.93</td>
+<td class="num neg">-77.26</td>
+<td>428</td>
+<td>-0.18</td>
+<td>-Infinity</td>
+</tr>
+<tr>
+<td>TradingBrain.Volatility</td>
+<td><span class="split oos">OOS</span></td>
+<td>23</td>
+<td>34.78</td>
+<td>0.91</td>
+<td class="num neg">-98.76</td>
+<td>428</td>
+<td>-0.23</td>
+<td>-Infinity</td>
+</tr>
+<tr>
+<td>TradingBrain.Volatility</td>
+<td><span class="split oos">OOS</span></td>
+<td>23</td>
+<td>34.78</td>
+<td>1.05</td>
+<td class="num pos">52.74</td>
+<td>351.5</td>
+<td>0.15</td>
+<td>3.37</td>
+</tr>
+<tr>
+<td>TradingBrain.VwapReversion</td>
+<td><span class="split is">IS</span></td>
+<td>20</td>
+<td>85</td>
+<td>6.26</td>
+<td class="num pos">1140.35</td>
+<td>166.25</td>
+<td>6.86</td>
+<td>796.23</td>
+</tr>
+<tr>
+<td>TradingBrain.VwapReversion</td>
+<td><span class="split is">IS</span></td>
+<td>20</td>
+<td>85</td>
+<td>5.3</td>
+<td class="num pos">1099.85</td>
+<td>197.25</td>
+<td>5.58</td>
+<td>600.58</td>
+</tr>
+<tr>
+<td>TradingBrain.VwapReversion</td>
+<td><span class="split is">IS</span></td>
+<td>21</td>
+<td>80.95</td>
+<td>5.04</td>
+<td class="num pos">1104.48</td>
+<td>166.25</td>
+<td>6.64</td>
+<td>592.52</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+<script>document.documentElement.dataset.ready='true';</script>
+</body>
+</html>

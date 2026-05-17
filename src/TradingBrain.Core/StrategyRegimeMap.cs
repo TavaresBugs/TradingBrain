@@ -29,7 +29,7 @@ public static class StrategyRegimeMap
         var map = new Dictionary<StrategyKind, IReadOnlyList<MarketRegime>>();
 
         Add(map, "Momentum", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
-        Add(map, "Ema", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
+        Add(map, "Ema", MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion, MarketRegime.HighVolatility);
         Add(map, "Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
         Add(map, "IbBreakout", MarketRegime.Breakout);
         Add(map, "OrbBreakout", MarketRegime.Breakout, MarketRegime.IntradayExpansion);  // -22.7 pts/trade em Trend (49 t) → removido

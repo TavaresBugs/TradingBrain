@@ -136,6 +136,17 @@ if (fullReportRequest is not null)
     return RunFullReport(fullReportRequest.Value.InputPath, fullReportRequest.Value.OutputDirectory, executionSettings);
 }
 
+var compareFullReportsRequest = ReadCompareFullReportsRequest(args);
+if (compareFullReportsRequest is not null)
+{
+    ReportComparisonWriter.Export(
+        compareFullReportsRequest.Value.OldReportDirectory,
+        compareFullReportsRequest.Value.NewReportDirectory,
+        compareFullReportsRequest.Value.OutputPath);
+    Console.WriteLine($"Comparativo gerado em: {compareFullReportsRequest.Value.OutputPath}");
+    return 0;
+}
+
 var walkForwardRequest = ReadWalkForwardRequest(args);
 if (walkForwardRequest is not null)
 {
@@ -399,6 +410,21 @@ static (string InputPath, string OutputDirectory)? ReadFullReportRequest(string[
             throw new ArgumentException("Use --full-report <input.csv> <output_dir> [execution flags].");
 
         return (args[i + 1], args[i + 2]);
+    }
+    return null;
+}
+
+static (string OldReportDirectory, string NewReportDirectory, string OutputPath)? ReadCompareFullReportsRequest(string[] args)
+{
+    for (var i = 0; i < args.Length; i++)
+    {
+        if (!args[i].Equals("--compare-full-reports", StringComparison.OrdinalIgnoreCase))
+            continue;
+
+        if (i + 3 >= args.Length)
+            throw new ArgumentException("Use --compare-full-reports <old_dir> <new_dir> <output.html>.");
+
+        return (args[i + 1], args[i + 2], args[i + 3]);
     }
     return null;
 }
@@ -1333,6 +1359,7 @@ static void PrintUsage()
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --walk-forward <input.csv|txt> <pasta> [Strategy] [--windows N]");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --classify-regime <input.csv|txt> <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --regime-report <input.csv|txt> <pasta>");
+    Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --compare-full-reports <old_dir> <new_dir> <output.html>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --replay <signals.csv> [--delay 200]");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --generate-ninja <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --inspect-dll <dll> <relatorio.md>");

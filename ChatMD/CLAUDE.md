@@ -145,7 +145,7 @@ Classificação sempre em `allBars` completo → filtra por regime → divide em
 |---|---|---|
 | Trend | Trend | Donchian 10 + RSI + stops largos |
 | Momentum | Trend | MACD cross + EMA + volume |
-| Ema | Trend | EMA9>21 + swing rompido + volume |
+| Ema | WideIbBreakout + IntradayExpansion + HighVolatility | EMA9>21 + swing rompido + volume; validada em regimes de expansao real |
 | SchoolRun | Trend + Breakout | Candle M15 de referência + overnight range |
 | OrbBreakout | Breakout | ORB 9:30-10:00 com janela configurável |
 | IbBreakout | Breakout + Trend | Range IB 9:30-10:30, 1 trade/dia |

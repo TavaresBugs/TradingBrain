@@ -98,7 +98,8 @@ public sealed partial class StrategyBacktester
             if (row.Signal == SignalAction.Exit && entry != null)
             {
                 var direction = entry.Signal == SignalAction.Buy ? 1 : -1;
-                var grossPoints = (row.Bar.Close - entry.Bar.Close) * direction;
+                var exitPrice = IsBreakevenExit(row.Reason) ? entry.Bar.Close : row.Bar.Close;
+                var grossPoints = (exitPrice - entry.Bar.Close) * direction;
                 var grossCurrency = settings.PointsToCurrency(grossPoints);
                 var slippageCostCurrency = settings.SlippageCostCurrency;
                 var spreadCostCurrency = settings.SpreadCostCurrency;
@@ -143,7 +144,7 @@ public sealed partial class StrategyBacktester
                     entryBarIndex,
                     rowIndex,
                     entry.Bar.Close,
-                    row.Bar.Close,
+                    exitPrice,
                     Math.Max(0, tradeRows.Count - 1),
                     grossPoints,
                     grossPoints,
@@ -375,6 +376,9 @@ public sealed partial class StrategyBacktester
 
     private static bool RiskIsValid(double riskPoints)
         => double.IsFinite(riskPoints) && riskPoints > 0;
+
+    private static bool IsBreakevenExit(string reason)
+        => reason.Contains("Stop BE", StringComparison.OrdinalIgnoreCase);
 
     private static string B(bool value) => value ? "true" : "false";
 

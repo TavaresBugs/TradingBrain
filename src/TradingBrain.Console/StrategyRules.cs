@@ -17,7 +17,10 @@ public sealed partial class StrategyBacktester
         ref int rangeState,
         ref int schoolRunState,
         ref int orbState,
-        ref int ibState)
+        ref int ibState,
+        ref double initialRiskPoints,
+        ref bool beActivated,
+        ref double extremeFavorable)
     {
         var usesOwnSessionGate = _strategy is
             StrategyKind.OrbBreakout or
@@ -32,11 +35,39 @@ public sealed partial class StrategyBacktester
         return _strategy switch
         {
             StrategyKind.Volatility => EvaluateVolatility(bar, m, position, entryPrice, openProfit, barsSinceEntry),
-            StrategyKind.Trend => EvaluateTrend(bar, m, position, entryPrice, barsSinceEntry, ref trendState),
+            StrategyKind.Trend => EvaluateTrend(
+                bar,
+                m,
+                position,
+                entryPrice,
+                openProfit,
+                barsSinceEntry,
+                ref trendState,
+                ref initialRiskPoints,
+                ref beActivated,
+                ref extremeFavorable),
             StrategyKind.Range => EvaluateRange(bar, m, position, entryPrice, barsSinceEntry, ref rangeState),
-            StrategyKind.Momentum => EvaluateMomentum(bar, m, position, entryPrice, barsSinceEntry),
+            StrategyKind.Momentum => EvaluateMomentum(
+                bar,
+                m,
+                position,
+                entryPrice,
+                openProfit,
+                barsSinceEntry,
+                ref initialRiskPoints,
+                ref beActivated,
+                ref extremeFavorable),
             StrategyKind.OrbBreakout => EvaluateOrbBreakout(bar, bars, barIndex, m, position, entryPrice, barsSinceEntry, ref orbState),
-            StrategyKind.Ema => EvaluateEma(bar, m, position, entryPrice, barsSinceEntry),
+            StrategyKind.Ema => EvaluateEma(
+                bar,
+                m,
+                position,
+                entryPrice,
+                openProfit,
+                barsSinceEntry,
+                ref initialRiskPoints,
+                ref beActivated,
+                ref extremeFavorable),
             StrategyKind.VwapReversion => EvaluateVwapReversion(bar, m, position, entryPrice, barsSinceEntry),
             StrategyKind.BollingerFade => EvaluateBollingerFade(bar, m, position, entryPrice, barsSinceEntry),
             StrategyKind.SchoolRun => EvaluateSchoolRun(bar, m, position, entryPrice, barsSinceEntry, ref schoolRunState),
@@ -44,6 +75,35 @@ public sealed partial class StrategyBacktester
             _ => new StrategyDecision(SignalAction.None, "Strategy nao implementada")
         };
     }
+
+    private static bool HasReachedBeTarget(
+        double openProfit,
+        double initialRiskPoints,
+        double rMultiple)
+        => rMultiple > 0 &&
+           !double.IsNaN(initialRiskPoints) &&
+           initialRiskPoints > 0 &&
+           openProfit >= initialRiskPoints * rMultiple;
+
+    private static double BreakevenStop(double entryPrice) => entryPrice;
+
+    private static double ChandelierStop(
+        int position,
+        double extremeFavorable,
+        double atr,
+        double multiplier)
+        => position > 0
+            ? extremeFavorable - atr * multiplier
+            : extremeFavorable + atr * multiplier;
+
+    private static bool ChandelierActive(
+        double openProfit,
+        double initialRiskPoints,
+        double activationRMultiple)
+        => activationRMultiple > 0 &&
+           !double.IsNaN(initialRiskPoints) &&
+           initialRiskPoints > 0 &&
+           openProfit >= initialRiskPoints * activationRMultiple;
 
     private StrategyDecision EvaluateVolatility(
         MarketBar bar,
@@ -61,11 +121,6 @@ public sealed partial class StrategyBacktester
         if (position == 0 && IsAtOrAfterCloseAll(bar.Time))
         {
             return new StrategyDecision(SignalAction.None, "Fora da janela operacional");
-        }
-
-        if (position != 0 && openProfit <= -_defaults.MaxDrawdownPoints)
-        {
-            return new StrategyDecision(SignalAction.Exit, "MaxDrawdown atingido");
         }
 
         var stopAtr = m["ATR"] * _params.AtrStopMultiplier;
@@ -142,7 +197,17 @@ public sealed partial class StrategyBacktester
         return new StrategyDecision(SignalAction.None, "Sem sinal");
     }
 
-    private StrategyDecision EvaluateTrend(MarketBar bar, IReadOnlyDictionary<string, double> m, int position, double entryPrice, int barsSinceEntry, ref int trendState)
+    private StrategyDecision EvaluateTrend(
+        MarketBar bar,
+        IReadOnlyDictionary<string, double> m,
+        int position,
+        double entryPrice,
+        double openProfit,
+        int barsSinceEntry,
+        ref int trendState,
+        ref double initialRiskPoints,
+        ref bool beActivated,
+        ref double extremeFavorable)
     {
         var today = DateOnly.FromDateTime(bar.Time);
         if (today != _lastTrendDate)
@@ -158,23 +223,65 @@ public sealed partial class StrategyBacktester
 
         if (position > 0)
         {
+            if (barsSinceEntry == 1 || double.IsNaN(initialRiskPoints))
+            {
+                initialRiskPoints = m["ATR"] * _params.TrendAtrStopMultiplier;
+                extremeFavorable = bar.High;
+            }
+            extremeFavorable = double.IsNaN(extremeFavorable)
+                ? bar.High
+                : Math.Max(extremeFavorable, bar.High);
+            if (!beActivated && HasReachedBeTarget(openProfit, initialRiskPoints, _params.BeActivationRMultiple))
+                beActivated = true;
+
             if (bar.Close <= entryPrice - m["ATR"] * _params.TrendAtrStopMultiplier)
                 return new StrategyDecision(SignalAction.Exit, "Stop dinamico long");
             if (newTrend < 0)
+            {
+                trendState = newTrend;
                 return new StrategyDecision(SignalAction.Exit, "Trend virou contra long");
-            if (barsSinceEntry >= _params.TrendTimeExitBars)
-                return new StrategyDecision(SignalAction.Exit, "Tempo long");
+            }
+            trendState = newTrend;
+            if (beActivated && ChandelierActive(openProfit, initialRiskPoints, _params.ChandelierActivationRMultiple))
+            {
+                var chandelierStop = ChandelierStop(position, extremeFavorable, m["ATR"], _params.ChandelierTrailMultiplier);
+                if (bar.Close < chandelierStop)
+                    return new StrategyDecision(SignalAction.Exit, "Chandelier trail long");
+            }
+            if (beActivated && bar.Close <= BreakevenStop(entryPrice))
+                return new StrategyDecision(SignalAction.Exit, "Stop BE long");
             return new StrategyDecision(SignalAction.None, "Em tendencia long");
         }
 
         if (position < 0)
         {
+            if (barsSinceEntry == 1 || double.IsNaN(initialRiskPoints))
+            {
+                initialRiskPoints = m["ATR"] * _params.TrendAtrStopMultiplier;
+                extremeFavorable = bar.Low;
+            }
+            extremeFavorable = double.IsNaN(extremeFavorable)
+                ? bar.Low
+                : Math.Min(extremeFavorable, bar.Low);
+            if (!beActivated && HasReachedBeTarget(openProfit, initialRiskPoints, _params.BeActivationRMultiple))
+                beActivated = true;
+
             if (bar.Close >= entryPrice + m["ATR"] * _params.TrendAtrStopMultiplier)
                 return new StrategyDecision(SignalAction.Exit, "Stop dinamico short");
             if (newTrend > 0)
+            {
+                trendState = newTrend;
                 return new StrategyDecision(SignalAction.Exit, "Trend virou contra short");
-            if (barsSinceEntry >= _params.TrendTimeExitBars)
-                return new StrategyDecision(SignalAction.Exit, "Tempo short");
+            }
+            trendState = newTrend;
+            if (beActivated && ChandelierActive(openProfit, initialRiskPoints, _params.ChandelierActivationRMultiple))
+            {
+                var chandelierStop = ChandelierStop(position, extremeFavorable, m["ATR"], _params.ChandelierTrailMultiplier);
+                if (bar.Close > chandelierStop)
+                    return new StrategyDecision(SignalAction.Exit, "Chandelier trail short");
+            }
+            if (beActivated && bar.Close >= BreakevenStop(entryPrice))
+                return new StrategyDecision(SignalAction.Exit, "Stop BE short");
             return new StrategyDecision(SignalAction.None, "Em tendencia short");
         }
 
@@ -222,27 +329,74 @@ public sealed partial class StrategyBacktester
         return new StrategyDecision(SignalAction.None, "Sem sinal");
     }
 
-    private StrategyDecision EvaluateMomentum(MarketBar bar, IReadOnlyDictionary<string, double> m, int position, double entryPrice, int barsSinceEntry)
+    private StrategyDecision EvaluateMomentum(
+        MarketBar bar,
+        IReadOnlyDictionary<string, double> m,
+        int position,
+        double entryPrice,
+        double openProfit,
+        int barsSinceEntry,
+        ref double initialRiskPoints,
+        ref bool beActivated,
+        ref double extremeFavorable)
     {
         var stop = m["ATR"] * _params.AtrStopMultiplier;
         if (position > 0)
         {
+            if (barsSinceEntry == 1 || double.IsNaN(initialRiskPoints))
+            {
+                initialRiskPoints = stop;
+                extremeFavorable = bar.High;
+            }
+            extremeFavorable = double.IsNaN(extremeFavorable)
+                ? bar.High
+                : Math.Max(extremeFavorable, bar.High);
+            if (!beActivated && HasReachedBeTarget(openProfit, initialRiskPoints, _params.BeActivationRMultiple))
+                beActivated = true;
+
             if (bar.Close <= entryPrice - stop)
                 return new StrategyDecision(SignalAction.Exit, "Stop long");
+            if (beActivated && ChandelierActive(openProfit, initialRiskPoints, _params.ChandelierActivationRMultiple))
+            {
+                var chandelierStop = ChandelierStop(position, extremeFavorable, m["ATR"], _params.ChandelierTrailMultiplier);
+                if (bar.Close < chandelierStop)
+                    return new StrategyDecision(SignalAction.Exit, "Chandelier trail long");
+            }
+            if (beActivated && bar.Close <= BreakevenStop(entryPrice))
+                return new StrategyDecision(SignalAction.Exit, "Stop BE long");
             if (m["MACD"] < m["MACDSignal"] && m["RSI"] < 50)
                 return new StrategyDecision(SignalAction.Exit, "MACD contra e RSI fraco");
-            if (barsSinceEntry >= _defaults.TimeExitBars)
+            if (barsSinceEntry >= _defaults.TimeExitBars * 2)
                 return new StrategyDecision(SignalAction.Exit, "Tempo long");
             return new StrategyDecision(SignalAction.None, "Momentum long ativo");
         }
 
         if (position < 0)
         {
+            if (barsSinceEntry == 1 || double.IsNaN(initialRiskPoints))
+            {
+                initialRiskPoints = stop;
+                extremeFavorable = bar.Low;
+            }
+            extremeFavorable = double.IsNaN(extremeFavorable)
+                ? bar.Low
+                : Math.Min(extremeFavorable, bar.Low);
+            if (!beActivated && HasReachedBeTarget(openProfit, initialRiskPoints, _params.BeActivationRMultiple))
+                beActivated = true;
+
             if (bar.Close >= entryPrice + stop)
                 return new StrategyDecision(SignalAction.Exit, "Stop short");
+            if (beActivated && ChandelierActive(openProfit, initialRiskPoints, _params.ChandelierActivationRMultiple))
+            {
+                var chandelierStop = ChandelierStop(position, extremeFavorable, m["ATR"], _params.ChandelierTrailMultiplier);
+                if (bar.Close > chandelierStop)
+                    return new StrategyDecision(SignalAction.Exit, "Chandelier trail short");
+            }
+            if (beActivated && bar.Close >= BreakevenStop(entryPrice))
+                return new StrategyDecision(SignalAction.Exit, "Stop BE short");
             if (m["MACD"] > m["MACDSignal"] && m["RSI"] > 50)
                 return new StrategyDecision(SignalAction.Exit, "MACD contra e RSI forte");
-            if (barsSinceEntry >= _defaults.TimeExitBars)
+            if (barsSinceEntry >= _defaults.TimeExitBars * 2)
                 return new StrategyDecision(SignalAction.Exit, "Tempo short");
             return new StrategyDecision(SignalAction.None, "Momentum short ativo");
         }
@@ -361,13 +515,35 @@ public sealed partial class StrategyBacktester
         return new StrategyDecision(SignalAction.None, "ORB: sem rompimento");
     }
 
-    private StrategyDecision EvaluateEma(MarketBar bar, IReadOnlyDictionary<string, double> m, int position, double entryPrice, int barsSinceEntry)
+    private StrategyDecision EvaluateEma(
+        MarketBar bar,
+        IReadOnlyDictionary<string, double> m,
+        int position,
+        double entryPrice,
+        double openProfit,
+        int barsSinceEntry,
+        ref double initialRiskPoints,
+        ref bool beActivated,
+        ref double extremeFavorable)
     {
         var atrStop = m["ATR"] * _params.AtrStopMultiplier;
         if (position > 0)
         {
+            if (barsSinceEntry == 1 || double.IsNaN(initialRiskPoints))
+            {
+                initialRiskPoints = atrStop;
+                extremeFavorable = bar.High;
+            }
+            extremeFavorable = double.IsNaN(extremeFavorable)
+                ? bar.High
+                : Math.Max(extremeFavorable, bar.High);
+            if (!beActivated && HasReachedBeTarget(openProfit, initialRiskPoints, _params.BeActivationRMultiple))
+                beActivated = true;
+
             if (bar.Close <= entryPrice - atrStop)
                 return new StrategyDecision(SignalAction.Exit, "Stop long");
+            if (beActivated && bar.Close <= BreakevenStop(entryPrice))
+                return new StrategyDecision(SignalAction.Exit, "Stop BE long");
             if (bar.Close < m["EMA21"] - m["ATR"] * _params.EmaTrailingAtrOffset)
                 return new StrategyDecision(SignalAction.Exit, "Perdeu EMA21");
             if (m["RSI"] > 75)
@@ -379,8 +555,21 @@ public sealed partial class StrategyBacktester
 
         if (position < 0)
         {
+            if (barsSinceEntry == 1 || double.IsNaN(initialRiskPoints))
+            {
+                initialRiskPoints = atrStop;
+                extremeFavorable = bar.Low;
+            }
+            extremeFavorable = double.IsNaN(extremeFavorable)
+                ? bar.Low
+                : Math.Min(extremeFavorable, bar.Low);
+            if (!beActivated && HasReachedBeTarget(openProfit, initialRiskPoints, _params.BeActivationRMultiple))
+                beActivated = true;
+
             if (bar.Close >= entryPrice + atrStop)
                 return new StrategyDecision(SignalAction.Exit, "Stop short");
+            if (beActivated && bar.Close >= BreakevenStop(entryPrice))
+                return new StrategyDecision(SignalAction.Exit, "Stop BE short");
             if (bar.Close > m["EMA21"] + m["ATR"] * _params.EmaTrailingAtrOffset)
                 return new StrategyDecision(SignalAction.Exit, "Perdeu EMA21");
             if (m["RSI"] < 25)
@@ -877,7 +1066,7 @@ public sealed partial class StrategyBacktester
     {
         public static StrategyDefaults For(StrategyKind strategy) => strategy switch
         {
-            StrategyKind.Volatility => new(93000, 101000, 101000, 11, 40, 8, 3.4, 3.4, 1.2, 8),
+            StrategyKind.Volatility => new(93000, 113000, 113000, 22, 40, 8, 3.4, 3.4, 1.2, 8),
             StrategyKind.Trend => new(93000, 143000, 143000, 60, 76.25, 62.5, 2.0, 2.0, 1.0, 62.5),
             StrategyKind.Range => new(0, 124500, 124500, 40, 40, 40, 4.0, 3.0, 1.0, 40),
             StrategyKind.Momentum => new(90000, 110000, 110000, 30, 80, 73.75, 1.0, 1.0, 1.0, 73.75),

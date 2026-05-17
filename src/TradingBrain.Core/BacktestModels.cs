@@ -178,7 +178,10 @@ public sealed record StrategyTuningParams(
     double IbMinRangeRatio = 0.0,
     double IbMaxRangeRatio = 10.0,
     bool IbRequireVolume = false,
-    int TrendTimeExitBars = 60)
+    int TrendTimeExitBars = 60,
+    double BeActivationRMultiple = 0.5,
+    double ChandelierActivationRMultiple = 1.5,
+    double ChandelierTrailMultiplier = 2.0)
 {
     public static StrategyTuningParams RefinedDefault { get; } = new();
 

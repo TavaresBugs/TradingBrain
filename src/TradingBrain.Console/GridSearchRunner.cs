@@ -131,7 +131,7 @@ public static class GridSearchRunner
     public static void ExportCsv(IReadOnlyList<GridSearchResult> results, string path)
     {
         using var writer = new StreamWriter(path);
-        writer.WriteLine("Strategy,RegimeFilter,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,TrendTimeExitBars,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,RsiOversold,RsiOverbought,VwapReversionVolumeRatio,BbStdDev,BbFadeRsiOversold,BbFadeRsiOverbought,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode,IbTargetMultiplier,IbUseHalfRangeStop,IbMinRangeRatio,IbMaxRangeRatio,IbRequireVolume");
+        writer.WriteLine("Strategy,RegimeFilter,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,TrendTimeExitBars,BeActivationR,ChandelierActivationR,ChandelierTrailMultiplier,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,RsiOversold,RsiOverbought,VwapReversionVolumeRatio,BbStdDev,BbFadeRsiOversold,BbFadeRsiOverbought,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode,IbTargetMultiplier,IbUseHalfRangeStop,IbMinRangeRatio,IbMaxRangeRatio,IbRequireVolume");
 
         foreach (var result in results)
         {
@@ -180,6 +180,9 @@ public static class GridSearchRunner
                 F(p.EmaTrailingAtrOffset),
                 F(p.TrendAtrStopMultiplier),
                 p.TrendTimeExitBars.ToString(CultureInfo.InvariantCulture),
+                F(p.BeActivationRMultiple),
+                F(p.ChandelierActivationRMultiple),
+                F(p.ChandelierTrailMultiplier),
                 F(p.OrbAtrStopMultiplier),
                 p.OrbRangeStartHHmmss.ToString(CultureInfo.InvariantCulture),
                 p.OrbRangeEndHHmmss.ToString(CultureInfo.InvariantCulture),
@@ -233,11 +236,16 @@ public static class GridSearchRunner
         foreach (var macdAtr in new[] { 0.0, 0.03, 0.06, 0.1 })
         foreach (var volume in new[] { 1.0, 1.1, 1.2, 1.35 })
         foreach (var stop in new[] { 1.2, 1.5, 1.8, 2.2 })
+        foreach (var beR in new[] { 0.75, 1.0, 1.25 })
+        foreach (var trailR in new[] { 1.25, 1.5, 1.75 })
             yield return StrategyTuningParams.RefinedDefault with
             {
                 MomentumMinMacdAtrRatio = macdAtr,
                 MomentumVolumeRatio = volume,
-                AtrStopMultiplier = stop
+                AtrStopMultiplier = stop,
+                BeActivationRMultiple = beR,
+                ChandelierActivationRMultiple = trailR,
+                ChandelierTrailMultiplier = 2.0
             };
     }
 
@@ -246,11 +254,14 @@ public static class GridSearchRunner
         foreach (var volume in new[] { 1.0, 1.05, 1.1, 1.2 })
         foreach (var stop in new[] { 1.2, 1.5, 1.8, 2.2 })
         foreach (var offset in new[] { 0.0, 0.15, 0.3, 0.5 })
+        foreach (var beR in new[] { 0.0, 0.5, 0.75 })
             yield return StrategyTuningParams.RefinedDefault with
             {
                 EmaVolumeRatio = volume,
                 AtrStopMultiplier = stop,
-                EmaTrailingAtrOffset = offset
+                EmaTrailingAtrOffset = offset,
+                BeActivationRMultiple = beR,
+                ChandelierActivationRMultiple = 0.0
             };
     }
 
@@ -309,11 +320,15 @@ public static class GridSearchRunner
     private static IEnumerable<StrategyTuningParams> TrendGrid()
     {
         foreach (var stop in new[] { 1.2, 1.6, 2.0, 2.5, 3.0 })
-        foreach (var exitBars in new[] { 30, 45, 60, 80, 100, 120 })
+        foreach (var beR in new[] { 0.0, 0.75, 1.0, 1.25 })
+        foreach (var trailR in new[] { 0.75, 1.0, 1.25, 1.5 })
+        foreach (var trailMult in new[] { 1.5, 2.0, 2.5 })
             yield return StrategyTuningParams.RefinedDefault with
             {
                 TrendAtrStopMultiplier = stop,
-                TrendTimeExitBars = exitBars
+                BeActivationRMultiple = beR,
+                ChandelierActivationRMultiple = trailR,
+                ChandelierTrailMultiplier = trailMult
             };
     }
 

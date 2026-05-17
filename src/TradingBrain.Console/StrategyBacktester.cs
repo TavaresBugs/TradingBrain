@@ -21,7 +21,7 @@ public sealed partial class StrategyBacktester
     {
         _strategy = strategy;
         _defaults = StrategyDefaults.For(strategy);
-        _params = tuningParams ?? StrategyTuningParams.RefinedDefault;
+        _params = tuningParams ?? DefaultTuningParamsFor(strategy);
         _series = precomputed;
     }
 
@@ -42,6 +42,9 @@ public sealed partial class StrategyBacktester
         var schoolRunState = 0;
         var orbState = 0;
         var ibState = 0;
+        var initialRiskPoints = double.NaN;
+        var beActivated = false;
+        var extremeFavorable = double.NaN;
 
         for (var i = 0; i < bars.Count; i++)
         {
@@ -61,7 +64,23 @@ public sealed partial class StrategyBacktester
             var openProfit = position == 0 ? 0 : (bar.Close - entryPrice) * position;
             var barsSinceEntry = entryBarIndex < 0 ? 0 : i - entryBarIndex;
             var decision = IndicatorsReady(metrics)
-                ? Evaluate(bar, bars, i, metrics, position, entryPrice, openProfit, barsSinceEntry, ref trendState, ref rangeState, ref schoolRunState, ref orbState, ref ibState)
+                ? Evaluate(
+                    bar,
+                    bars,
+                    i,
+                    metrics,
+                    position,
+                    entryPrice,
+                    openProfit,
+                    barsSinceEntry,
+                    ref trendState,
+                    ref rangeState,
+                    ref schoolRunState,
+                    ref orbState,
+                    ref ibState,
+                    ref initialRiskPoints,
+                    ref beActivated,
+                    ref extremeFavorable)
                 : new StrategyDecision(SignalAction.None, "Aquecendo indicadores");
 
             var signal = decision.Action;
@@ -89,12 +108,15 @@ public sealed partial class StrategyBacktester
             }
             else if (signal == SignalAction.Exit && position != 0)
             {
-                realizedProfit += openProfit;
+                realizedProfit += IsBreakevenExit(decision.Reason) ? 0 : openProfit;
                 position = 0;
                 entryPrice = 0;
                 entryBarIndex = -1;
                 entryStopPrice = 0;
                 entryTargetPrice = 0;
+                initialRiskPoints = double.NaN;
+                beActivated = false;
+                extremeFavorable = double.NaN;
                 openProfit = 0;
             }
             else if (position != 0)
@@ -125,4 +147,27 @@ public sealed partial class StrategyBacktester
 
         return rows;
     }
+
+    private static StrategyTuningParams DefaultTuningParamsFor(StrategyKind strategy)
+        => strategy switch
+        {
+            StrategyKind.Trend => StrategyTuningParams.RefinedDefault with
+            {
+                BeActivationRMultiple = 1.0,
+                ChandelierActivationRMultiple = 1.0,
+                ChandelierTrailMultiplier = 2.0
+            },
+            StrategyKind.Momentum => StrategyTuningParams.RefinedDefault with
+            {
+                BeActivationRMultiple = 1.0,
+                ChandelierActivationRMultiple = 1.5,
+                ChandelierTrailMultiplier = 2.0
+            },
+            StrategyKind.Ema => StrategyTuningParams.RefinedDefault with
+            {
+                BeActivationRMultiple = 0.5,
+                ChandelierActivationRMultiple = 0.0
+            },
+            _ => StrategyTuningParams.RefinedDefault
+        };
 }

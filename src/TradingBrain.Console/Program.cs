@@ -292,9 +292,33 @@ static int RunGridSearch(
     GridSearchRunner.ExportIsVsOosCsv(comparisonRows, isVsOosPath);
     outputFiles.Add(isVsOosPath);
 
+    var regimeDistribution = RegimeFilter.CountDaysByRegime(bars);
+    var totalDays = bars.Select(b => b.Time.Date).Distinct().Count();
+    var filteredDays = split.InSample.Select(b => b.Time.Date).Distinct().Count();
+    if (requestedStrategy is not null && applyRegimeFilter && StrategyRegimeMap.HasFilter(requestedStrategy.Value))
+    {
+        filteredDays = RegimeFilter.Apply(split.InSample, StrategyRegimeMap.For(requestedStrategy.Value))
+            .Select(b => b.Time.Date)
+            .Distinct()
+            .Count();
+    }
+
+    var dashboardPath = Path.Combine(outputDirectory, "dashboard.html");
+    HtmlReportWriter.ExportGridSearchHtml(
+        comparisonRows.Where(r => r.Summary.IsLabel == "IS").ToList(),
+        comparisonRows.Where(r => r.Summary.IsLabel == "OOS").ToList(),
+        regimeDistribution,
+        requestedStrategy ?? strategies[0],
+        filteredDays,
+        totalDays,
+        executionSettings,
+        dashboardPath);
+    outputFiles.Add(dashboardPath);
+
     var manifestPath = WriteGridSearchManifest(inputPath, outputDirectory, bars.Count, strategies, executionSettings, outputFiles, split, splitRatio, requestedStrategy, applyRegimeFilter);
     Console.WriteLine($"Split IS/OOS: {split.InSample.Count}/{split.OutSample.Count}");
     Console.WriteLine($"IS vs OOS CSV: {isVsOosPath}");
+    Console.WriteLine($"Dashboard HTML: {dashboardPath}");
     Console.WriteLine($"Manifesto: {manifestPath}");
     return 0;
 }

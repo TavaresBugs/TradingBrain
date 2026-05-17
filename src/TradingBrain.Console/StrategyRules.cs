@@ -244,7 +244,8 @@ public sealed partial class StrategyBacktester
             trendState = newTrend;
             if (beActivated && ChandelierActive(openProfit, initialRiskPoints, _params.ChandelierActivationRMultiple))
             {
-                var chandelierStop = ChandelierStop(position, extremeFavorable, m["ATR"], _params.ChandelierTrailMultiplier);
+                var rawStop = ChandelierStop(position, extremeFavorable, m["ATR"], _params.ChandelierTrailMultiplier);
+                var chandelierStop = Math.Max(rawStop, entryPrice);
                 if (bar.Close < chandelierStop)
                     return new StrategyDecision(SignalAction.Exit, "Chandelier trail long");
             }
@@ -276,7 +277,8 @@ public sealed partial class StrategyBacktester
             trendState = newTrend;
             if (beActivated && ChandelierActive(openProfit, initialRiskPoints, _params.ChandelierActivationRMultiple))
             {
-                var chandelierStop = ChandelierStop(position, extremeFavorable, m["ATR"], _params.ChandelierTrailMultiplier);
+                var rawStop = ChandelierStop(position, extremeFavorable, m["ATR"], _params.ChandelierTrailMultiplier);
+                var chandelierStop = Math.Min(rawStop, entryPrice);
                 if (bar.Close > chandelierStop)
                     return new StrategyDecision(SignalAction.Exit, "Chandelier trail short");
             }
@@ -307,12 +309,20 @@ public sealed partial class StrategyBacktester
 
         var filter = m["RangeFilter"];
         var band = m["ATR"] * _defaults.AtrMultiplier;
+        var stopDistance = m["ATR"] * _defaults.AtrMultiplier;
+        var targetDistance = stopDistance * _params.RangeTargetRatio;
         var newState = bar.Close > filter + band ? 1 : bar.Close < filter - band ? -1 : rangeState;
         var changed = newState != 0 && newState != rangeState;
         rangeState = newState;
 
-        if (position != 0 && Math.Abs(bar.Close - entryPrice) >= m["ATR"] * _defaults.AtrMultiplierTp)
-            return new StrategyDecision(SignalAction.Exit, "TP/SL ATR");
+        if (position > 0 && bar.Close >= entryPrice + targetDistance)
+            return new StrategyDecision(SignalAction.Exit, $"TP Range {_params.RangeTargetRatio:F1}R");
+        if (position < 0 && bar.Close <= entryPrice - targetDistance)
+            return new StrategyDecision(SignalAction.Exit, $"TP Range {_params.RangeTargetRatio:F1}R");
+        if (position > 0 && bar.Close <= entryPrice - stopDistance)
+            return new StrategyDecision(SignalAction.Exit, "SL Range");
+        if (position < 0 && bar.Close >= entryPrice + stopDistance)
+            return new StrategyDecision(SignalAction.Exit, "SL Range");
         if (position > 0 && bar.Close < filter)
             return new StrategyDecision(SignalAction.Exit, "Fim do rompimento long");
         if (position < 0 && bar.Close > filter)
@@ -358,7 +368,8 @@ public sealed partial class StrategyBacktester
                 return new StrategyDecision(SignalAction.Exit, "Stop long");
             if (beActivated && ChandelierActive(openProfit, initialRiskPoints, _params.ChandelierActivationRMultiple))
             {
-                var chandelierStop = ChandelierStop(position, extremeFavorable, m["ATR"], _params.ChandelierTrailMultiplier);
+                var rawStop = ChandelierStop(position, extremeFavorable, m["ATR"], _params.ChandelierTrailMultiplier);
+                var chandelierStop = Math.Max(rawStop, entryPrice);
                 if (bar.Close < chandelierStop)
                     return new StrategyDecision(SignalAction.Exit, "Chandelier trail long");
             }
@@ -388,7 +399,8 @@ public sealed partial class StrategyBacktester
                 return new StrategyDecision(SignalAction.Exit, "Stop short");
             if (beActivated && ChandelierActive(openProfit, initialRiskPoints, _params.ChandelierActivationRMultiple))
             {
-                var chandelierStop = ChandelierStop(position, extremeFavorable, m["ATR"], _params.ChandelierTrailMultiplier);
+                var rawStop = ChandelierStop(position, extremeFavorable, m["ATR"], _params.ChandelierTrailMultiplier);
+                var chandelierStop = Math.Min(rawStop, entryPrice);
                 if (bar.Close > chandelierStop)
                     return new StrategyDecision(SignalAction.Exit, "Chandelier trail short");
             }
@@ -655,8 +667,9 @@ public sealed partial class StrategyBacktester
         {
             if (bar.Close <= entryPrice - stop)
                 return new StrategyDecision(SignalAction.Exit, "Stop banda long");
-            if (bar.Close >= m["BbMiddle"])
-                return new StrategyDecision(SignalAction.Exit, "Alvo media Bollinger long");
+            var targetLong = bbLower + (m["BbMiddle"] - bbLower) * _params.BbFadeTargetRatio;
+            if (bar.Close >= targetLong)
+                return new StrategyDecision(SignalAction.Exit, $"Alvo Bollinger long {_params.BbFadeTargetRatio:F1}x");
             if (barsSinceEntry >= _defaults.TimeExitBars)
                 return new StrategyDecision(SignalAction.Exit, "Tempo long");
             return new StrategyDecision(SignalAction.None, "Bollinger fade long ativo");
@@ -666,8 +679,9 @@ public sealed partial class StrategyBacktester
         {
             if (bar.Close >= entryPrice + stop)
                 return new StrategyDecision(SignalAction.Exit, "Stop banda short");
-            if (bar.Close <= m["BbMiddle"])
-                return new StrategyDecision(SignalAction.Exit, "Alvo media Bollinger short");
+            var targetShort = bbUpper - (bbUpper - m["BbMiddle"]) * _params.BbFadeTargetRatio;
+            if (bar.Close <= targetShort)
+                return new StrategyDecision(SignalAction.Exit, $"Alvo Bollinger short {_params.BbFadeTargetRatio:F1}x");
             if (barsSinceEntry >= _defaults.TimeExitBars)
                 return new StrategyDecision(SignalAction.Exit, "Tempo short");
             return new StrategyDecision(SignalAction.None, "Bollinger fade short ativo");
@@ -895,7 +909,7 @@ public sealed partial class StrategyBacktester
                 bar.Close - sign * atr * _params.TrendAtrStopMultiplier,
 
             StrategyKind.Range =>
-                bar.Close - sign * atr * _defaults.AtrMultiplierTp,
+                bar.Close - sign * atr * _defaults.AtrMultiplier,
 
             StrategyKind.OrbBreakout =>
                 bar.Close - sign * atr * _params.OrbAtrStopMultiplier,
@@ -930,7 +944,12 @@ public sealed partial class StrategyBacktester
                 bar.Close + sign * atr * _params.SrsAtrTargetMultiplier,
 
             StrategyKind.BollingerFade =>
-                m["BbMiddle"],
+                direction == SignalAction.Buy
+                    ? m["BbLower"] + (m["BbMiddle"] - m["BbLower"]) * _params.BbFadeTargetRatio
+                    : m["BbUpper"] - (m["BbUpper"] - m["BbMiddle"]) * _params.BbFadeTargetRatio,
+
+            StrategyKind.Range =>
+                bar.Close + sign * atr * _defaults.AtrMultiplier * _params.RangeTargetRatio,
 
             StrategyKind.VwapReversion =>
                 m["VWAP"],

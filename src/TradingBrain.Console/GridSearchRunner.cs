@@ -131,7 +131,7 @@ public static class GridSearchRunner
     public static void ExportCsv(IReadOnlyList<GridSearchResult> results, string path)
     {
         using var writer = new StreamWriter(path);
-        writer.WriteLine("Strategy,RegimeFilter,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,TrendTimeExitBars,BeActivationR,ChandelierActivationR,ChandelierTrailMultiplier,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,RsiOversold,RsiOverbought,VwapReversionVolumeRatio,BbStdDev,BbFadeRsiOversold,BbFadeRsiOverbought,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode,IbTargetMultiplier,IbUseHalfRangeStop,IbMinRangeRatio,IbMaxRangeRatio,IbRequireVolume");
+        writer.WriteLine("Strategy,RegimeFilter,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,RangeTargetRatio,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,TrendTimeExitBars,BeActivationR,ChandelierActivationR,ChandelierTrailMultiplier,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,RsiOversold,RsiOverbought,VwapReversionVolumeRatio,BbStdDev,BbFadeRsiOversold,BbFadeRsiOverbought,BbFadeTargetRatio,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode,IbTargetMultiplier,IbUseHalfRangeStop,IbMinRangeRatio,IbMaxRangeRatio,IbRequireVolume");
 
         foreach (var result in results)
         {
@@ -172,6 +172,7 @@ public static class GridSearchRunner
                 p.MaxBarsWithoutProfit.ToString(CultureInfo.InvariantCulture),
                 F(p.MinProfitAtrRatio),
                 F(p.RangeCompressionRatio),
+                F(p.RangeTargetRatio),
                 F(p.MomentumMinMacdAtrRatio),
                 F(p.MomentumVolumeRatio),
                 F(p.EmaVolumeRatio),
@@ -198,6 +199,7 @@ public static class GridSearchRunner
                 F(p.BbStdDev),
                 p.BbFadeRsiOversold.ToString(CultureInfo.InvariantCulture),
                 p.BbFadeRsiOverbought.ToString(CultureInfo.InvariantCulture),
+                F(p.BbFadeTargetRatio),
                 F(p.SessionBreakoutAtrBuffer),
                 F(p.SessionMinRangeAtrRatio),
                 p.SrsReferenceCandle.ToString(CultureInfo.InvariantCulture),
@@ -308,12 +310,14 @@ public static class GridSearchRunner
 
     private static IEnumerable<StrategyTuningParams> RangeGrid()
     {
-        foreach (var compression in new[] { 1.0, 1.1, 1.25, 1.5, 2.0, double.PositiveInfinity })
-        foreach (var stop in new[] { 1.2, 1.5, 1.8, 2.2 })
+        foreach (var compression in new[] { 0.9, 1.0, 1.05, 1.1, 1.2 })
+        foreach (var targetRatio in new[] { 0.8, 1.0, 1.2, 1.4, 1.6 })
             yield return StrategyTuningParams.RefinedDefault with
             {
                 RangeCompressionRatio = compression,
-                AtrStopMultiplier = stop
+                RangeTargetRatio = targetRatio,
+                BeActivationRMultiple = 0.0,
+                ChandelierActivationRMultiple = 0.0
             };
     }
 
@@ -382,13 +386,18 @@ public static class GridSearchRunner
 
     private static IEnumerable<StrategyTuningParams> BollingerFadeGrid()
     {
-        foreach (var stop in new[] { 1.0, 1.5, 2.0, 2.5 })
-        foreach (var rsiOversold in new[] { 25, 30, 35, 40 })
+        foreach (var stdDev in new[] { 1.5, 2.0, 2.5 })
+        foreach (var rsiOversold in new[] { 30, 35, 40 })
+        foreach (var rsiOverbought in new[] { 60, 65, 70 })
+        foreach (var targetRatio in new[] { 0.6, 0.8, 1.0, 1.2 })
             yield return StrategyTuningParams.RefinedDefault with
             {
-                AtrStopMultiplier = stop,
+                BbStdDev = stdDev,
                 BbFadeRsiOversold = rsiOversold,
-                BbFadeRsiOverbought = 100 - rsiOversold
+                BbFadeRsiOverbought = rsiOverbought,
+                BbFadeTargetRatio = targetRatio,
+                BeActivationRMultiple = 0.0,
+                ChandelierActivationRMultiple = 0.0
             };
     }
 

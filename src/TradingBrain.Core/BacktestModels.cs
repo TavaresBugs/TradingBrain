@@ -148,7 +148,7 @@ public sealed record StrategyTuningParams(
     double AtrStopMultiplier = 1.5,
     int TrailingActivationBars = 3,
     double EmaTrailingAtrOffset = 0,
-    double TrendAtrStopMultiplier = 2.0,
+    double TrendAtrStopMultiplier = 3.0,
     double OrbAtrStopMultiplier = 2.0,
     double VwapReversionBand = 0.002,
     int RsiOversold = 35,
@@ -179,9 +179,12 @@ public sealed record StrategyTuningParams(
     double IbMaxRangeRatio = 10.0,
     bool IbRequireVolume = false,
     int TrendTimeExitBars = 60,
-    double BeActivationRMultiple = 0.5,
-    double ChandelierActivationRMultiple = 1.5,
-    double ChandelierTrailMultiplier = 2.0)
+    // Defaults below favor Trend. Momentum grid optimum is BE=0.75R and Chandelier=1.25R.
+    double BeActivationRMultiple = 1.0,
+    double ChandelierActivationRMultiple = 0.75,
+    double ChandelierTrailMultiplier = 2.0,
+    double RangeTargetRatio = 1.0,
+    double BbFadeTargetRatio = 1.0)
 {
     public static StrategyTuningParams RefinedDefault { get; } = new();
 
@@ -227,7 +230,9 @@ public sealed record StrategyTuningParams(
         IbUseHalfRangeStop: false,
         IbMinRangeRatio: 0.0,
         IbMaxRangeRatio: 10.0,
-        IbRequireVolume: false);
+        IbRequireVolume: false,
+        RangeTargetRatio: 1.0,
+        BbFadeTargetRatio: 1.0);
 }
 
 public sealed record GridSearchResult(

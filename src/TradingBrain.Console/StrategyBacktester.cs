@@ -154,13 +154,13 @@ public sealed partial class StrategyBacktester
             StrategyKind.Trend => StrategyTuningParams.RefinedDefault with
             {
                 BeActivationRMultiple = 1.0,
-                ChandelierActivationRMultiple = 1.0,
+                ChandelierActivationRMultiple = 0.75,
                 ChandelierTrailMultiplier = 2.0
             },
             StrategyKind.Momentum => StrategyTuningParams.RefinedDefault with
             {
-                BeActivationRMultiple = 1.0,
-                ChandelierActivationRMultiple = 1.5,
+                BeActivationRMultiple = 0.75,
+                ChandelierActivationRMultiple = 1.25,
                 ChandelierTrailMultiplier = 2.0
             },
             StrategyKind.Ema => StrategyTuningParams.RefinedDefault with

@@ -12,8 +12,10 @@ public class IbBreakoutStrategyTests
 
         var regimes = StrategyRegimeMap.For(StrategyKind.IbBreakout);
         Assert.Contains(MarketRegime.Breakout, regimes);
-        Assert.DoesNotContain(MarketRegime.Trend, regimes);
-        Assert.DoesNotContain(MarketRegime.WideIbBreakout, regimes);
+        Assert.Contains(MarketRegime.Trend, regimes);
+        Assert.Contains(MarketRegime.WideIbBreakout, regimes);
+        Assert.Contains(MarketRegime.IntradayExpansion, regimes);
+        Assert.Contains(MarketRegime.HighVolatility, regimes);
         Assert.DoesNotContain(regimes, r => r.ToString().Equals("NonTrend", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(MarketRegime.Range, regimes);
     }

@@ -147,8 +147,8 @@ Classificação sempre em `allBars` completo → filtra por regime → divide em
 | Momentum | Trend | MACD cross + EMA + volume; Breakout/Wide removidos por atraso do MACD 5m |
 | Ema | WideIbBreakout + IntradayExpansion + HighVolatility | EMA9>21 + swing rompido + volume; validada em regimes de expansao real |
 | SchoolRun | Breakout + HighVolatility | Candle M15 de referência + overnight range; Range amplo removido por falso rompimento |
-| OrbBreakout | Breakout + IntradayExpansion | ORB 9:30-10:00 com janela configurável |
-| IbBreakout | Breakout | Range IB 9:30-10:30, 1 trade/dia |
+| OrbBreakout | Trend + Breakout + WideIbBreakout + IntradayExpansion | ORB 9:30-10:00; edge em regimes direcionais/expansao, Range negativo |
+| IbBreakout | Trend + Breakout + WideIbBreakout + IntradayExpansion + HighVolatility | Range IB 9:30-10:30; edge forte em regimes direcionais/expansao, Range negativo |
 | VwapReversion | Range + HighVolatility | Reversão ao VWAP + RSI extremo |
 | BollingerFade | Range | Toque na banda Bollinger + reversão |
 | Range | Range | Strategy solo excluida dos reports/grids agregados; VwapReversion e BollingerFade cobrem Range |
@@ -166,6 +166,7 @@ Calibração em 2026-05-17 (`feat/regime-limbo`):
 - Full-report vs `outputs/full-report-regime-fix-final`: trades `887 -> 861`, WinRate `50.77% -> 54.68%`, NetCurrency `$28,122.12 -> $29,382.86`.
 - Melhoras grandes: VwapReversion `$1,881.86 -> $6,029.96`, BollingerFade `$772.50 -> $1,498.32`, Momentum `$1,828.98 -> $2,917.34`.
 - SRS com Range amplo caiu `$1,759.96 -> $690.18`; remover `Range` do mapa recuperou qualidade: trades `168 -> 17`, WinRate `47.62% -> 76.47%`, NetPF `1.162 -> 8.140`, NetCurrency `$690.18 -> $1,313.42`. Amostra ainda pequena e OOS zerado, mas confirma que SRS nao deve operar em Range rotacional.
+- Experimento direcional para IB/ORB em 2026-05-17: abrir `IbBreakout` para `Trend+Breakout+WideIbBreakout+IntradayExpansion+HighVolatility` elevou trades `14 -> 40` e NetCurrency `$4,200.14 -> $9,673.40` mantendo NetPF `11.80 -> 12.65`. Abrir `OrbBreakout` para `Trend+Breakout+WideIbBreakout+IntradayExpansion` elevou trades `13 -> 30` e NetCurrency `$5,522.88 -> $9,228.80` com NetPF `Infinity -> 18.97`. `HighVolatility` ficou fora do ORB por amostra negativa. SRS testado com `IntradayExpansion` piorou levemente e deve ficar `Breakout+HighVolatility`.
 
 ---
 

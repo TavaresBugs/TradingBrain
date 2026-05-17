@@ -90,9 +90,8 @@ public class RegimeFilterTests
         AssertMapping("Momentum", MarketRegime.Trend);
         AssertMapping("Ema", MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion, MarketRegime.HighVolatility);
         AssertMapping("Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
-        AssertMapping("IbBreakout", MarketRegime.Breakout);
-        // OrbBreakout: Trend removido (-22.7 pts/trade × 49 trades confirmado pela matrix)
-        AssertMapping("OrbBreakout", MarketRegime.Breakout, MarketRegime.IntradayExpansion);
+        AssertMapping("IbBreakout", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion, MarketRegime.HighVolatility);
+        AssertMapping("OrbBreakout", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
         // SchoolRun: Range amplo virou rotacional e degrada o SRS; manter apenas regimes de expansao.
         AssertMapping("SchoolRun", MarketRegime.Breakout, MarketRegime.HighVolatility);
         AssertMapping("Range", MarketRegime.Range);

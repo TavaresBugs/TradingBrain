@@ -146,7 +146,7 @@ Classificação sempre em `allBars` completo → filtra por regime → divide em
 | Trend | Trend + Breakout + WideIbBreakout + IntradayExpansion | Donchian 10 + RSI + stops largos |
 | Momentum | Trend | MACD cross + EMA + volume; Breakout/Wide removidos por atraso do MACD 5m |
 | Ema | WideIbBreakout + IntradayExpansion + HighVolatility | EMA9>21 + swing rompido + volume; validada em regimes de expansao real |
-| SchoolRun | Breakout + Range + HighVolatility | Candle M15 de referência + overnight range |
+| SchoolRun | Breakout + HighVolatility | Candle M15 de referência + overnight range; Range amplo removido por falso rompimento |
 | OrbBreakout | Breakout + IntradayExpansion | ORB 9:30-10:00 com janela configurável |
 | IbBreakout | Breakout | Range IB 9:30-10:30, 1 trade/dia |
 | VwapReversion | Range + HighVolatility | Reversão ao VWAP + RSI extremo |
@@ -165,7 +165,7 @@ Calibração em 2026-05-17 (`feat/regime-limbo`):
 - Distribuição MNQ 12m após ajuste: `Range=151/226 (66.8%)`, `Limbo=30/226 (13.3%)`, `Trend=18`, `Breakout=14`, `WideIbBreakout=4`, `HighVolatility=3`, `IntradayExpansion=2`, `Undefined=4`.
 - Full-report vs `outputs/full-report-regime-fix-final`: trades `887 -> 861`, WinRate `50.77% -> 54.68%`, NetCurrency `$28,122.12 -> $29,382.86`.
 - Melhoras grandes: VwapReversion `$1,881.86 -> $6,029.96`, BollingerFade `$772.50 -> $1,498.32`, Momentum `$1,828.98 -> $2,917.34`.
-- Piora: SRS caiu `$1,759.96 -> $690.18`; Range expandido inclui mais rotações onde SRS perde qualidade. Se otimizar SRS depois, testar remover `Range` do mapa do SRS ou separar `Range` limpo vs `RangeAfterRejection`.
+- SRS com Range amplo caiu `$1,759.96 -> $690.18`; remover `Range` do mapa recuperou qualidade: trades `168 -> 17`, WinRate `47.62% -> 76.47%`, NetPF `1.162 -> 8.140`, NetCurrency `$690.18 -> $1,313.42`. Amostra ainda pequena e OOS zerado, mas confirma que SRS nao deve operar em Range rotacional.
 
 ---
 

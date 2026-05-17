@@ -30,12 +30,11 @@ public static class RegimeReportWriter
             .Select(g =>
             {
                 var list = g.ToList();
-                var ibAvg = Avg(list, d => d.IbTodayFullRatio);
+                var ibAvg = Avg(list, d => d.IbFullToday);
                 var gapAvg = Avg(list, d => d.GapRatio);
                 var ovAvg = Avg(list, d => d.OvernightRatio);
-                var cPct = Pct(list, d => d.CperiodInsideIb);
-                var openOutPct = Pct(list, d => d.OpenOutsideIbYest);
-                var otfPct = Pct(list, d => d.OneTimeFramingUp || d.OneTimeFramingDown);
+                var cPct = Pct(list, d => d.CperiodInside);
+                var openOutPct = Pct(list, d => d.OpenOutside);
                 var color = RegimeColor(g.Key);
                 var pct = total == 0 ? 0 : list.Count * 100.0 / total;
                 return $"""
@@ -48,7 +47,6 @@ public static class RegimeReportWriter
                       <td>{ovAvg:F2}x</td>
                       <td>{cPct:F0}%</td>
                       <td>{openOutPct:F0}%</td>
-                      <td>{otfPct:F0}%</td>
                     </tr>
                     """;
             });
@@ -60,7 +58,7 @@ public static class RegimeReportWriter
                 <tr>
                   <th>Regime</th><th>Dias</th><th>%</th>
                   <th>IB Full avg</th><th>Gap avg</th><th>Overnight avg</th>
-                  <th>C-period Inside%</th><th>Open Outside%</th><th>OTF%</th>
+                  <th>C-period Inside%</th><th>Open Outside%</th>
                 </tr>
                 {string.Join("\n", rows)}
               </table>
@@ -149,11 +147,11 @@ public static class RegimeReportWriter
         var clusters = undefined
             .GroupBy(r =>
             {
-                if (r.OpenOutsideIbYest && r.IbTodayFullRatio < 0.50) return "OpenOutside+NarrowIB";
-                if (r.OpenOutsideIbYest) return "OpenOutside+NormalIB";
+                if (r.OpenOutside && r.IbFullToday < 0.50) return "OpenOutside+NarrowIB";
+                if (r.OpenOutside) return "OpenOutside+NormalIB";
                 if (r.GapRatio > 0.50) return "HighGap+NoBreakout";
                 if (r.OvernightRatio > 1.20) return "HighOvernight+NoBreakout";
-                if (r.IbTodayFullRatio > 1.50) return "WideIB";
+                if (r.IbFullToday > 1.50) return "WideIB";
                 return "NoStrongSignal";
             })
             .OrderByDescending(g => g.Count())
@@ -161,7 +159,7 @@ public static class RegimeReportWriter
                 <tr>
                   <td><b>{g.Key}</b></td>
                   <td>{g.Count()}</td>
-                  <td>{Avg(g.ToList(), d => d.IbTodayFullRatio):F2}x</td>
+                  <td>{Avg(g.ToList(), d => d.IbFullToday):F2}x</td>
                   <td>{Avg(g.ToList(), d => d.GapRatio):F2}x</td>
                   <td>{Avg(g.ToList(), d => d.OvernightRatio):F2}x</td>
                 </tr>
@@ -170,12 +168,11 @@ public static class RegimeReportWriter
         var detailRows = undefined.Select(r => $"""
             <tr>
               <td>{r.Date}</td>
-              <td>{r.IbTodayFullRatio:F2}x</td>
+              <td>{r.IbFullToday:F2}x</td>
               <td>{r.GapRatio:F2}x</td>
               <td>{r.OvernightRatio:F2}x</td>
-              <td>{(r.CperiodInsideIb ? "in" : r.CperiodAboveIb ? "up" : "down")}</td>
-              <td>{(r.OpenOutsideIbYest ? "yes" : "")}</td>
-              <td>{(r.OneTimeFramingUp ? "up" : r.OneTimeFramingDown ? "down" : "")}</td>
+              <td>{(r.CperiodInside ? "in" : "out")}</td>
+              <td>{(r.OpenOutside ? "yes" : "")}</td>
               <td class="dim">{H(r.Reason)}</td>
             </tr>
             """);
@@ -192,7 +189,7 @@ public static class RegimeReportWriter
               <table>
                 <tr>
                   <th>Data</th><th>IB Full</th><th>Gap</th><th>Overnight</th>
-                  <th>C-period</th><th>OpenOut</th><th>OTF</th><th>Reason</th>
+                  <th>C-period</th><th>OpenOut</th><th>Reason</th>
                 </tr>
                 {string.Join("\n", detailRows)}
               </table>

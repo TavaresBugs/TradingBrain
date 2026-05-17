@@ -4,163 +4,88 @@ namespace TradingBrain.Tests;
 
 public class RegimeClassifierIbRefinementTests
 {
-    private static List<MarketBar> MakeDayBars(
-        DateTime date,
-        double basePrice,
-        double ibRange,
-        double cperiodClose,
-        bool ibHighFirst = true,
-        bool otfUp = false,
-        double sessionRange = 200)
-    {
-        var bars = new List<MarketBar>();
-        var ibHigh = basePrice + ibRange / 2.0;
-        var ibLow = basePrice - ibRange / 2.0;
-        var firstExtremeHigh = ibHighFirst ? ibHigh : basePrice + ibRange * 0.20;
-        var firstExtremeLow = ibHighFirst ? basePrice - ibRange * 0.20 : ibLow;
-        var secondExtremeHigh = ibHighFirst ? basePrice + ibRange * 0.20 : ibHigh;
-        var secondExtremeLow = ibHighFirst ? ibLow : basePrice - ibRange * 0.20;
-
-        for (var i = 0; i < 12; i++)
-        {
-            var time = date.Date.AddHours(9).AddMinutes(30 + i * 5);
-            var high = i < 6 ? firstExtremeHigh : secondExtremeHigh;
-            var low = i < 6 ? firstExtremeLow : secondExtremeLow;
-            var close = otfUp ? basePrice - 6 + i : basePrice;
-            bars.Add(new MarketBar(time, basePrice, high, low, close, 1000));
-        }
-
-        for (var i = 0; i < 6; i++)
-        {
-            var time = date.Date.AddHours(10).AddMinutes(30 + i * 5);
-            bars.Add(new MarketBar(time, cperiodClose, cperiodClose, cperiodClose, cperiodClose, 500));
-        }
-
-        for (var time = date.Date.AddHours(11); time <= date.Date.AddHours(16); time = time.AddMinutes(5))
-        {
-            bars.Add(new MarketBar(
-                time,
-                cperiodClose,
-                basePrice + sessionRange / 2.0,
-                basePrice - sessionRange / 2.0,
-                cperiodClose,
-                300));
-        }
-
-        return bars;
-    }
-
-    private static List<MarketBar> MakeHistoryWithAtr(DateTime start, int weekdays, double price, double sessionRange)
-    {
-        var bars = new List<MarketBar>();
-        var date = start;
-        while (bars.Select(b => b.Time.Date).Distinct().Count() < weekdays)
-        {
-            if (date.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday)
-            {
-                bars.AddRange(MakeDayBars(date, price, sessionRange * 0.8, price, sessionRange: sessionRange));
-            }
-
-            date = date.AddDays(1);
-        }
-
-        return bars;
-    }
-
     [Fact]
-    public void DayRegime_HasIbTodayFullRatio_Field()
+    public void DayRegime_HasPureIbFields()
     {
         var regime = new DayRegime(
-            DateOnly.FromDateTime(DateTime.Today),
-            MarketRegime.Range,
-            1.0,
-            0.5,
-            0.3,
-            0.1,
-            double.NaN,
-            "test",
-            IbTodayFullRatio: 0.75,
-            CperiodInsideIb: true,
-            IbHighFormedFirst: true);
+            Date: DateOnly.FromDateTime(DateTime.Today),
+            Regime: MarketRegime.Range,
+            Reason: "test",
+            IbHighYest: 21100,
+            IbLowYest: 21000,
+            IbFullYest: 0.5,
+            IbFullToday: 0.7,
+            OpenOutside: false,
+            CperiodInside: true,
+            OvernightRatio: 0.2,
+            GapRatio: 0.1,
+            Atr14: 200);
 
-        Assert.Equal(0.75, regime.IbTodayFullRatio);
-        Assert.True(regime.CperiodInsideIb);
-        Assert.True(regime.IbHighFormedFirst);
+        Assert.Equal(0.7, regime.IbFullToday);
+        Assert.True(regime.CperiodInside);
+        Assert.False(regime.OpenOutside);
     }
 
     [Fact]
-    public void Classify_NarrowIbWithOtf_ShouldBeTrend()
+    public void Classify_OpenOutside_LowOvernight_LowGap_ReturnsTrend()
     {
-        const double price = 21000;
-        const double atr = 200;
-        var bars = MakeHistoryWithAtr(new DateTime(2026, 1, 2), 20, price, atr);
-        var lastDate = bars.Max(b => b.Time.Date).AddDays(1);
-        while (lastDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
-        {
-            lastDate = lastDate.AddDays(1);
-        }
+        var bars = PureIbScenarioFactory.MakeDays(
+            ibHighYest: 21100,
+            ibLowYest: 21000,
+            prevClose: 21080,
+            openToday: 21120,
+            ibHighToday: 21130,
+            ibLowToday: 21115,
+            cperiodHigh: 21128,
+            cperiodLow: 21116,
+            overnightHigh: 21125,
+            overnightLow: 21080);
 
-        var narrowIbRange = atr * 0.20;
-        var cperiodCloseAboveIb = price + narrowIbRange / 2.0 + 10;
-        bars.AddRange(MakeDayBars(lastDate, price, narrowIbRange, cperiodCloseAboveIb, otfUp: true));
+        var last = RegimeClassifier.Classify(bars).Last();
 
-        var lastRegime = RegimeClassifier.Classify(bars).Last();
-
-        Assert.Equal(MarketRegime.Trend, lastRegime.Regime);
-        Assert.True(lastRegime.IbTodayFullRatio < 0.24,
-            $"IbTodayFullRatio deveria ser < 0.24, foi: {lastRegime.IbTodayFullRatio:F3}");
+        Assert.True(last.OpenOutside);
+        Assert.Equal(MarketRegime.Trend, last.Regime);
     }
 
     [Fact]
-    public void Classify_NormalIbWithCperiodInside_ShouldBeRange()
+    public void Classify_OpenOutside_HighOvernight_ReturnsBreakout()
     {
-        const double price = 21000;
-        const double atr = 200;
-        var bars = MakeHistoryWithAtr(new DateTime(2026, 1, 2), 20, price, atr);
-        var lastDate = bars.Max(b => b.Time.Date).AddDays(1);
-        while (lastDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
-        {
-            lastDate = lastDate.AddDays(1);
-        }
+        var bars = PureIbScenarioFactory.MakeDays(
+            ibHighYest: 21100,
+            ibLowYest: 21000,
+            prevClose: 21050,
+            openToday: 21160,
+            ibHighToday: 21180,
+            ibLowToday: 21150,
+            cperiodHigh: 21178,
+            cperiodLow: 21152,
+            overnightHigh: 21200,
+            overnightLow: 21050);
 
-        bars.AddRange(MakeDayBars(lastDate, price, atr * 0.7, price));
+        var last = RegimeClassifier.Classify(bars).Last();
 
-        var lastRegime = RegimeClassifier.Classify(bars).Last();
-
-        Assert.True(lastRegime.CperiodInsideIb);
-        Assert.Equal(MarketRegime.Range, lastRegime.Regime);
+        Assert.Equal(MarketRegime.Breakout, last.Regime);
     }
 
     [Fact]
-    public void Classify_PopulatesCperiodFields_Correctly()
+    public void Classify_OpenInside_CperiodInside_ReturnsRange()
     {
-        var bars = MakeHistoryWithAtr(new DateTime(2026, 1, 2), 20, 21000, 200);
-        var regimes = RegimeClassifier.Classify(bars);
+        var bars = PureIbScenarioFactory.MakeDays(
+            ibHighYest: 21100,
+            ibLowYest: 21000,
+            prevClose: 21050,
+            openToday: 21055,
+            ibHighToday: 21080,
+            ibLowToday: 21020,
+            cperiodHigh: 21075,
+            cperiodLow: 21025,
+            overnightHigh: 21060,
+            overnightLow: 21040);
 
-        foreach (var r in regimes)
-        {
-            Assert.False(double.IsNaN(r.IbTodayFullRatio),
-                $"IbTodayFullRatio nao deveria ser NaN para {r.Date}");
-        }
-    }
+        var last = RegimeClassifier.Classify(bars).Last();
 
-    [Fact]
-    public void Classify_IbFormation_HighFirstDetected()
-    {
-        const double price = 21000;
-        const double atr = 200;
-        var bars = MakeHistoryWithAtr(new DateTime(2026, 1, 2), 20, price, atr);
-        var lastDate = bars.Max(b => b.Time.Date).AddDays(1);
-        while (lastDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
-        {
-            lastDate = lastDate.AddDays(1);
-        }
-
-        bars.AddRange(MakeDayBars(lastDate, price, atr * 0.8, price, ibHighFirst: true));
-
-        var lastRegime = RegimeClassifier.Classify(bars).Last();
-
-        Assert.True(lastRegime.IbHighFormedFirst);
-        Assert.False(lastRegime.IbLowFormedFirst);
+        Assert.False(last.OpenOutside);
+        Assert.True(last.CperiodInside);
+        Assert.Equal(MarketRegime.Range, last.Regime);
     }
 }

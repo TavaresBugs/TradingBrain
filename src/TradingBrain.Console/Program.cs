@@ -44,32 +44,22 @@ if (classifyRegimeIndex >= 0)
 
     var regimeCsvPath = Path.Combine(outputDir, "regime_distribution.csv");
     using var writer = new StreamWriter(regimeCsvPath);
-    writer.WriteLine("Date,Regime,RangeRatio,ClosePosition,OvernightRatio,GapRatio,Ker,IbYestHigh,IbYestLow,IbToday30MinRatio,IbTodayFullRatio,IbTodayFullHigh,IbTodayFullLow,CperiodAboveIb,CperiodBelowIb,CperiodInsideIb,IbHighFormedFirst,IbLowFormedFirst,OpenOutsideIbYest,OTF_Up,OTF_Down,Reason");
+    writer.WriteLine("Date,Regime,Reason,IbHighYest,IbLowYest,IbFullYest,IbFullToday,OpenOutside,CperiodInside,OvernightRatio,GapRatio,Atr14");
     foreach (var r in regimes)
     {
         writer.WriteLine(string.Join(",",
             r.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             r.Regime,
-            r.RangeRatio.ToString("0.####", CultureInfo.InvariantCulture),
-            r.ClosePosition.ToString("0.####", CultureInfo.InvariantCulture),
+            "\"" + r.Reason.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"",
+            r.IbHighYest.ToString("0.####", CultureInfo.InvariantCulture),
+            r.IbLowYest.ToString("0.####", CultureInfo.InvariantCulture),
+            r.IbFullYest.ToString("0.####", CultureInfo.InvariantCulture),
+            r.IbFullToday.ToString("0.####", CultureInfo.InvariantCulture),
+            r.OpenOutside,
+            r.CperiodInside,
             r.OvernightRatio.ToString("0.####", CultureInfo.InvariantCulture),
             r.GapRatio.ToString("0.####", CultureInfo.InvariantCulture),
-            r.Ker.ToString("0.####", CultureInfo.InvariantCulture),
-            r.IbYestHigh.ToString("0.####", CultureInfo.InvariantCulture),
-            r.IbYestLow.ToString("0.####", CultureInfo.InvariantCulture),
-            r.IbToday30MinRatio.ToString("0.####", CultureInfo.InvariantCulture),
-            r.IbTodayFullRatio.ToString("0.####", CultureInfo.InvariantCulture),
-            r.IbTodayFullHigh.ToString("0.####", CultureInfo.InvariantCulture),
-            r.IbTodayFullLow.ToString("0.####", CultureInfo.InvariantCulture),
-            r.CperiodAboveIb,
-            r.CperiodBelowIb,
-            r.CperiodInsideIb,
-            r.IbHighFormedFirst,
-            r.IbLowFormedFirst,
-            r.OpenOutsideIbYest,
-            r.OneTimeFramingUp,
-            r.OneTimeFramingDown,
-            "\"" + r.Reason.Replace("\"", "\"\"") + "\""));
+            r.Atr14.ToString("0.####", CultureInfo.InvariantCulture)));
     }
 
     var counts = regimes

@@ -85,12 +85,12 @@ public class RegimeFilterTests
     }
 
     [Fact]
-    public void StrategyRegimeMap_SchoolRunTargetsTrendAndBreakout()
+    public void StrategyRegimeMap_SchoolRunTargetsTrend()
     {
         if (!Enum.TryParse<StrategyKind>("SchoolRun", out var schoolRun))
             return;
 
-        Assert.Equal(new[] { MarketRegime.Trend, MarketRegime.Breakout }, StrategyRegimeMap.For(schoolRun));
+        Assert.Equal(new[] { MarketRegime.Trend }, StrategyRegimeMap.For(schoolRun));
     }
 
     [Fact]

@@ -24,4 +24,12 @@ public sealed record DayRegime(
     double IbToday30MinRatio = double.NaN,
     bool OpenOutsideIbYest = false,
     bool OneTimeFramingUp = false,
-    bool OneTimeFramingDown = false);
+    bool OneTimeFramingDown = false,
+    double IbTodayFullRatio = double.NaN,
+    double IbTodayFullHigh = double.NaN,
+    double IbTodayFullLow = double.NaN,
+    bool CperiodAboveIb = false,
+    bool CperiodBelowIb = false,
+    bool CperiodInsideIb = false,
+    bool IbHighFormedFirst = false,
+    bool IbLowFormedFirst = false);

@@ -44,7 +44,7 @@ if (classifyRegimeIndex >= 0)
 
     var regimeCsvPath = Path.Combine(outputDir, "regime_distribution.csv");
     using var writer = new StreamWriter(regimeCsvPath);
-    writer.WriteLine("Date,Regime,RangeRatio,ClosePosition,OvernightRatio,GapRatio,Ker,IbYestHigh,IbYestLow,IbToday30MinRatio,OpenOutsideIbYest,OTF_Up,OTF_Down,Reason");
+    writer.WriteLine("Date,Regime,RangeRatio,ClosePosition,OvernightRatio,GapRatio,Ker,IbYestHigh,IbYestLow,IbToday30MinRatio,IbTodayFullRatio,IbTodayFullHigh,IbTodayFullLow,CperiodAboveIb,CperiodBelowIb,CperiodInsideIb,IbHighFormedFirst,IbLowFormedFirst,OpenOutsideIbYest,OTF_Up,OTF_Down,Reason");
     foreach (var r in regimes)
     {
         writer.WriteLine(string.Join(",",
@@ -58,6 +58,14 @@ if (classifyRegimeIndex >= 0)
             r.IbYestHigh.ToString("0.####", CultureInfo.InvariantCulture),
             r.IbYestLow.ToString("0.####", CultureInfo.InvariantCulture),
             r.IbToday30MinRatio.ToString("0.####", CultureInfo.InvariantCulture),
+            r.IbTodayFullRatio.ToString("0.####", CultureInfo.InvariantCulture),
+            r.IbTodayFullHigh.ToString("0.####", CultureInfo.InvariantCulture),
+            r.IbTodayFullLow.ToString("0.####", CultureInfo.InvariantCulture),
+            r.CperiodAboveIb,
+            r.CperiodBelowIb,
+            r.CperiodInsideIb,
+            r.IbHighFormedFirst,
+            r.IbLowFormedFirst,
             r.OpenOutsideIbYest,
             r.OneTimeFramingUp,
             r.OneTimeFramingDown,

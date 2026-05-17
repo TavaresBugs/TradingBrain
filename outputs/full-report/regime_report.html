@@ -1,0 +1,420 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>TradingBrain - Regime Report</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f1117; color: #e0e0e0;
+            margin: 0; padding: 24px; }
+    h2   { color: #fff; border-bottom: 1px solid #333; padding-bottom: 6px; margin-top: 40px; }
+    h3   { color: #aaa; font-size: 0.95em; margin-top: 20px; }
+    .sub { font-size: 0.75em; color: #888; font-weight: normal; }
+    table{ border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 0.88em; }
+    th   { background: #1e2030; color: #bbb; padding: 8px 12px; text-align: left;
+            border-bottom: 2px solid #333; white-space: nowrap; }
+    td   { padding: 6px 12px; border-bottom: 1px solid #222; }
+    tr:hover td { background: #1a1d2e; }
+    .badge { padding: 2px 8px; border-radius: 4px; color: #fff; font-size: 0.85em; }
+    .dim { color: #888; font-size: 0.85em; }
+    .good{ color: #4caf50; font-weight: bold; }
+    .ok  { color: #ff9800; }
+    .bad { color: #f44336; }
+    section { margin-bottom: 48px; }
+  </style>
+</head>
+<body>
+  <h1>TradingBrain - Regime Report</h1>
+  <p style="color:#888">Dataset: 285 dias classificados &nbsp;|&nbsp;
+     Gerado: 2026-05-17 14:02</p>
+  <section>
+  <h2>1 - Distribuicao de Regimes <span class="sub">(285 dias)</span></h2>
+  <table>
+    <tr>
+      <th>Regime</th><th>Dias</th><th>%</th>
+      <th>IB Full avg</th><th>Gap avg</th><th>Overnight avg</th>
+      <th>C-period Inside%</th><th>Open Outside%</th>
+    </tr>
+    <tr>
+  <td><span class="badge" style="background:#4caf50">Trend</span></td>
+  <td><b>83</b></td>
+  <td>29.1%</td>
+  <td>0.42x</td>
+  <td>0.17x</td>
+  <td>0.47x</td>
+  <td>39%</td>
+  <td>100%</td>
+</tr>
+<tr>
+  <td><span class="badge" style="background:#9e9e9e">NonTrend</span></td>
+  <td><b>59</b></td>
+  <td>20.7%</td>
+  <td>0.00x</td>
+  <td>0.20x</td>
+  <td>0.00x</td>
+  <td>0%</td>
+  <td>69%</td>
+</tr>
+<tr>
+  <td><span class="badge" style="background:#2196f3">Breakout</span></td>
+  <td><b>45</b></td>
+  <td>15.8%</td>
+  <td>0.44x</td>
+  <td>0.61x</td>
+  <td>0.78x</td>
+  <td>33%</td>
+  <td>100%</td>
+</tr>
+<tr>
+  <td><span class="badge" style="background:#00acc1">IntradayExpansion</span></td>
+  <td><b>39</b></td>
+  <td>13.7%</td>
+  <td>0.49x</td>
+  <td>0.20x</td>
+  <td>0.52x</td>
+  <td>0%</td>
+  <td>0%</td>
+</tr>
+<tr>
+  <td><span class="badge" style="background:#3f51b5">WideIbBreakout</span></td>
+  <td><b>22</b></td>
+  <td>7.7%</td>
+  <td>0.96x</td>
+  <td>0.47x</td>
+  <td>0.89x</td>
+  <td>36%</td>
+  <td>100%</td>
+</tr>
+<tr>
+  <td><span class="badge" style="background:#ff9800">Range</span></td>
+  <td><b>19</b></td>
+  <td>6.7%</td>
+  <td>0.56x</td>
+  <td>0.17x</td>
+  <td>0.51x</td>
+  <td>100%</td>
+  <td>0%</td>
+</tr>
+<tr>
+  <td><span class="badge" style="background:#673ab7">Undefined</span></td>
+  <td><b>11</b></td>
+  <td>3.9%</td>
+  <td>0.62x</td>
+  <td>0.50x</td>
+  <td>0.99x</td>
+  <td>18%</td>
+  <td>0%</td>
+</tr>
+<tr>
+  <td><span class="badge" style="background:#f44336">HighVolatility</span></td>
+  <td><b>7</b></td>
+  <td>2.5%</td>
+  <td>0.74x</td>
+  <td>1.11x</td>
+  <td>1.63x</td>
+  <td>71%</td>
+  <td>86%</td>
+</tr>
+  </table>
+</section><section>
+  <h2>2 - Resultados por Strategy <span class="sub">(params RefinedDefault)</span></h2>
+  <table>
+    <tr>
+      <th>Strategy</th><th>Regimes</th><th>Dias</th><th>Trades</th>
+      <th>Win%</th><th>Net PF</th><th>Expectancy</th>
+      <th>Net Pts</th><th>Max DD</th><th>RTD</th>
+    </tr>
+    <tr>
+  <td><b>Trend</b></td>
+  <td class="dim">Trend+Breakout+WideIbBreakout+IntradayExpansion</td>
+  <td>189</td>
+  <td>91</td>
+  <td>48.4%</td>
+  <td class="ok">1.85</td>
+  <td>37.9</td>
+  <td>3446.6</td>
+  <td>1202.2</td>
+  <td>2.87</td>
+</tr>
+<tr>
+  <td><b>IbBreakout</b></td>
+  <td class="dim">Breakout</td>
+  <td>45</td>
+  <td>42</td>
+  <td>64.3%</td>
+  <td class="good">2.19</td>
+  <td>48.4</td>
+  <td>2033.7</td>
+  <td>707.8</td>
+  <td>2.87</td>
+</tr>
+<tr>
+  <td><b>VwapReversion</b></td>
+  <td class="dim">Range+HighVolatility</td>
+  <td>26</td>
+  <td>61</td>
+  <td>54.1%</td>
+  <td class="ok">1.64</td>
+  <td>15.4</td>
+  <td>940.9</td>
+  <td>331.8</td>
+  <td>2.84</td>
+</tr>
+<tr>
+  <td><b>BollingerFade</b></td>
+  <td class="dim">Range</td>
+  <td>19</td>
+  <td>25</td>
+  <td>60.0%</td>
+  <td class="ok">1.86</td>
+  <td>15.4</td>
+  <td>386.2</td>
+  <td>208.2</td>
+  <td>1.85</td>
+</tr>
+<tr>
+  <td><b>OrbBreakout</b></td>
+  <td class="dim">Breakout+IntradayExpansion</td>
+  <td>84</td>
+  <td>64</td>
+  <td>62.5%</td>
+  <td class="good">2.03</td>
+  <td>41.5</td>
+  <td>2657.6</td>
+  <td>624.5</td>
+  <td>4.26</td>
+</tr>
+<tr>
+  <td><b>SchoolRun</b></td>
+  <td class="dim">Breakout+Range+HighVolatility</td>
+  <td>71</td>
+  <td>71</td>
+  <td>60.6%</td>
+  <td class="good">2.10</td>
+  <td>12.4</td>
+  <td>880.0</td>
+  <td>172.2</td>
+  <td>5.11</td>
+</tr>
+<tr>
+  <td><b>Momentum</b></td>
+  <td class="dim">Trend+Breakout+WideIbBreakout+IntradayExpansion</td>
+  <td>189</td>
+  <td>358</td>
+  <td>34.4%</td>
+  <td class="ok">1.43</td>
+  <td>12.4</td>
+  <td>4455.8</td>
+  <td>942.8</td>
+  <td>4.73</td>
+</tr>
+<tr>
+  <td><b>Ema</b></td>
+  <td class="dim">Trend+Breakout+WideIbBreakout+IntradayExpansion</td>
+  <td>189</td>
+  <td>690</td>
+  <td>40.3%</td>
+  <td class="bad">1.11</td>
+  <td>2.6</td>
+  <td>1788.0</td>
+  <td>1536.2</td>
+  <td>1.16</td>
+</tr>
+<tr>
+  <td><b>Range</b></td>
+  <td class="dim">Range</td>
+  <td>19</td>
+  <td>0</td>
+  <td>0.0%</td>
+  <td class="bad">0.00</td>
+  <td>0.0</td>
+  <td>0.0</td>
+  <td>0.0</td>
+  <td>0.00</td>
+</tr>
+<tr>
+  <td><b>Volatility</b></td>
+  <td class="dim">IntradayExpansion+HighVolatility</td>
+  <td>46</td>
+  <td>63</td>
+  <td>42.9%</td>
+  <td class="ok">1.26</td>
+  <td>7.6</td>
+  <td>481.7</td>
+  <td>476.5</td>
+  <td>1.01</td>
+</tr>
+
+  </table>
+</section><section>
+  <h2>3 - Dias Undefined <span class="sub">(11 dias)</span></h2>
+  <h3>Clusters de padrao</h3>
+  <table>
+    <tr><th>Padrao</th><th>Dias</th><th>IB avg</th><th>Gap avg</th><th>Overnight avg</th></tr>
+    <tr>
+  <td><b>NoStrongSignal</b></td>
+  <td>6</td>
+  <td>0.58x</td>
+  <td>0.42x</td>
+  <td>1.04x</td>
+</tr>
+<tr>
+  <td><b>HighGap+NoBreakout</b></td>
+  <td>4</td>
+  <td>0.42x</td>
+  <td>0.69x</td>
+  <td>0.97x</td>
+</tr>
+<tr>
+  <td><b>WideIB</b></td>
+  <td>1</td>
+  <td>1.62x</td>
+  <td>0.22x</td>
+  <td>0.78x</td>
+</tr>
+  </table>
+  <h3>Lista completa</h3>
+  <table>
+    <tr>
+      <th>Data</th><th>IB Full</th><th>Gap</th><th>Overnight</th>
+      <th>C-period</th><th>OpenOut</th><th>Reason</th>
+    </tr>
+    <tr>
+  <td>04/08/2025</td>
+  <td>0.49x</td>
+  <td>0.79x</td>
+  <td>0.87x</td>
+  <td>in</td>
+  <td></td>
+  <td class="dim">Undefined: openOut=False ibFull=0.49 gap=0.79 overnight=0.87 cperiod=True</td>
+</tr>
+<tr>
+  <td>06/06/2025</td>
+  <td>0.26x</td>
+  <td>0.51x</td>
+  <td>0.93x</td>
+  <td>out</td>
+  <td></td>
+  <td class="dim">Undefined: openOut=False ibFull=0.26 gap=0.51 overnight=0.93 cperiod=False</td>
+</tr>
+<tr>
+  <td>08/22/2025</td>
+  <td>1.62x</td>
+  <td>0.22x</td>
+  <td>0.78x</td>
+  <td>out</td>
+  <td></td>
+  <td class="dim">Undefined: openOut=False ibFull=1.62 gap=0.22 overnight=0.78 cperiod=False</td>
+</tr>
+<tr>
+  <td>10/01/2025</td>
+  <td>0.70x</td>
+  <td>0.45x</td>
+  <td>1.01x</td>
+  <td>out</td>
+  <td></td>
+  <td class="dim">Undefined: openOut=False ibFull=0.70 gap=0.45 overnight=1.01 cperiod=False</td>
+</tr>
+<tr>
+  <td>12/11/2025</td>
+  <td>0.71x</td>
+  <td>0.41x</td>
+  <td>1.12x</td>
+  <td>in</td>
+  <td></td>
+  <td class="dim">Undefined: openOut=False ibFull=0.71 gap=0.41 overnight=1.12 cperiod=True</td>
+</tr>
+<tr>
+  <td>12/18/2025</td>
+  <td>0.45x</td>
+  <td>0.85x</td>
+  <td>0.99x</td>
+  <td>out</td>
+  <td></td>
+  <td class="dim">Undefined: openOut=False ibFull=0.45 gap=0.85 overnight=0.99 cperiod=False</td>
+</tr>
+<tr>
+  <td>01/20/2026</td>
+  <td>0.42x</td>
+  <td>0.48x</td>
+  <td>1.06x</td>
+  <td>out</td>
+  <td></td>
+  <td class="dim">Undefined: openOut=False ibFull=0.42 gap=0.48 overnight=1.06 cperiod=False</td>
+</tr>
+<tr>
+  <td>01/30/2026</td>
+  <td>0.44x</td>
+  <td>0.48x</td>
+  <td>1.09x</td>
+  <td>out</td>
+  <td></td>
+  <td class="dim">Undefined: openOut=False ibFull=0.44 gap=0.48 overnight=1.09 cperiod=False</td>
+</tr>
+<tr>
+  <td>03/31/2026</td>
+  <td>0.46x</td>
+  <td>0.60x</td>
+  <td>1.08x</td>
+  <td>out</td>
+  <td></td>
+  <td class="dim">Undefined: openOut=False ibFull=0.46 gap=0.60 overnight=1.08 cperiod=False</td>
+</tr>
+<tr>
+  <td>05/08/2026</td>
+  <td>0.73x</td>
+  <td>0.33x</td>
+  <td>1.06x</td>
+  <td>out</td>
+  <td></td>
+  <td class="dim">Undefined: openOut=False ibFull=0.73 gap=0.33 overnight=1.06 cperiod=False</td>
+</tr>
+<tr>
+  <td>05/13/2026</td>
+  <td>0.50x</td>
+  <td>0.37x</td>
+  <td>0.91x</td>
+  <td>out</td>
+  <td></td>
+  <td class="dim">Undefined: openOut=False ibFull=0.50 gap=0.37 overnight=0.91 cperiod=False</td>
+</tr>
+  </table>
+</section><section>
+  <h2>4 - Distribuicao Mensal por Regime</h2>
+  <table>
+    <tr><th>Mes</th><th style="color:#673ab7">Undefined</th><th style="color:#4caf50">Trend</th><th style="color:#2196f3">Breakout</th><th style="color:#3f51b5">WideIbBreakout</th><th style="color:#00acc1">IntradayExpansion</th><th style="color:#ff9800">Range</th><th style="color:#f44336">HighVolatility</th><th style="color:#9e9e9e">NonTrend</th><th>Total</th></tr>
+    <tr><td><b>2025-04</b></td><td style="background:#673ab7;opacity:0.33">1</td><td style="background:#4caf50;opacity:0.47">5</td><td style="background:#2196f3;opacity:0.47">5</td><td style=""></td><td style="background:#00acc1;opacity:0.33">1</td><td style="background:#ff9800;opacity:0.33">1</td><td style=""></td><td style="background:#9e9e9e;opacity:0.44">4</td><td>17</td></tr>
+<tr><td><b>2025-05</b></td><td style=""></td><td style="background:#4caf50;opacity:0.58">8</td><td style="background:#2196f3;opacity:0.44">4</td><td style="background:#3f51b5;opacity:0.33">1</td><td style="background:#00acc1;opacity:0.44">4</td><td style="background:#ff9800;opacity:0.33">1</td><td style=""></td><td style="background:#9e9e9e;opacity:0.44">4</td><td>22</td></tr>
+<tr><td><b>2025-06</b></td><td style="background:#673ab7;opacity:0.33">1</td><td style="background:#4caf50;opacity:0.61">9</td><td style="background:#2196f3;opacity:0.37">2</td><td style="background:#3f51b5;opacity:0.33">1</td><td style=""></td><td style="background:#ff9800;opacity:0.37">2</td><td style="background:#f44336;opacity:0.33">1</td><td style="background:#9e9e9e;opacity:0.47">5</td><td>21</td></tr>
+<tr><td><b>2025-07</b></td><td style=""></td><td style="background:#4caf50;opacity:0.58">8</td><td style="background:#2196f3;opacity:0.44">4</td><td style=""></td><td style="background:#00acc1;opacity:0.44">4</td><td style="background:#ff9800;opacity:0.41">3</td><td style=""></td><td style="background:#9e9e9e;opacity:0.44">4</td><td>23</td></tr>
+<tr><td><b>2025-08</b></td><td style="background:#673ab7;opacity:0.33">1</td><td style="background:#4caf50;opacity:0.47">5</td><td style="background:#2196f3;opacity:0.37">2</td><td style="background:#3f51b5;opacity:0.37">2</td><td style="background:#00acc1;opacity:0.44">4</td><td style="background:#ff9800;opacity:0.41">3</td><td style=""></td><td style="background:#9e9e9e;opacity:0.47">5</td><td>22</td></tr>
+<tr><td><b>2025-09</b></td><td style=""></td><td style="background:#4caf50;opacity:0.51">6</td><td style="background:#2196f3;opacity:0.37">2</td><td style="background:#3f51b5;opacity:0.44">4</td><td style="background:#00acc1;opacity:0.44">4</td><td style=""></td><td style="background:#f44336;opacity:0.33">1</td><td style="background:#9e9e9e;opacity:0.44">4</td><td>21</td></tr>
+<tr><td><b>2025-10</b></td><td style="background:#673ab7;opacity:0.33">1</td><td style="background:#4caf50;opacity:0.55">7</td><td style="background:#2196f3;opacity:0.47">5</td><td style="background:#3f51b5;opacity:0.33">1</td><td style="background:#00acc1;opacity:0.41">3</td><td style="background:#ff9800;opacity:0.33">1</td><td style="background:#f44336;opacity:0.33">1</td><td style="background:#9e9e9e;opacity:0.44">4</td><td>23</td></tr>
+<tr><td><b>2025-11</b></td><td style=""></td><td style="background:#4caf50;opacity:0.58">8</td><td style="background:#2196f3;opacity:0.41">3</td><td style="background:#3f51b5;opacity:0.37">2</td><td style="background:#00acc1;opacity:0.37">2</td><td style="background:#ff9800;opacity:0.33">1</td><td style=""></td><td style="background:#9e9e9e;opacity:0.47">5</td><td>21</td></tr>
+<tr><td><b>2025-12</b></td><td style="background:#673ab7;opacity:0.37">2</td><td style="background:#4caf50;opacity:0.58">8</td><td style=""></td><td style=""></td><td style="background:#00acc1;opacity:0.44">4</td><td style="background:#ff9800;opacity:0.37">2</td><td style=""></td><td style="background:#9e9e9e;opacity:0.47">5</td><td>21</td></tr>
+<tr><td><b>2026-01</b></td><td style="background:#673ab7;opacity:0.37">2</td><td style="background:#4caf50;opacity:0.33">1</td><td style="background:#2196f3;opacity:0.44">4</td><td style="background:#3f51b5;opacity:0.44">4</td><td style="background:#00acc1;opacity:0.41">3</td><td style="background:#ff9800;opacity:0.37">2</td><td style=""></td><td style="background:#9e9e9e;opacity:0.47">5</td><td>21</td></tr>
+<tr><td><b>2026-02</b></td><td style=""></td><td style="background:#4caf50;opacity:0.44">4</td><td style="background:#2196f3;opacity:0.33">1</td><td style="background:#3f51b5;opacity:0.47">5</td><td style="background:#00acc1;opacity:0.41">3</td><td style="background:#ff9800;opacity:0.37">2</td><td style="background:#f44336;opacity:0.33">1</td><td style="background:#9e9e9e;opacity:0.44">4</td><td>20</td></tr>
+<tr><td><b>2026-03</b></td><td style="background:#673ab7;opacity:0.33">1</td><td style="background:#4caf50;opacity:0.47">5</td><td style="background:#2196f3;opacity:0.47">5</td><td style="background:#3f51b5;opacity:0.33">1</td><td style="background:#00acc1;opacity:0.44">4</td><td style=""></td><td style="background:#f44336;opacity:0.33">1</td><td style="background:#9e9e9e;opacity:0.47">5</td><td>22</td></tr>
+<tr><td><b>2026-04</b></td><td style=""></td><td style="background:#4caf50;opacity:0.51">6</td><td style="background:#2196f3;opacity:0.47">5</td><td style="background:#3f51b5;opacity:0.33">1</td><td style="background:#00acc1;opacity:0.41">3</td><td style="background:#ff9800;opacity:0.33">1</td><td style="background:#f44336;opacity:0.33">1</td><td style="background:#9e9e9e;opacity:0.41">3</td><td>20</td></tr>
+<tr><td><b>2026-05</b></td><td style="background:#673ab7;opacity:0.37">2</td><td style="background:#4caf50;opacity:0.41">3</td><td style="background:#2196f3;opacity:0.41">3</td><td style=""></td><td style=""></td><td style=""></td><td style="background:#f44336;opacity:0.33">1</td><td style="background:#9e9e9e;opacity:0.37">2</td><td>11</td></tr>
+  </table>
+</section><section>
+  <h2>5 - Regime × Strategy Matrix <span class="sub">(NetPnL médio por trade, sem filtro de regime)</span></h2>
+  <p style="color:#888;font-size:0.85em">Verde = &gt;5pts/trade; Amarelo = 0–5pts; Vermelho = negativo. Célula vazia = sem trades nesse regime.</p>
+  <table>
+    <tr><th>Strategy</th><th>Mapeado para</th><th style="color:#4caf50">Trend</th><th style="color:#2196f3">Breakout</th><th style="color:#ff9800">Range</th><th style="color:#f44336">HighVolatility</th><th style="color:#9e9e9e">NonTrend</th></tr>
+    <tr><td><b>Trend</b></td><td class="dim">Trend+Breakout+WideIbBreakout+IntradayExpansion</td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">21.6<br><small style="font-weight:normal;font-size:0.8em">37t</small></td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">135.6<br><small style="font-weight:normal;font-size:0.8em">17t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-11.0<br><small style="font-weight:normal;font-size:0.8em">9t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-131.9<br><small style="font-weight:normal;font-size:0.8em">2t</small></td><td style="color:#666">—</td></tr>
+<tr><td><b>Momentum</b></td><td class="dim">Trend+Breakout+WideIbBreakout+IntradayExpansion</td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">5.0<br><small style="font-weight:normal;font-size:0.8em">150t</small></td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">10.5<br><small style="font-weight:normal;font-size:0.8em">86t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-13.8<br><small style="font-weight:normal;font-size:0.8em">37t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-52.9<br><small style="font-weight:normal;font-size:0.8em">17t</small></td><td style="color:#666">—</td></tr>
+<tr><td><b>Ema</b></td><td class="dim">Trend+Breakout+WideIbBreakout+IntradayExpansion</td><td style="background:rgba(255,193,7,0.18);color:#7c5700;font-weight:600">1.2<br><small style="font-weight:normal;font-size:0.8em">282t</small></td><td style="background:rgba(255,193,7,0.18);color:#7c5700;font-weight:600">1.8<br><small style="font-weight:normal;font-size:0.8em">170t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-2.5<br><small style="font-weight:normal;font-size:0.8em">65t</small></td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">42.9<br><small style="font-weight:normal;font-size:0.8em">18t</small></td><td style="color:#666">—</td></tr>
+<tr><td><b>SchoolRun</b></td><td class="dim">Breakout+Range+HighVolatility</td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-7.4<br><small style="font-weight:normal;font-size:0.8em">83t</small></td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">15.4<br><small style="font-weight:normal;font-size:0.8em">45t</small></td><td style="background:rgba(255,193,7,0.18);color:#7c5700;font-weight:600">3.5<br><small style="font-weight:normal;font-size:0.8em">19t</small></td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">18.5<br><small style="font-weight:normal;font-size:0.8em">7t</small></td><td style="color:#666">—</td></tr>
+<tr><td><b>OrbBreakout</b></td><td class="dim">Breakout+IntradayExpansion</td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-22.7<br><small style="font-weight:normal;font-size:0.8em">49t</small></td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">60.9<br><small style="font-weight:normal;font-size:0.8em">29t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-129.7<br><small style="font-weight:normal;font-size:0.8em">5t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-48.1<br><small style="font-weight:normal;font-size:0.8em">5t</small></td><td style="color:#666">—</td></tr>
+<tr><td><b>IbBreakout</b></td><td class="dim">Breakout</td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-12.1<br><small style="font-weight:normal;font-size:0.8em">77t</small></td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">41.4<br><small style="font-weight:normal;font-size:0.8em">42t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-25.1<br><small style="font-weight:normal;font-size:0.8em">15t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-7.5<br><small style="font-weight:normal;font-size:0.8em">6t</small></td><td style="color:#666">—</td></tr>
+<tr><td><b>VwapReversion</b></td><td class="dim">Range+HighVolatility</td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-2.8<br><small style="font-weight:normal;font-size:0.8em">215t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-18.8<br><small style="font-weight:normal;font-size:0.8em">120t</small></td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">8.3<br><small style="font-weight:normal;font-size:0.8em">44t</small></td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">33.8<br><small style="font-weight:normal;font-size:0.8em">17t</small></td><td style="color:#666">—</td></tr>
+<tr><td><b>BollingerFade</b></td><td class="dim">Range</td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-6.8<br><small style="font-weight:normal;font-size:0.8em">99t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-15.0<br><small style="font-weight:normal;font-size:0.8em">72t</small></td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">15.4<br><small style="font-weight:normal;font-size:0.8em">25t</small></td><td style="background:rgba(76,175,80,0.18);color:#2e7d32;font-weight:600">53.8<br><small style="font-weight:normal;font-size:0.8em">8t</small></td><td style="color:#666">—</td></tr>
+<tr><td><b>Range</b></td><td class="dim">Range</td><td style="color:#666">—</td><td style="color:#666">—</td><td style="color:#666">—</td><td style="color:#666">—</td><td style="color:#666">—</td></tr>
+<tr><td><b>Volatility</b></td><td class="dim">IntradayExpansion+HighVolatility</td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-2.4<br><small style="font-weight:normal;font-size:0.8em">99t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-2.9<br><small style="font-weight:normal;font-size:0.8em">51t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-17.7<br><small style="font-weight:normal;font-size:0.8em">21t</small></td><td style="background:rgba(244,67,54,0.18);color:#c62828;font-weight:600">-34.9<br><small style="font-weight:normal;font-size:0.8em">11t</small></td><td style="color:#666">—</td></tr>
+
+  </table>
+  <p style="color:#888;font-size:0.82em;margin-top:8px">Interpretação: se uma strategy tem PnL positivo num regime onde não está mapeada, pode indicar oportunidade de expansão.</p>
+</section>
+</body>
+</html>

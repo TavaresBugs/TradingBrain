@@ -33,6 +33,8 @@ public sealed partial class StrategyBacktester
         var position = 0;
         var entryPrice = 0.0;
         var entryBarIndex = -1;
+        var entryStopPrice = 0.0;
+        var entryTargetPrice = 0.0;
         var realizedProfit = 0.0;
         var peakEquity = 0.0;
         var trendState = 0;
@@ -63,14 +65,24 @@ public sealed partial class StrategyBacktester
                 : new StrategyDecision(SignalAction.None, "Aquecendo indicadores");
 
             var signal = decision.Action;
+            var stopPrice = 0.0;
+            var targetPrice = 0.0;
             if (signal == SignalAction.Buy && position == 0)
             {
+                stopPrice = ComputeStopPrice(bar, bars, i, metrics, SignalAction.Buy);
+                targetPrice = ComputeTargetPrice(bar, metrics, SignalAction.Buy);
+                entryStopPrice = stopPrice;
+                entryTargetPrice = targetPrice;
                 position = 1;
                 entryPrice = bar.Close;
                 entryBarIndex = i;
             }
             else if (signal == SignalAction.Sell && position == 0)
             {
+                stopPrice = ComputeStopPrice(bar, bars, i, metrics, SignalAction.Sell);
+                targetPrice = ComputeTargetPrice(bar, metrics, SignalAction.Sell);
+                entryStopPrice = stopPrice;
+                entryTargetPrice = targetPrice;
                 position = -1;
                 entryPrice = bar.Close;
                 entryBarIndex = i;
@@ -81,7 +93,14 @@ public sealed partial class StrategyBacktester
                 position = 0;
                 entryPrice = 0;
                 entryBarIndex = -1;
+                entryStopPrice = 0;
+                entryTargetPrice = 0;
                 openProfit = 0;
+            }
+            else if (position != 0)
+            {
+                stopPrice = entryStopPrice;
+                targetPrice = entryTargetPrice;
             }
 
             var equity = realizedProfit + openProfit;
@@ -99,7 +118,9 @@ public sealed partial class StrategyBacktester
                 realizedProfit,
                 equity,
                 drawdown,
-                metrics));
+                metrics,
+                stopPrice,
+                targetPrice));
         }
 
         return rows;

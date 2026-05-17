@@ -13,7 +13,9 @@ public sealed record StrategyBacktestRow(
     double RealizedProfit,
     double Equity,
     double Drawdown,
-    IReadOnlyDictionary<string, double> Metrics);
+    IReadOnlyDictionary<string, double> Metrics,
+    double StopPrice = 0.0,
+    double TargetPrice = 0.0);
 
 public sealed record BacktestSummary(
     string StrategyName,
@@ -84,7 +86,10 @@ public sealed record TradeResult(
     double MaxFavorableExcursion,
     double MaxAdverseExcursion,
     string EntryReason,
-    string ExitReason);
+    string ExitReason,
+    double StopPrice = 0.0,
+    double TargetPrice = 0.0,
+    double RMultiple = 0.0);
 
 public enum VolatilityExpansionMode
 {

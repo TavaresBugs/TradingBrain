@@ -105,6 +105,10 @@ public sealed partial class StrategyBacktester
                 var excursions = tradeRows
                     .Select(r => (r.Bar.Close - entry.Bar.Close) * direction)
                     .ToList();
+                var stopPrice = entry.StopPrice;
+                var targetPrice = entry.TargetPrice;
+                var riskPoints = Math.Abs(entry.Bar.Close - stopPrice);
+                var rMultiple = riskPoints > 0 ? grossPoints / riskPoints : 0;
 
                 trades.Add(new TradeResult(
                     entry.StrategyName,
@@ -127,7 +131,10 @@ public sealed partial class StrategyBacktester
                     excursions.Count == 0 ? 0 : excursions.Max(),
                     excursions.Count == 0 ? 0 : excursions.Min(),
                     entry.Reason,
-                    row.Reason));
+                    row.Reason,
+                    stopPrice,
+                    targetPrice,
+                    rMultiple));
 
                 entry = null;
                 tradeRows.Clear();
@@ -177,7 +184,7 @@ public sealed partial class StrategyBacktester
     public static void ExportTradesCsv(IReadOnlyList<TradeResult> trades, string path)
     {
         using var writer = new StreamWriter(path);
-        writer.WriteLine("Strategy,Direction,EntryTime,ExitTime,EntryPrice,ExitPrice,BarsHeld,PnL,GrossPoints,NetPoints,GrossCurrency,NetCurrency,TotalCostCurrency,SlippageCostCurrency,SpreadCostCurrency,CommissionCostCurrency,Quantity,MFE,MAE,EntryReason,ExitReason");
+        writer.WriteLine("Strategy,Direction,EntryTime,ExitTime,EntryPrice,ExitPrice,BarsHeld,PnL,GrossPoints,NetPoints,GrossCurrency,NetCurrency,TotalCostCurrency,SlippageCostCurrency,SpreadCostCurrency,CommissionCostCurrency,Quantity,MFE,MAE,EntryReason,ExitReason,StopPrice,TargetPrice,RMultiple");
 
         foreach (var trade in trades)
         {
@@ -202,7 +209,10 @@ public sealed partial class StrategyBacktester
                 F(trade.MaxFavorableExcursion),
                 F(trade.MaxAdverseExcursion),
                 Escape(trade.EntryReason),
-                Escape(trade.ExitReason)));
+                Escape(trade.ExitReason),
+                F(trade.StopPrice),
+                F(trade.TargetPrice),
+                F(trade.RMultiple)));
         }
     }
 

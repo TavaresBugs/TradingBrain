@@ -681,6 +681,117 @@ public sealed partial class StrategyBacktester
         return new StrategyDecision(action, reason);
     }
 
+    private double ComputeStopPrice(
+        MarketBar bar,
+        IReadOnlyList<MarketBar> bars,
+        int barIndex,
+        IReadOnlyDictionary<string, double> m,
+        SignalAction direction)
+    {
+        var atr = m["ATR"];
+        var sign = direction == SignalAction.Buy ? 1 : -1;
+
+        return _strategy switch
+        {
+            StrategyKind.Volatility =>
+                bar.Close - sign * atr * _params.AtrStopMultiplier,
+
+            StrategyKind.Momentum =>
+                bar.Close - sign * atr * _params.AtrStopMultiplier,
+
+            StrategyKind.Ema =>
+                bar.Close - sign * atr * _params.AtrStopMultiplier,
+
+            StrategyKind.Trend =>
+                bar.Close - sign * atr * _params.TrendAtrStopMultiplier,
+
+            StrategyKind.Range =>
+                bar.Close - sign * atr * _defaults.AtrMultiplierTp,
+
+            StrategyKind.OrbBreakout =>
+                bar.Close - sign * atr * _params.OrbAtrStopMultiplier,
+
+            StrategyKind.VwapReversion =>
+                bar.Close - sign * atr * _params.AtrStopMultiplier,
+
+            StrategyKind.BollingerFade =>
+                bar.Close - sign * atr * _params.AtrStopMultiplier,
+
+            StrategyKind.SchoolRun =>
+                bar.Close - sign * atr * _params.SrsAtrStopMultiplier,
+
+            StrategyKind.IbBreakout =>
+                ComputeIbStopPrice(bar, bars, barIndex, direction, atr),
+
+            _ => bar.Close - sign * atr * _params.AtrStopMultiplier
+        };
+    }
+
+    private double ComputeTargetPrice(
+        MarketBar bar,
+        IReadOnlyDictionary<string, double> m,
+        SignalAction direction)
+    {
+        var atr = m["ATR"];
+        var sign = direction == SignalAction.Buy ? 1 : -1;
+
+        return _strategy switch
+        {
+            StrategyKind.SchoolRun =>
+                bar.Close + sign * atr * _params.SrsAtrTargetMultiplier,
+
+            StrategyKind.BollingerFade =>
+                m["BbMiddle"],
+
+            StrategyKind.VwapReversion =>
+                m["VWAP"],
+
+            _ => 0.0
+        };
+    }
+
+    private double ComputeIbStopPrice(
+        MarketBar bar,
+        IReadOnlyList<MarketBar> bars,
+        int barIndex,
+        SignalAction direction,
+        double atr)
+    {
+        var today = DateOnly.FromDateTime(bar.Time);
+        var ibHigh = double.NaN;
+        var ibLow = double.NaN;
+        var ibBarCount = 0;
+
+        for (var k = barIndex - 1; k >= 0; k--)
+        {
+            var candidate = bars[k];
+            if (DateOnly.FromDateTime(candidate.Time) != today)
+                break;
+
+            var candidateHHmm = candidate.Time.Hour * 100 + candidate.Time.Minute;
+            if (candidateHHmm < 930 || candidateHHmm > 1025)
+                continue;
+
+            ibHigh = double.IsNaN(ibHigh) ? candidate.High : Math.Max(ibHigh, candidate.High);
+            ibLow = double.IsNaN(ibLow) ? candidate.Low : Math.Min(ibLow, candidate.Low);
+            ibBarCount++;
+        }
+
+        if (double.IsNaN(ibHigh) || double.IsNaN(ibLow) || ibBarCount < 8)
+        {
+            var sign = direction == SignalAction.Buy ? 1 : -1;
+            return bar.Close - sign * atr * _params.AtrStopMultiplier;
+        }
+
+        var ibMid = (ibHigh + ibLow) / 2.0;
+        if (direction == SignalAction.Buy)
+        {
+            return _params.IbUseHalfRangeStop ? ibMid : ibLow;
+        }
+
+        return _params.IbUseHalfRangeStop ? ibMid : ibHigh;
+    }
+
     private static IReadOnlyDictionary<string, double> BuildMetrics(PrecomputedSeries s, int i)
     {
         return new Dictionary<string, double>

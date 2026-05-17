@@ -371,8 +371,9 @@ public static class GridSearchRunner
 
     private static IEnumerable<StrategyTuningParams> VwapReversionGrid()
     {
+        // Stop extended to 4.0×ATR — 86.4% trades hit -0.5R adverse first (H1: stop too tight)
         foreach (var band in new[] { 0.002, 0.003, 0.004, 0.005, 0.007, 0.010 })
-        foreach (var stop in new[] { 1.0, 1.5, 2.0, 2.5 })
+        foreach (var stop in new[] { 1.0, 1.5, 2.0, 2.5, 3.0, 4.0 })
         foreach (var rsiOversold in new[] { 25, 30, 40 })
             yield return StrategyTuningParams.RefinedDefault with
             {
@@ -420,7 +421,8 @@ public static class GridSearchRunner
 
     private static IEnumerable<StrategyTuningParams> IbBreakoutGrid()
     {
-        foreach (var targetMult in new[] { 0.5, 1.0, 1.5, 2.0 })
+        // Target: 0.75 added — 69% hit 0.5R, only 33% hit 1R → queda de 36pp indica target alto demais
+        foreach (var targetMult in new[] { 0.5, 0.75, 1.0, 1.25, 1.5, 2.0 })
         foreach (var halfStop in new[] { false, true })
         foreach (var minRatio in new[] { 0.0, 0.30, 0.50 })
         foreach (var maxRatio in new[] { 1.80, 3.0, 10.0 })

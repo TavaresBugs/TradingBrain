@@ -39,12 +39,62 @@ public class RegimeClassifierIbRefinementTests
             cperiodHigh: 21128,
             cperiodLow: 21116,
             overnightHigh: 21125,
-            overnightLow: 21080);
+            overnightLow: 21080,
+            sessionTailHigh: 21250,
+            sessionTailLow: 21115,
+            sessionClose: 21240);
 
         var last = RegimeClassifier.Classify(bars).Last();
 
         Assert.True(last.OpenOutside);
         Assert.Equal(MarketRegime.Trend, last.Regime);
+    }
+
+    [Fact]
+    public void Classify_OpenOutside_WithoutIbAcceptance_ReturnsLimbo()
+    {
+        var bars = PureIbScenarioFactory.MakeDays(
+            ibHighYest: 21100,
+            ibLowYest: 21000,
+            prevClose: 21080,
+            openToday: 21120,
+            ibHighToday: 21130,
+            ibLowToday: 21115,
+            cperiodHigh: 21128,
+            cperiodLow: 21116,
+            overnightHigh: 21125,
+            overnightLow: 21080,
+            sessionTailHigh: 21250,
+            sessionTailLow: 21115,
+            sessionClose: 21129);
+
+        var last = RegimeClassifier.Classify(bars).Last();
+
+        Assert.True(last.OpenOutside);
+        Assert.False(last.CloseOutsideIb);
+        Assert.Equal(MarketRegime.Limbo, last.Regime);
+    }
+
+    [Fact]
+    public void Classify_OpenOutside_RejectedIntoRotation_ReturnsRange()
+    {
+        var bars = PureIbScenarioFactory.MakeDays(
+            ibHighYest: 21100,
+            ibLowYest: 21000,
+            prevClose: 21080,
+            openToday: 21120,
+            ibHighToday: 21130,
+            ibLowToday: 21115,
+            cperiodHigh: 21128,
+            cperiodLow: 21116,
+            overnightHigh: 21125,
+            overnightLow: 21080);
+
+        var last = RegimeClassifier.Classify(bars).Last();
+
+        Assert.True(last.OpenOutside);
+        Assert.True(last.CloseLocation is >= 0.35 and <= 0.65);
+        Assert.Equal(MarketRegime.Range, last.Regime);
     }
 
     [Fact]
@@ -60,7 +110,10 @@ public class RegimeClassifierIbRefinementTests
             cperiodHigh: 21178,
             cperiodLow: 21152,
             overnightHigh: 21200,
-            overnightLow: 21050);
+            overnightLow: 21050,
+            sessionTailHigh: 21280,
+            sessionTailLow: 21150,
+            sessionClose: 21270);
 
         var last = RegimeClassifier.Classify(bars).Last();
 
@@ -80,7 +133,10 @@ public class RegimeClassifierIbRefinementTests
             cperiodHigh: 21300,
             cperiodLow: 21150,
             overnightHigh: 21125,
-            overnightLow: 21080);
+            overnightLow: 21080,
+            sessionTailHigh: 21520,
+            sessionTailLow: 21100,
+            sessionClose: 21500);
 
         var last = RegimeClassifier.Classify(bars).Last();
 
@@ -124,7 +180,10 @@ public class RegimeClassifierIbRefinementTests
             cperiodHigh: 21090,
             cperiodLow: 21025,
             overnightHigh: 21060,
-            overnightLow: 21040);
+            overnightLow: 21040,
+            sessionTailHigh: 21180,
+            sessionTailLow: 21020,
+            sessionClose: 21170);
 
         var last = RegimeClassifier.Classify(bars).Last();
 
@@ -146,7 +205,10 @@ public class RegimeClassifierIbRefinementTests
             cperiodHigh: 21340,
             cperiodLow: 21260,
             overnightHigh: 21350,
-            overnightLow: 21050);
+            overnightLow: 21050,
+            sessionTailHigh: 21480,
+            sessionTailLow: 21250,
+            sessionClose: 21470);
 
         var last = RegimeClassifier.Classify(bars).Last();
 

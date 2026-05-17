@@ -44,7 +44,7 @@ if (classifyRegimeIndex >= 0)
 
     var regimeCsvPath = Path.Combine(outputDir, "regime_distribution.csv");
     using var writer = new StreamWriter(regimeCsvPath);
-    writer.WriteLine("Date,Regime,Reason,IbHighYest,IbLowYest,IbFullYest,IbFullToday,OpenOutside,CperiodInside,OvernightRatio,GapRatio,Atr14");
+    writer.WriteLine("Date,Regime,Reason,IbHighYest,IbLowYest,IbFullYest,IbFullToday,OpenOutside,CperiodInside,OvernightRatio,GapRatio,Atr14,DayRangeAtr,CloseLocation,DirectionalEfficiency,IbExtensionAtr,CloseOutsideIb,BrokeBothIbSides,VwapCrossCount");
     foreach (var r in regimes)
     {
         writer.WriteLine(string.Join(",",
@@ -59,7 +59,14 @@ if (classifyRegimeIndex >= 0)
             r.CperiodInside,
             r.OvernightRatio.ToString("0.####", CultureInfo.InvariantCulture),
             r.GapRatio.ToString("0.####", CultureInfo.InvariantCulture),
-            r.Atr14.ToString("0.####", CultureInfo.InvariantCulture)));
+            r.Atr14.ToString("0.####", CultureInfo.InvariantCulture),
+            r.DayRangeAtr.ToString("0.####", CultureInfo.InvariantCulture),
+            r.CloseLocation.ToString("0.####", CultureInfo.InvariantCulture),
+            r.DirectionalEfficiency.ToString("0.####", CultureInfo.InvariantCulture),
+            r.IbExtensionAtr.ToString("0.####", CultureInfo.InvariantCulture),
+            r.CloseOutsideIb,
+            r.BrokeBothIbSides,
+            r.VwapCrossCount.ToString(CultureInfo.InvariantCulture)));
     }
 
     var counts = regimes

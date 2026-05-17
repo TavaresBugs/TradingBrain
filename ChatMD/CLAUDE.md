@@ -143,18 +143,29 @@ Classificação sempre em `allBars` completo → filtra por regime → divide em
 
 | Strategy | Regimes | Lógica |
 |---|---|---|
-| Trend | Trend | Donchian 10 + RSI + stops largos |
+| Trend | Trend + Breakout + WideIbBreakout + IntradayExpansion | Donchian 10 + RSI + stops largos |
 | Momentum | Trend | MACD cross + EMA + volume; Breakout/Wide removidos por atraso do MACD 5m |
 | Ema | WideIbBreakout + IntradayExpansion + HighVolatility | EMA9>21 + swing rompido + volume; validada em regimes de expansao real |
-| SchoolRun | Trend + Breakout | Candle M15 de referência + overnight range |
-| OrbBreakout | Breakout | ORB 9:30-10:00 com janela configurável |
-| IbBreakout | Breakout + Trend | Range IB 9:30-10:30, 1 trade/dia |
-| VwapReversion | Range | Reversão ao VWAP + RSI extremo |
+| SchoolRun | Breakout + Range + HighVolatility | Candle M15 de referência + overnight range |
+| OrbBreakout | Breakout + IntradayExpansion | ORB 9:30-10:00 com janela configurável |
+| IbBreakout | Breakout | Range IB 9:30-10:30, 1 trade/dia |
+| VwapReversion | Range + HighVolatility | Reversão ao VWAP + RSI extremo |
 | BollingerFade | Range | Toque na banda Bollinger + reversão |
 | Range | Range | Strategy solo excluida dos reports/grids agregados; VwapReversion e BollingerFade cobrem Range |
 | Volatility | Breakout + WideIbBreakout + IntradayExpansion | ATR expansion + squeeze + volume |
 
-`NonTrend` → sempre excluído. `Undefined` → incluído por padrão (não reduzir dataset desnecessariamente).
+`NonTrend` e `Limbo` → sempre excluídos. `Undefined` → excluído por padrão.
+
+### Regime Limbo + Range por rejeição
+
+Calibração em 2026-05-17 (`feat/regime-limbo`):
+
+- Base empírica usada: IB só vira expansão quando há aceitação fora do IB; rejeição/retorno para dentro é rotação. Fechamento no miolo do range e cruzamentos recorrentes de VWAP são tratados como comportamento de Range. Dias sem aceitação direcional e sem rotação limpa ficam em `Limbo`.
+- Métricas adicionadas ao `DayRegime`: `DayRangeAtr`, `CloseLocation`, `DirectionalEfficiency`, `IbExtensionAtr`, `CloseOutsideIb`, `BrokeBothIbSides`, `VwapCrossCount`.
+- Distribuição MNQ 12m após ajuste: `Range=151/226 (66.8%)`, `Limbo=30/226 (13.3%)`, `Trend=18`, `Breakout=14`, `WideIbBreakout=4`, `HighVolatility=3`, `IntradayExpansion=2`, `Undefined=4`.
+- Full-report vs `outputs/full-report-regime-fix-final`: trades `887 -> 861`, WinRate `50.77% -> 54.68%`, NetCurrency `$28,122.12 -> $29,382.86`.
+- Melhoras grandes: VwapReversion `$1,881.86 -> $6,029.96`, BollingerFade `$772.50 -> $1,498.32`, Momentum `$1,828.98 -> $2,917.34`.
+- Piora: SRS caiu `$1,759.96 -> $690.18`; Range expandido inclui mais rotações onde SRS perde qualidade. Se otimizar SRS depois, testar remover `Range` do mapa do SRS ou separar `Range` limpo vs `RangeAfterRejection`.
 
 ---
 

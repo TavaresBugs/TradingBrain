@@ -103,12 +103,13 @@ public class RegimeFilterTests
     }
 
     [Fact]
-    public void StrategyRegimeMap_NeverReturnsNonTrendAsTarget()
+    public void StrategyRegimeMap_NeverReturnsBlockedRegimesAsTarget()
     {
         foreach (var strategy in Enum.GetValues<StrategyKind>())
         {
             var regimes = StrategyRegimeMap.For(strategy);
             Assert.DoesNotContain(regimes, r => r.ToString().Equals("NonTrend", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(MarketRegime.Limbo, regimes);
         }
     }
 

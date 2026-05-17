@@ -14,7 +14,10 @@ internal static class PureIbScenarioFactory
         double cperiodHigh,
         double cperiodLow,
         double overnightHigh,
-        double overnightLow)
+        double overnightLow,
+        double? sessionTailHigh = null,
+        double? sessionTailLow = null,
+        double? sessionClose = null)
     {
         var bars = new List<MarketBar>();
         var baseDate = new DateTime(2026, 1, 5);
@@ -47,7 +50,14 @@ internal static class PureIbScenarioFactory
         AddOpenBar(bars, today, openToday);
         AddIbBars(bars, today, ibHighToday, ibLowToday, 1000);
         AddCperiodBars(bars, today, cperiodHigh, cperiodLow, 800);
-        AddSessionTail(bars, today, ibHighToday + 5, ibLowToday - 5, (ibHighToday + ibLowToday) / 2, 600, startMinute: 90);
+        AddSessionTail(
+            bars,
+            today,
+            sessionTailHigh ?? ibHighToday + 5,
+            sessionTailLow ?? ibLowToday - 5,
+            sessionClose ?? (ibHighToday + ibLowToday) / 2,
+            600,
+            startMinute: 90);
 
         return bars.OrderBy(b => b.Time).ToList();
     }

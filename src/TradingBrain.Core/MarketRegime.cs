@@ -9,7 +9,8 @@ public enum MarketRegime
     IntradayExpansion,
     Range,
     HighVolatility,
-    NonTrend
+    NonTrend,
+    Limbo
 }
 
 public sealed record DayRegime(
@@ -26,4 +27,11 @@ public sealed record DayRegime(
     bool CperiodInside,
     double OvernightRatio,
     double GapRatio,
-    double Atr14);
+    double Atr14,
+    double DayRangeAtr = 0,
+    double CloseLocation = 0.5,
+    double DirectionalEfficiency = 0,
+    double IbExtensionAtr = 0,
+    bool CloseOutsideIb = false,
+    bool BrokeBothIbSides = false,
+    int VwapCrossCount = 0);

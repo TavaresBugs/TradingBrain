@@ -90,7 +90,7 @@ public class RegimeClassifierIbRefinementTests
     }
 
     [Fact]
-    public void Classify_OpenInside_QuietOvernight_CperiodOutside_ReturnsRange()
+    public void Classify_OpenInside_QuietOvernight_CperiodOutside_ReturnsIntradayExpansion()
     {
         var bars = PureIbScenarioFactory.MakeDays(
             ibHighYest: 21100,
@@ -108,7 +108,7 @@ public class RegimeClassifierIbRefinementTests
 
         Assert.False(last.OpenOutside);
         Assert.False(last.CperiodInside);
-        Assert.Equal(MarketRegime.Range, last.Regime);
+        Assert.Equal(MarketRegime.IntradayExpansion, last.Regime);
     }
 
     [Fact]

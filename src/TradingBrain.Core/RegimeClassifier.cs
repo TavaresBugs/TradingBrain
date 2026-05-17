@@ -181,11 +181,19 @@ public static class RegimeClassifier
 
         if (!openOutside
             && overnightRatio <= RangeOvernightThreshold
+            && ibFullToday <= RangeIbFullMaxThreshold
+            && cperiodInside)
+        {
+            reason = $"Range: openOutside=false cperiodInside=true ibFull={ibFullToday:F2} overnight={overnightRatio:F2}";
+            return MarketRegime.Range;
+        }
+
+        if (!openOutside
+            && overnightRatio <= RangeOvernightThreshold
             && ibFullToday <= RangeIbFullMaxThreshold)
         {
-            var cperiodNote = cperiodInside ? "cperiodInside=true" : "cperiodInside=false";
-            reason = $"Range: openOutside=false {cperiodNote} ibFull={ibFullToday:F2} overnight={overnightRatio:F2}";
-            return MarketRegime.Range;
+            reason = $"IntradayExpansion: openOutside=false cperiodInside=false ibFull={ibFullToday:F2} overnight={overnightRatio:F2}";
+            return MarketRegime.IntradayExpansion;
         }
 
         reason = $"Undefined: openOut={openOutside} ibFull={ibFullToday:F2} gap={gapRatio:F2} overnight={overnightRatio:F2} cperiod={cperiodInside}";

@@ -5,6 +5,7 @@ public enum MarketRegime
     Undefined,
     Trend,
     Breakout,
+    IntradayExpansion,
     Range,
     HighVolatility,
     NonTrend

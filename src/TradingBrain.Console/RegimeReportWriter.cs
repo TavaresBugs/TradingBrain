@@ -79,6 +79,9 @@ public static class RegimeReportWriter
             StrategyKind.OrbBreakout,
             StrategyKind.SchoolRun,
             StrategyKind.Momentum,
+            StrategyKind.Ema,
+            StrategyKind.Range,
+            StrategyKind.Volatility,
         };
 
         var rows = new StringBuilder();
@@ -282,6 +285,7 @@ public static class RegimeReportWriter
     {
         MarketRegime.Trend => "#4caf50",
         MarketRegime.Breakout => "#2196f3",
+        MarketRegime.IntradayExpansion => "#00acc1",
         MarketRegime.Range => "#ff9800",
         MarketRegime.HighVolatility => "#f44336",
         MarketRegime.NonTrend => "#9e9e9e",

@@ -10,12 +10,12 @@
 </style>
 </head><body><main>
 <h1>TradingBrain full-report compare - OLD vs NEW</h1>
-<p>OLD: outputs/full-report-old &nbsp; NEW: outputs/full-report-post-ema</p>
+<p>OLD: outputs/full-report-post-ema &nbsp; NEW: outputs/full-report-regime-fix-final</p>
 <section class="cards">
-<div class="card"><div class="label">lucro combinado OLD</div><div class="value">$31,187</div><div class="delta ">10 strategies</div></div>
-<div class="card"><div class="label">lucro combinado NEW</div><div class="value">$33,786</div><div class="delta good">+$2,599</div></div>
-<div class="card"><div class="label">maior ganho</div><div class="value">EMA</div><div class="delta good">+$2,599</div></div>
-<div class="card"><div class="label">maior queda</div><div class="value">VwapReversion</div><div class="delta warn">+$0</div></div>
+<div class="card"><div class="label">lucro combinado OLD</div><div class="value">$33,786</div><div class="delta ">10 strategies</div></div>
+<div class="card"><div class="label">lucro combinado NEW</div><div class="value">$28,122</div><div class="delta bad">$-5,663</div></div>
+<div class="card"><div class="label">maior ganho</div><div class="value">Volatility</div><div class="delta good">+$1,301</div></div>
+<div class="card"><div class="label">maior queda</div><div class="value">Momentum</div><div class="delta bad">$-6,965</div></div>
 </section>
 <h2>NetCurrency por strategy</h2>
 <div class="bargrid">
@@ -23,13 +23,13 @@
 <div>BollingerFade</div><div class="bars"><div class="bar old" style="width:8.784818014960914%"></div><div class="bar new" style="width:8.784818014960914%"></div></div><div>$772</div>
 </div>
 <div class="barrow">
-<div>EMA</div><div class="bars"><div class="bar old" style="width:8.410681428951577%"></div><div class="bar new" style="width:37.96542477580235%"></div></div><div>$3,339</div>
+<div>EMA</div><div class="bars"><div class="bar old" style="width:37.96542477580235%"></div><div class="bar new" style="width:37.96542477580235%"></div></div><div>$3,339</div>
 </div>
 <div class="barrow">
 <div>IbBreakout</div><div class="bars"><div class="bar old" style="width:46.254426524805595%"></div><div class="bar new" style="width:46.254426524805595%"></div></div><div>$4,067</div>
 </div>
 <div class="barrow">
-<div>Momentum</div><div class="bars"><div class="bar old" style="width:100%"></div><div class="bar new" style="width:100%"></div></div><div>$8,794</div>
+<div>Momentum</div><div class="bars"><div class="bar old" style="width:100%"></div><div class="bar new" style="width:20.799037479615812%"></div></div><div>$1,829</div>
 </div>
 <div class="barrow">
 <div>OrbBreakout</div><div class="bars"><div class="bar old" style="width:60.443414400050955%"></div><div class="bar new" style="width:60.443414400050955%"></div></div><div>$5,315</div>
@@ -44,7 +44,7 @@
 <div>Trend</div><div class="bars"><div class="bar old" style="width:78.38855164790677%"></div><div class="bar new" style="width:78.38855164790677%"></div></div><div>$6,893</div>
 </div>
 <div class="barrow">
-<div>Volatility</div><div class="bars"><div class="bar old" style="width:10.955492529777406%"></div><div class="bar new" style="width:10.955492529777406%"></div></div><div>$963</div>
+<div>Volatility</div><div class="bars"><div class="bar old" style="width:10.955492529777406%"></div><div class="bar new" style="width:25.752651366110275%"></div></div><div>$2,265</div>
 </div>
 <div class="barrow">
 <div>VwapReversion</div><div class="bars"><div class="bar old" style="width:21.40038528108006%"></div><div class="bar new" style="width:21.40038528108006%"></div></div><div>$1,882</div>
@@ -53,34 +53,34 @@
 <h2>Resumo por strategy</h2>
 <table><thead><tr><th>strategy</th><th>Net OLD</th><th>Net NEW</th><th>delta</th><th>trades OLD</th><th>trades NEW</th><th>edge OLD</th><th>edge NEW</th><th>rec NEW</th><th>grid NetPF NEW</th></tr></thead><tbody>
 <tr><td>BollingerFade</td><td>$772</td><td>$772</td><td class="warn">+$0</td><td>25</td><td>25</td><td>0.48R</td><td>0.48R</td><td>1.85x</td><td>2.05</td></tr>
-<tr><td>EMA</td><td>$740</td><td>$3,339</td><td class="good">+$2,599</td><td>685</td><td>252</td><td>0.14R</td><td>0.29R</td><td>2.12x</td><td>1.72</td></tr>
+<tr><td>EMA</td><td>$3,339</td><td>$3,339</td><td class="warn">+$0</td><td>252</td><td>252</td><td>0.29R</td><td>0.29R</td><td>2.12x</td><td>1.72</td></tr>
 <tr><td>IbBreakout</td><td>$4,067</td><td>$4,067</td><td class="warn">+$0</td><td>42</td><td>42</td><td>0.33R</td><td>0.33R</td><td>2.87x</td><td>2.43</td></tr>
-<tr><td>Momentum</td><td>$8,794</td><td>$8,794</td><td class="warn">+$0</td><td>358</td><td>358</td><td>1.22R</td><td>1.22R</td><td>4.79x</td><td>1.53</td></tr>
+<tr><td>Momentum</td><td>$8,794</td><td>$1,829</td><td class="bad">$-6,965</td><td>358</td><td>148</td><td>1.22R</td><td>1.19R</td><td>1.16x</td><td>1.12</td></tr>
 <tr><td>OrbBreakout</td><td>$5,315</td><td>$5,315</td><td class="warn">+$0</td><td>64</td><td>64</td><td>1.04R</td><td>1.04R</td><td>4.26x</td><td>2.97</td></tr>
-<tr><td>Range</td><td>$0</td><td>$0</td><td class="warn">+$0</td><td>0</td><td>0</td><td></td><td></td><td>0.00x</td><td></td></tr>
+<tr><td>Range</td><td>$0</td><td></td><td class="warn">+$0</td><td>0</td><td></td><td></td><td></td><td></td><td></td></tr>
 <tr><td>SchoolRun</td><td>$1,760</td><td>$1,760</td><td class="warn">+$0</td><td>71</td><td>71</td><td>0.73R</td><td>0.73R</td><td>5.11x</td><td>2.43</td></tr>
 <tr><td>Trend</td><td>$6,893</td><td>$6,893</td><td class="warn">+$0</td><td>91</td><td>91</td><td>0.59R</td><td>0.59R</td><td>2.87x</td><td>3.11</td></tr>
-<tr><td>Volatility</td><td>$963</td><td>$963</td><td class="warn">+$0</td><td>63</td><td>63</td><td>0.59R</td><td>0.59R</td><td>1.01x</td><td>1.83</td></tr>
+<tr><td>Volatility</td><td>$963</td><td>$2,265</td><td class="good">+$1,301</td><td>63</td><td>133</td><td>0.59R</td><td>0.41R</td><td>2.63x</td><td>3.05</td></tr>
 <tr><td>VwapReversion</td><td>$1,882</td><td>$1,882</td><td class="warn">+$0</td><td>61</td><td>61</td><td>0.69R</td><td>0.69R</td><td>2.84x</td><td>6.26</td></tr>
 </tbody></table>
 <h2>EMA foco</h2>
 <table><thead><tr><th>metrica</th><th>OLD</th><th>NEW</th><th>delta</th></tr></thead><tbody>
-<tr><td>regime</td><td>Trend|Breakout|WideIbBreakout|IntradayExpansion</td><td>WideIbBreakout|IntradayExpansion|HighVolatility</td><td></td></tr>
-<tr><td>trades full-report</td><td>685</td><td>252</td><td class="bad">-433</td></tr>
-<tr><td>NetPF full-report</td><td>1.0194</td><td>1.2448</td><td class="good">+0.2255</td></tr>
-<tr><td>NetCurrency full-report</td><td>$740</td><td>$3,339</td><td class="good">+$2,599</td></tr>
-<tr><td>Recovery full-report</td><td>0.1917</td><td>2.121</td><td class="good">+1.9294</td></tr>
-<tr><td>R medio / edge</td><td>0.1394</td><td>0.2856</td><td class="good">+0.1462</td></tr>
-<tr><td>MAE/stop</td><td>0.956</td><td>0.904</td><td class="good">-0.052</td></tr>
-<tr><td>Stop antes de 1R %</td><td>32.7007</td><td>30.5556</td><td class="good">-2.1451</td></tr>
-<tr><td>grid IS trades</td><td>424</td><td>138</td><td class="bad">-286</td></tr>
-<tr><td>grid IS NetPF</td><td>1.2225</td><td>1.7173</td><td class="good">+0.4949</td></tr>
-<tr><td>grid IS NetExpectancy</td><td>4.7391</td><td>12.947</td><td class="good">+8.2079</td></tr>
-<tr><td>grid IS Recovery</td><td>2.0369</td><td>5.2744</td><td class="good">+3.2375</td></tr>
+<tr><td>regime</td><td>WideIbBreakout|IntradayExpansion|HighVolatility</td><td>WideIbBreakout|IntradayExpansion|HighVolatility</td><td></td></tr>
+<tr><td>trades full-report</td><td>252</td><td>252</td><td class="warn">+0</td></tr>
+<tr><td>NetPF full-report</td><td>1.2448</td><td>1.2448</td><td class="warn">+0</td></tr>
+<tr><td>NetCurrency full-report</td><td>$3,339</td><td>$3,339</td><td class="warn">+$0</td></tr>
+<tr><td>Recovery full-report</td><td>2.121</td><td>2.121</td><td class="warn">+0</td></tr>
+<tr><td>R medio / edge</td><td>0.2856</td><td>0.2856</td><td class="warn">+0</td></tr>
+<tr><td>MAE/stop</td><td>0.904</td><td>0.904</td><td class="warn">+0</td></tr>
+<tr><td>Stop antes de 1R %</td><td>30.5556</td><td>30.5556</td><td class="warn">+0</td></tr>
+<tr><td>grid IS trades</td><td>138</td><td>138</td><td class="warn">+0</td></tr>
+<tr><td>grid IS NetPF</td><td>1.7173</td><td>1.7173</td><td class="warn">+0</td></tr>
+<tr><td>grid IS NetExpectancy</td><td>12.947</td><td>12.947</td><td class="warn">+0</td></tr>
+<tr><td>grid IS Recovery</td><td>5.2744</td><td>5.2744</td><td class="warn">+0</td></tr>
 </tbody></table>
 <h2>Diagnostico</h2><div class="notes">
 <div class="note good">EMA grid focado: NetPF IS 1.72 com 138 trades IS. Criterio NetPF &gt; 1.50 aprovado.</div>
-<div class="note good">EMA edge full-report: 0.14R para 0.29R.</div>
+<div class="note bad">EMA edge full-report: 0.29R para 0.29R.</div>
 <div class="note good">EMA recovery full-report: 2.12x.</div>
 <div class="note warn">O full-report nao grava OOS por strategy; use o grid completo para OOSValidated. No run atual da EMA: OOSValidated=3.</div>
 </div>

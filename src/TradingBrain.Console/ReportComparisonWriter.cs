@@ -31,6 +31,16 @@ public static class ReportComparisonWriter
 
         var oldTotal = oldReport.TotalNetCurrency;
         var newTotal = newReport.TotalNetCurrency;
+        var deltas = strategies
+            .Select(s => new
+            {
+                Strategy = s,
+                Delta = (newReport.Get(s)?.NetCurrency ?? 0) - (oldReport.Get(s)?.NetCurrency ?? 0)
+            })
+            .OrderByDescending(d => d.Delta)
+            .ToList();
+        var bestDelta = deltas.FirstOrDefault();
+        var worstDelta = deltas.LastOrDefault();
         var emaOld = oldReport.Get("EMA");
         var emaNew = newReport.Get("EMA");
         var emaOldTrade = oldReport.GetTrade("EMA");
@@ -41,8 +51,8 @@ public static class ReportComparisonWriter
         sb.AppendLine("<section class=\"cards\">");
         WriteCard(sb, "lucro combinado OLD", Money(oldTotal), $"{oldReport.Summaries.Count} strategies", "");
         WriteCard(sb, "lucro combinado NEW", Money(newTotal), DeltaMoney(newTotal - oldTotal), ClassFor(newTotal - oldTotal));
-        WriteCard(sb, "EMA edge", R(emaNewTrade?.RrGap), DeltaR((emaNewTrade?.RrGap ?? 0) - (emaOldTrade?.RrGap ?? 0)), ClassFor((emaNewTrade?.RrGap ?? 0) - (emaOldTrade?.RrGap ?? 0)));
-        WriteCard(sb, "EMA recovery", F(emaNew?.ReturnToDrawdown, "0.00x"), DeltaPlain((emaNew?.ReturnToDrawdown ?? 0) - (emaOld?.ReturnToDrawdown ?? 0), "0.00x"), ClassFor((emaNew?.ReturnToDrawdown ?? 0) - (emaOld?.ReturnToDrawdown ?? 0)));
+        WriteCard(sb, "maior ganho", bestDelta?.Strategy ?? "", DeltaMoney(bestDelta?.Delta ?? 0), ClassFor(bestDelta?.Delta ?? 0));
+        WriteCard(sb, "maior queda", worstDelta?.Strategy ?? "", DeltaMoney(worstDelta?.Delta ?? 0), ClassFor(worstDelta?.Delta ?? 0));
         sb.AppendLine("</section>");
 
         sb.AppendLine("<h2>NetCurrency por strategy</h2>");

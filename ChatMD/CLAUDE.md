@@ -144,15 +144,15 @@ Classificação sempre em `allBars` completo → filtra por regime → divide em
 | Strategy | Regimes | Lógica |
 |---|---|---|
 | Trend | Trend | Donchian 10 + RSI + stops largos |
-| Momentum | Trend | MACD cross + EMA + volume |
+| Momentum | Trend | MACD cross + EMA + volume; Breakout/Wide removidos por atraso do MACD 5m |
 | Ema | WideIbBreakout + IntradayExpansion + HighVolatility | EMA9>21 + swing rompido + volume; validada em regimes de expansao real |
 | SchoolRun | Trend + Breakout | Candle M15 de referência + overnight range |
 | OrbBreakout | Breakout | ORB 9:30-10:00 com janela configurável |
 | IbBreakout | Breakout + Trend | Range IB 9:30-10:30, 1 trade/dia |
 | VwapReversion | Range | Reversão ao VWAP + RSI extremo |
 | BollingerFade | Range | Toque na banda Bollinger + reversão |
-| Range | Range | Breakout de range comprimido + ATR compression |
-| Volatility | HighVolatility | ATR expansion + squeeze + volume |
+| Range | Range | Strategy solo excluida dos reports/grids agregados; VwapReversion e BollingerFade cobrem Range |
+| Volatility | Breakout + WideIbBreakout + IntradayExpansion | ATR expansion + squeeze + volume |
 
 `NonTrend` → sempre excluído. `Undefined` → incluído por padrão (não reduzir dataset desnecessariamente).
 

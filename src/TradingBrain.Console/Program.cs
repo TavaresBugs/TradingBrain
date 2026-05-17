@@ -329,7 +329,7 @@ static int RunFullReport(string inputPath, string outputDirectory, ExecutionSett
         StrategyKind.Trend, StrategyKind.Momentum, StrategyKind.Ema,
         StrategyKind.SchoolRun, StrategyKind.OrbBreakout, StrategyKind.IbBreakout,
         StrategyKind.VwapReversion, StrategyKind.BollingerFade,
-        StrategyKind.Range, StrategyKind.Volatility,
+        StrategyKind.Volatility,
     };
 
     // 1. Run all strategies with regime filter → collect trades + summaries
@@ -691,7 +691,6 @@ static IReadOnlyList<StrategyKind> GridSearchStrategies(StrategyKind? requestedS
             StrategyKind.SchoolRun,
             StrategyKind.OrbBreakout,
             StrategyKind.IbBreakout,
-            StrategyKind.Range,
             StrategyKind.VwapReversion,
             StrategyKind.BollingerFade,
             StrategyKind.Volatility

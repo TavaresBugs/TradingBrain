@@ -87,7 +87,7 @@ public class RegimeFilterTests
     [Fact]
     public void StrategyRegimeMap_UsesValidatedIbPureMappings()
     {
-        AssertMapping("Momentum", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
+        AssertMapping("Momentum", MarketRegime.Trend);
         AssertMapping("Ema", MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion, MarketRegime.HighVolatility);
         AssertMapping("Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
         AssertMapping("IbBreakout", MarketRegime.Breakout);
@@ -99,7 +99,7 @@ public class RegimeFilterTests
         // VwapReversion: HighVolatility adicionado (+33.8 pts/trade × 17 trades)
         AssertMapping("VwapReversion", MarketRegime.Range, MarketRegime.HighVolatility);
         AssertMapping("BollingerFade", MarketRegime.Range);
-        AssertMapping("Volatility", MarketRegime.IntradayExpansion, MarketRegime.HighVolatility);
+        AssertMapping("Volatility", MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
     }
 
     [Fact]

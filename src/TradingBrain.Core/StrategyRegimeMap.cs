@@ -28,7 +28,7 @@ public static class StrategyRegimeMap
     {
         var map = new Dictionary<StrategyKind, IReadOnlyList<MarketRegime>>();
 
-        Add(map, "Momentum", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
+        Add(map, "Momentum", MarketRegime.Trend);
         Add(map, "Ema", MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion, MarketRegime.HighVolatility);
         Add(map, "Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
         Add(map, "IbBreakout", MarketRegime.Breakout);
@@ -37,7 +37,7 @@ public static class StrategyRegimeMap
         Add(map, "Range", MarketRegime.Range);
         Add(map, "VwapReversion", MarketRegime.Range, MarketRegime.HighVolatility); // +33.8 pts/trade em HV (17t)
         Add(map, "BollingerFade", MarketRegime.Range);
-        Add(map, "Volatility", MarketRegime.IntradayExpansion, MarketRegime.HighVolatility);
+        Add(map, "Volatility", MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
 
         return map;
     }

@@ -85,12 +85,18 @@ public class RegimeFilterTests
     }
 
     [Fact]
-    public void StrategyRegimeMap_SchoolRunTargetsTrend()
+    public void StrategyRegimeMap_UsesValidatedIbPureMappings()
     {
-        if (!Enum.TryParse<StrategyKind>("SchoolRun", out var schoolRun))
-            return;
-
-        Assert.Equal(new[] { MarketRegime.Trend }, StrategyRegimeMap.For(schoolRun));
+        AssertMapping("Momentum", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.Undefined);
+        AssertMapping("Ema", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.Undefined);
+        AssertMapping("Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.Undefined);
+        AssertMapping("IbBreakout", MarketRegime.Breakout, MarketRegime.Trend);
+        AssertMapping("OrbBreakout", MarketRegime.Breakout, MarketRegime.Trend, MarketRegime.Undefined);
+        AssertMapping("SchoolRun", MarketRegime.Trend, MarketRegime.Breakout);
+        AssertMapping("Range", MarketRegime.Range);
+        AssertMapping("VwapReversion", MarketRegime.Range);
+        AssertMapping("BollingerFade", MarketRegime.Range);
+        AssertMapping("Volatility", MarketRegime.Undefined, MarketRegime.HighVolatility);
     }
 
     [Fact]
@@ -101,5 +107,11 @@ public class RegimeFilterTests
             var regimes = StrategyRegimeMap.For(strategy);
             Assert.DoesNotContain(regimes, r => r.ToString().Equals("NonTrend", StringComparison.OrdinalIgnoreCase));
         }
+    }
+
+    private static void AssertMapping(string strategyName, params MarketRegime[] expected)
+    {
+        Assert.True(Enum.TryParse<StrategyKind>(strategyName, out var strategy), $"{strategyName} deve existir.");
+        Assert.Equal(expected, StrategyRegimeMap.For(strategy));
     }
 }

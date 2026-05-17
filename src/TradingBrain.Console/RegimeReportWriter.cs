@@ -81,7 +81,6 @@ public static class RegimeReportWriter
             StrategyKind.SchoolRun,
             StrategyKind.Momentum,
             StrategyKind.Ema,
-            StrategyKind.Range,
             StrategyKind.Volatility,
         };
 
@@ -263,7 +262,7 @@ public static class RegimeReportWriter
             StrategyKind.Trend, StrategyKind.Momentum, StrategyKind.Ema,
             StrategyKind.SchoolRun, StrategyKind.OrbBreakout, StrategyKind.IbBreakout,
             StrategyKind.VwapReversion, StrategyKind.BollingerFade,
-            StrategyKind.Range, StrategyKind.Volatility,
+            StrategyKind.Volatility,
         };
 
         // Header row

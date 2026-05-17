@@ -74,13 +74,17 @@ public sealed partial class StrategyBacktester
         var settings = executionSettings ?? ExecutionSettings.MnqDefault;
         var trades = new List<TradeResult>();
         StrategyBacktestRow? entry = null;
+        var entryBarIndex = -1;
         var tradeRows = new List<StrategyBacktestRow>();
 
-        foreach (var row in rows)
+        for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
         {
+            var row = rows[rowIndex];
+
             if ((row.Signal == SignalAction.Buy || row.Signal == SignalAction.Sell) && entry == null)
             {
                 entry = row;
+                entryBarIndex = rowIndex;
                 tradeRows.Clear();
                 tradeRows.Add(row);
                 continue;
@@ -102,19 +106,42 @@ public sealed partial class StrategyBacktester
                 var totalCostCurrency = settings.TotalRoundTripCostCurrency;
                 var netCurrency = grossCurrency - totalCostCurrency;
                 var netPoints = settings.CurrencyToPoints(netCurrency);
-                var excursions = tradeRows
-                    .Select(r => (r.Bar.Close - entry.Bar.Close) * direction)
-                    .ToList();
+                var excursionRows = tradeRows.Count > 1
+                    ? tradeRows.Skip(1).ToList()
+                    : tradeRows;
+                var high = excursionRows.Max(r => r.Bar.High);
+                var low = excursionRows.Min(r => r.Bar.Low);
+                var mfePoints = direction > 0
+                    ? Math.Max(0, high - entry.Bar.Close)
+                    : Math.Max(0, entry.Bar.Close - low);
+                var maePoints = direction > 0
+                    ? Math.Max(0, entry.Bar.Close - low)
+                    : Math.Max(0, high - entry.Bar.Close);
+                var bestFavorablePrice = direction > 0 ? high : low;
+                var worstAdversePrice = direction > 0 ? low : high;
                 var stopPrice = entry.StopPrice;
                 var targetPrice = entry.TargetPrice;
-                var riskPoints = Math.Abs(entry.Bar.Close - stopPrice);
-                var rMultiple = riskPoints > 0 ? grossPoints / riskPoints : 0;
+                var riskPoints = StopIsValid(entry.Bar.Close, stopPrice)
+                    ? Math.Abs(entry.Bar.Close - stopPrice)
+                    : double.NaN;
+                var rMultiple = RiskIsValid(riskPoints) ? grossPoints / riskPoints : double.NaN;
+                var maeR = RiskIsValid(riskPoints) ? maePoints / riskPoints : double.NaN;
+                var mfeR = RiskIsValid(riskPoints) ? mfePoints / riskPoints : double.NaN;
+                var barsToHalfR = BarsToThreshold(tradeRows, entry.Bar.Close, direction, riskPoints, 0.5, favorable: true);
+                var barsToOneR = BarsToThreshold(tradeRows, entry.Bar.Close, direction, riskPoints, 1.0, favorable: true);
+                var barsToOneAndHalfR = BarsToThreshold(tradeRows, entry.Bar.Close, direction, riskPoints, 1.5, favorable: true);
+                var barsToTwoR = BarsToThreshold(tradeRows, entry.Bar.Close, direction, riskPoints, 2.0, favorable: true);
+                var barsToThreeR = BarsToThreshold(tradeRows, entry.Bar.Close, direction, riskPoints, 3.0, favorable: true);
+                var barsToMinusHalfR = BarsToThreshold(tradeRows, entry.Bar.Close, direction, riskPoints, 0.5, favorable: false);
+                var barsToMinusOneR = BarsToThreshold(tradeRows, entry.Bar.Close, direction, riskPoints, 1.0, favorable: false);
 
                 trades.Add(new TradeResult(
                     entry.StrategyName,
                     direction > 0 ? "Long" : "Short",
                     entry.Bar.Time,
                     row.Bar.Time,
+                    entryBarIndex,
+                    rowIndex,
                     entry.Bar.Close,
                     row.Bar.Close,
                     Math.Max(0, tradeRows.Count - 1),
@@ -128,15 +155,37 @@ public sealed partial class StrategyBacktester
                     spreadCostCurrency,
                     commissionCostCurrency,
                     settings.Quantity,
-                    excursions.Count == 0 ? 0 : excursions.Max(),
-                    excursions.Count == 0 ? 0 : excursions.Min(),
+                    mfePoints,
+                    -maePoints,
                     entry.Reason,
                     row.Reason,
                     stopPrice,
                     targetPrice,
-                    rMultiple));
+                    rMultiple,
+                    riskPoints,
+                    maePoints,
+                    mfePoints,
+                    maeR,
+                    mfeR,
+                    bestFavorablePrice,
+                    worstAdversePrice,
+                    barsToHalfR is not null,
+                    barsToOneR is not null,
+                    barsToOneAndHalfR is not null,
+                    barsToTwoR is not null,
+                    barsToThreeR is not null,
+                    barsToMinusHalfR is not null,
+                    barsToMinusOneR is not null,
+                    barsToHalfR,
+                    barsToOneR,
+                    barsToOneAndHalfR,
+                    barsToTwoR,
+                    barsToThreeR,
+                    barsToMinusHalfR,
+                    barsToMinusOneR));
 
                 entry = null;
+                entryBarIndex = -1;
                 tradeRows.Clear();
             }
         }
@@ -184,7 +233,7 @@ public sealed partial class StrategyBacktester
     public static void ExportTradesCsv(IReadOnlyList<TradeResult> trades, string path)
     {
         using var writer = new StreamWriter(path);
-        writer.WriteLine("Strategy,Direction,EntryTime,ExitTime,EntryPrice,ExitPrice,BarsHeld,PnL,GrossPoints,NetPoints,GrossCurrency,NetCurrency,TotalCostCurrency,SlippageCostCurrency,SpreadCostCurrency,CommissionCostCurrency,Quantity,MFE,MAE,EntryReason,ExitReason,StopPrice,TargetPrice,RMultiple");
+        writer.WriteLine("Strategy,Direction,EntryTime,ExitTime,EntryBarIndex,ExitBarIndex,EntryPrice,ExitPrice,BarsHeld,PnL,GrossPoints,NetPoints,GrossCurrency,NetCurrency,TotalCostCurrency,SlippageCostCurrency,SpreadCostCurrency,CommissionCostCurrency,Quantity,MFE,MAE,EntryReason,ExitReason,StopPrice,TargetPrice,RMultiple,RiskPoints,MAEPoints,MFEPoints,MAER,MFER,BestFavorablePrice,WorstAdversePrice,HitHalfR,HitOneR,HitOneAndHalfR,HitTwoR,HitThreeR,HitMinusHalfR,HitMinusOneR,BarsToHalfR,BarsToOneR,BarsToOneAndHalfR,BarsToTwoR,BarsToThreeR,BarsToMinusHalfR,BarsToMinusOneR");
 
         foreach (var trade in trades)
         {
@@ -193,6 +242,8 @@ public sealed partial class StrategyBacktester
                 trade.Direction,
                 trade.EntryTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
                 trade.ExitTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+                trade.EntryBarIndex.ToString(CultureInfo.InvariantCulture),
+                trade.ExitBarIndex.ToString(CultureInfo.InvariantCulture),
                 F(trade.EntryPrice),
                 F(trade.ExitPrice),
                 trade.BarsHeld.ToString(CultureInfo.InvariantCulture),
@@ -212,7 +263,28 @@ public sealed partial class StrategyBacktester
                 Escape(trade.ExitReason),
                 F(trade.StopPrice),
                 F(trade.TargetPrice),
-                F(trade.RMultiple)));
+                F(trade.RMultiple),
+                F(trade.RiskPoints),
+                F(trade.MAEPoints),
+                F(trade.MFEPoints),
+                F(trade.MAER),
+                F(trade.MFER),
+                F(trade.BestFavorablePrice),
+                F(trade.WorstAdversePrice),
+                B(trade.HitHalfR),
+                B(trade.HitOneR),
+                B(trade.HitOneAndHalfR),
+                B(trade.HitTwoR),
+                B(trade.HitThreeR),
+                B(trade.HitMinusHalfR),
+                B(trade.HitMinusOneR),
+                I(trade.BarsToHalfR),
+                I(trade.BarsToOneR),
+                I(trade.BarsToOneAndHalfR),
+                I(trade.BarsToTwoR),
+                I(trade.BarsToThreeR),
+                I(trade.BarsToMinusHalfR),
+                I(trade.BarsToMinusOneR)));
         }
     }
 
@@ -250,6 +322,64 @@ public sealed partial class StrategyBacktester
                 F(summary.ReturnToDrawdown)));
         }
     }
+
+    private static int? BarsToThreshold(
+        IReadOnlyList<StrategyBacktestRow> tradeRows,
+        double entryPrice,
+        int direction,
+        double riskPoints,
+        double thresholdR,
+        bool favorable)
+    {
+        if (!RiskIsValid(riskPoints))
+        {
+            return null;
+        }
+
+        var thresholdPoints = riskPoints * thresholdR;
+        foreach (var (tradeRow, offset) in tradeRows.Select((tradeRow, offset) => (tradeRow, offset)))
+        {
+            if (offset == 0)
+            {
+                continue;
+            }
+
+            var bar = tradeRow.Bar;
+            var excursion = favorable
+                ? FavorableExcursionPoints(bar, entryPrice, direction)
+                : AdverseExcursionPoints(bar, entryPrice, direction);
+            if (excursion >= thresholdPoints)
+            {
+                return offset;
+            }
+        }
+
+        return null;
+    }
+
+    private static double FavorableExcursionPoints(MarketBar bar, double entryPrice, int direction)
+        => direction > 0
+            ? Math.Max(0, bar.High - entryPrice)
+            : Math.Max(0, entryPrice - bar.Low);
+
+    private static double AdverseExcursionPoints(MarketBar bar, double entryPrice, int direction)
+        => direction > 0
+            ? Math.Max(0, entryPrice - bar.Low)
+            : Math.Max(0, bar.High - entryPrice);
+
+    private static bool StopIsValid(double entryPrice, double stopPrice)
+        => double.IsFinite(stopPrice) &&
+           double.IsFinite(entryPrice) &&
+           stopPrice > 0 &&
+           Math.Abs(entryPrice - stopPrice) > 0;
+
+    private static bool RiskIsValid(double riskPoints)
+        => double.IsFinite(riskPoints) && riskPoints > 0;
+
+    private static string B(bool value) => value ? "true" : "false";
+
+    private static string I(int? value)
+        => value.HasValue ? value.Value.ToString(CultureInfo.InvariantCulture) : "";
 
     private static string F(double value)
     {

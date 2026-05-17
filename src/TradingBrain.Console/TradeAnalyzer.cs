@@ -81,6 +81,13 @@ public static class TradeAnalyzer
             }
 
             var cells = ParseCsvLine(line);
+            var mfe = columns.ContainsKey("MFEPoints")
+                ? D(cells, columns, "MFEPoints")
+                : D(cells, columns, "MFE");
+            var mae = columns.ContainsKey("MAEPoints")
+                ? -D(cells, columns, "MAEPoints")
+                : D(cells, columns, "MAE");
+
             yield return new AnalyzedTrade(
                 S(cells, columns, "Strategy"),
                 S(cells, columns, "Direction"),
@@ -88,13 +95,16 @@ public static class TradeAnalyzer
                 D(cells, columns, "ExitPrice"),
                 D(cells, columns, "GrossPoints"),
                 D(cells, columns, "NetPoints"),
-                D(cells, columns, "MFE"),
-                D(cells, columns, "MAE"),
+                mfe,
+                mae,
                 S(cells, columns, "EntryReason"),
                 S(cells, columns, "ExitReason"),
                 D(cells, columns, "StopPrice"),
                 D(cells, columns, "TargetPrice"),
-                D(cells, columns, "RMultiple"));
+                D(cells, columns, "RMultiple"))
+            {
+                RiskPoints = D(cells, columns, "RiskPoints")
+            };
         }
     }
 
@@ -207,7 +217,9 @@ public static class TradeAnalyzer
     }
 
     private static double RiskPoints(AnalyzedTrade trade)
-        => Math.Abs(trade.EntryPrice - trade.StopPrice);
+        => trade.RiskPoints > 0
+            ? trade.RiskPoints
+            : Math.Abs(trade.EntryPrice - trade.StopPrice);
 
     private static double Percentile(IReadOnlyList<double> values, double percentile)
     {

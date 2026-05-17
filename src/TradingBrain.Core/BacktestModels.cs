@@ -70,6 +70,8 @@ public sealed record TradeResult(
     string Direction,
     DateTime EntryTime,
     DateTime ExitTime,
+    int EntryBarIndex,
+    int ExitBarIndex,
     double EntryPrice,
     double ExitPrice,
     int BarsHeld,
@@ -89,7 +91,28 @@ public sealed record TradeResult(
     string ExitReason,
     double StopPrice = 0.0,
     double TargetPrice = 0.0,
-    double RMultiple = 0.0);
+    double RMultiple = 0.0,
+    double RiskPoints = double.NaN,
+    double MAEPoints = 0.0,
+    double MFEPoints = 0.0,
+    double MAER = double.NaN,
+    double MFER = double.NaN,
+    double BestFavorablePrice = 0.0,
+    double WorstAdversePrice = 0.0,
+    bool HitHalfR = false,
+    bool HitOneR = false,
+    bool HitOneAndHalfR = false,
+    bool HitTwoR = false,
+    bool HitThreeR = false,
+    bool HitMinusHalfR = false,
+    bool HitMinusOneR = false,
+    int? BarsToHalfR = null,
+    int? BarsToOneR = null,
+    int? BarsToOneAndHalfR = null,
+    int? BarsToTwoR = null,
+    int? BarsToThreeR = null,
+    int? BarsToMinusHalfR = null,
+    int? BarsToMinusOneR = null);
 
 public enum VolatilityExpansionMode
 {

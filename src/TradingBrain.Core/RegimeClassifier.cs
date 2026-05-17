@@ -9,6 +9,17 @@ public static class RegimeClassifier
     private const int CperiodEndHHmm = 1055;
     private const int OvernightStartHHmm = 1800;
 
+    // Thresholds calibrados empiricamente em MNQ 12 meses (mar/2025-mai/2026).
+    // Rever se o dataset mudar significativamente ou o instrumento trocar.
+    private const double NonTrendIbThreshold = 0.05;
+    private const double HighVolOvernightThreshold = 1.38;
+    private const double BreakoutOvernightThreshold = 1.0;
+    private const double BreakoutGapThreshold = 0.40;
+    private const double BreakoutIbFullThreshold = 0.75;
+    private const double TrendIbFullMaxThreshold = 0.75;
+    private const double RangeOvernightThreshold = 0.87;
+    private const double RangeIbFullMaxThreshold = 1.50;
+
     /// <summary>
     /// Classifica cada dia usando sinais IB derivados das barras de mercado.
     /// A classificacao do dia usa somente barras ate o fechamento da propria sessao.
@@ -138,33 +149,42 @@ public static class RegimeClassifier
         double gapRatio,
         out string reason)
     {
-        if (ibFullToday < 0.05)
+        if (ibFullToday < NonTrendIbThreshold)
         {
             reason = $"NonTrend: ibFull={ibFullToday:F2}";
             return MarketRegime.NonTrend;
         }
 
-        if (overnightRatio > 2.0)
+        if (overnightRatio > HighVolOvernightThreshold)
         {
             reason = $"HighVol: overnightRatio={overnightRatio:F2}";
             return MarketRegime.HighVolatility;
         }
 
-        if (openOutside && (overnightRatio > 1.0 || gapRatio > 0.40))
+        if (openOutside
+            && (overnightRatio > BreakoutOvernightThreshold
+                || gapRatio > BreakoutGapThreshold
+                || ibFullToday > BreakoutIbFullThreshold))
         {
-            reason = $"Breakout: openOutside=true overnight={overnightRatio:F2} gap={gapRatio:F2}";
+            reason = $"Breakout: openOutside=true ibFull={ibFullToday:F2} overnight={overnightRatio:F2} gap={gapRatio:F2}";
             return MarketRegime.Breakout;
         }
 
-        if (openOutside && overnightRatio <= 1.0 && gapRatio <= 0.40 && ibFullToday <= 0.75)
+        if (openOutside
+            && overnightRatio <= BreakoutOvernightThreshold
+            && gapRatio <= BreakoutGapThreshold
+            && ibFullToday <= TrendIbFullMaxThreshold)
         {
             reason = $"Trend: openOutside=true ibFull={ibFullToday:F2} overnight={overnightRatio:F2} gap={gapRatio:F2}";
             return MarketRegime.Trend;
         }
 
-        if (!openOutside && cperiodInside)
+        if (!openOutside
+            && overnightRatio <= RangeOvernightThreshold
+            && ibFullToday <= RangeIbFullMaxThreshold)
         {
-            reason = $"Range: openOutside=false cperiodInside=true ibFull={ibFullToday:F2}";
+            var cperiodNote = cperiodInside ? "cperiodInside=true" : "cperiodInside=false";
+            reason = $"Range: openOutside=false {cperiodNote} ibFull={ibFullToday:F2} overnight={overnightRatio:F2}";
             return MarketRegime.Range;
         }
 

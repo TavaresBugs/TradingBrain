@@ -88,4 +88,46 @@ public class RegimeClassifierIbRefinementTests
         Assert.True(last.CperiodInside);
         Assert.Equal(MarketRegime.Range, last.Regime);
     }
+
+    [Fact]
+    public void Classify_OpenInside_QuietOvernight_CperiodOutside_ReturnsRange()
+    {
+        var bars = PureIbScenarioFactory.MakeDays(
+            ibHighYest: 21100,
+            ibLowYest: 21000,
+            prevClose: 21050,
+            openToday: 21055,
+            ibHighToday: 21080,
+            ibLowToday: 21020,
+            cperiodHigh: 21090,
+            cperiodLow: 21025,
+            overnightHigh: 21060,
+            overnightLow: 21040);
+
+        var last = RegimeClassifier.Classify(bars).Last();
+
+        Assert.False(last.OpenOutside);
+        Assert.False(last.CperiodInside);
+        Assert.Equal(MarketRegime.Range, last.Regime);
+    }
+
+    [Fact]
+    public void Classify_OvernightAboveCalibratedThreshold_ReturnsHighVolatility()
+    {
+        var bars = PureIbScenarioFactory.MakeDays(
+            ibHighYest: 21100,
+            ibLowYest: 21000,
+            prevClose: 21050,
+            openToday: 21300,
+            ibHighToday: 21350,
+            ibLowToday: 21250,
+            cperiodHigh: 21340,
+            cperiodLow: 21260,
+            overnightHigh: 21350,
+            overnightLow: 21050);
+
+        var last = RegimeClassifier.Classify(bars).Last();
+
+        Assert.Equal(MarketRegime.HighVolatility, last.Regime);
+    }
 }

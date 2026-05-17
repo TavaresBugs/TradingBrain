@@ -82,6 +82,13 @@ if (classifyRegimeIndex >= 0)
 
 var executionSettings = ReadExecutionSettings(args);
 
+var analyzeTradesRequest = ReadAnalyzeTradesRequest(args);
+if (analyzeTradesRequest is not null)
+{
+    TradeAnalyzer.Analyze(analyzeTradesRequest.Value.InputPath, analyzeTradesRequest.Value.OutputDirectory);
+    return 0;
+}
+
 var runAllRequest = ReadRunAllRequest(args);
 if (runAllRequest is not null)
 {
@@ -665,6 +672,26 @@ static (string InputPath, string OutputDirectory)? ReadRunAllRequest(string[] ar
     return null;
 }
 
+static (string InputPath, string OutputDirectory)? ReadAnalyzeTradesRequest(string[] args)
+{
+    for (var i = 0; i < args.Length; i++)
+    {
+        if (!args[i].Equals("--analyze-trades", StringComparison.OrdinalIgnoreCase))
+        {
+            continue;
+        }
+
+        if (i + 2 >= args.Length)
+        {
+            throw new ArgumentException("Use --analyze-trades <trades.csv|pasta> <pasta-de-saida>.");
+        }
+
+        return (args[i + 1], args[i + 2]);
+    }
+
+    return null;
+}
+
 static (string SignalsPath, int DelayMs)? ReadReplayRequest(string[] args)
 {
     for (var i = 0; i < args.Length; i++)
@@ -823,6 +850,7 @@ static void PrintUsage()
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- <input.csv|txt> <output.csv> --strategy Volatility");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --run-all <input.csv|txt> <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --grid-search <input.csv|txt> <pasta> [Strategy]");
+    Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --analyze-trades <trades.csv|pasta> <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --walk-forward <input.csv|txt> <pasta> [Strategy] [--windows N]");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --classify-regime <input.csv|txt> <pasta>");
     Console.WriteLine("  dotnet run --project .\\TradingBrain.Console\\TradingBrain.Console.csproj -- --replay <signals.csv> [--delay 200]");

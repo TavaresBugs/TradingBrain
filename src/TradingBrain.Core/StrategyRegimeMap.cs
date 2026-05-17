@@ -33,7 +33,7 @@ public static class StrategyRegimeMap
         Add(map, "Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
         Add(map, "IbBreakout", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion, MarketRegime.HighVolatility);
         Add(map, "OrbBreakout", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
-        Add(map, "SchoolRun", MarketRegime.Breakout, MarketRegime.HighVolatility); // Range amplo virou rotacional: -0.4 pts/trade em SRS
+        Add(map, "SchoolRun", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
         Add(map, "Range", MarketRegime.Range);
         Add(map, "VwapReversion", MarketRegime.Range, MarketRegime.HighVolatility); // +33.8 pts/trade em HV (17t)
         Add(map, "BollingerFade", MarketRegime.Range);

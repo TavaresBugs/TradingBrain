@@ -131,7 +131,7 @@ public static class GridSearchRunner
     public static void ExportCsv(IReadOnlyList<GridSearchResult> results, string path)
     {
         using var writer = new StreamWriter(path);
-        writer.WriteLine("Strategy,RegimeFilter,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,RangeTargetRatio,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,TrendTimeExitBars,BeActivationR,ChandelierActivationR,ChandelierTrailMultiplier,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,RsiOversold,RsiOverbought,VwapReversionVolumeRatio,BbStdDev,BbFadeRsiOversold,BbFadeRsiOverbought,BbFadeTargetRatio,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsAntiMode,IbTargetMultiplier,IbUseHalfRangeStop,IbMinRangeRatio,IbMaxRangeRatio,IbRequireVolume");
+        writer.WriteLine("Strategy,RegimeFilter,Score,Trades,WinRate,ProfitFactor,Expectancy,GrossPnL,TotalCosts,NetPnL,NetProfitFactor,NetExpectancy,GrossCurrency,NetCurrency,MaxDrawdown,ReturnToDrawdown,VolMinAtr,VolMinVolume,UseSqueeze,SqueezeRatio,VolRangeMultiplier,VolExpansionMode,VwapMinDistance,RsiLongMax,RsiShortMin,VolTrailingMode,AtrChandelier,MaxBarsWithoutProfit,MinProfitAtrRatio,RangeCompression,RangeTargetRatio,MomentumMacdAtr,MomentumVolume,EmaVolume,AtrStop,TrailingBars,EmaTrailingOffset,TrendAtrStop,TrendTimeExitBars,BeActivationR,ChandelierActivationR,ChandelierTrailMultiplier,OrbAtrStop,OrbRangeStart,OrbRangeEnd,OrbMinWindowBars,OrbMinRangeAtrRatio,OrbBreakoutBuffer,OrbRequireVolume,OrbVolumeRatio,VwapReversionBand,RsiOversold,RsiOverbought,VwapReversionVolumeRatio,BbStdDev,BbFadeRsiOversold,BbFadeRsiOverbought,BbFadeTargetRatio,SessionBreakoutAtrBuffer,SessionMinRangeAtrRatio,SrsRefCandle,SrsBuffer,SrsStop,SrsTarget,SrsMinRangeAtrRatio,SrsUseRefCandleStop,IbTargetMultiplier,IbUseHalfRangeStop,IbMinRangeRatio,IbMaxRangeRatio,IbRequireVolume");
 
         foreach (var result in results)
         {
@@ -206,7 +206,8 @@ public static class GridSearchRunner
                 F(p.SrsAtrBuffer),
                 F(p.SrsAtrStopMultiplier),
                 F(p.SrsAtrTargetMultiplier),
-                p.UseAntiMode,
+                F(p.SrsMinRangeAtrRatio),
+                p.SrsUseRefCandleStop,
                 F(p.IbTargetMultiplier),
                 p.IbUseHalfRangeStop,
                 F(p.IbMinRangeRatio),
@@ -409,14 +410,15 @@ public static class GridSearchRunner
         foreach (var buffer in new[] { 0.0, 0.1, 0.2, 0.3 })
         foreach (var stop in new[] { 1.0, 1.5, 2.0, 2.5 })
         foreach (var target in new[] { 1.5, 2.0, 2.5, 3.0 })
-        foreach (var antiMode in new[] { false, true })
+        foreach (var minRange in new[] { 0.2, 0.3, 0.5 })
             yield return StrategyTuningParams.RefinedDefault with
             {
                 SrsReferenceCandle = refCandle,
                 SrsAtrBuffer = buffer,
                 SrsAtrStopMultiplier = stop,
                 SrsAtrTargetMultiplier = target,
-                UseAntiMode = antiMode
+                SrsMinRangeAtrRatio = minRange,
+                SrsUseRefCandleStop = true
             };
     }
 

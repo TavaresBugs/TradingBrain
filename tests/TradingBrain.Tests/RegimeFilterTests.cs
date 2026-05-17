@@ -92,8 +92,8 @@ public class RegimeFilterTests
         AssertMapping("Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
         AssertMapping("IbBreakout", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion, MarketRegime.HighVolatility);
         AssertMapping("OrbBreakout", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
-        // SchoolRun: Range amplo virou rotacional e degrada o SRS; manter apenas regimes de expansao.
-        AssertMapping("SchoolRun", MarketRegime.Breakout, MarketRegime.HighVolatility);
+        // SchoolRun agora e comparado ao ORB no mesmo conjunto direcional.
+        AssertMapping("SchoolRun", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
         AssertMapping("Range", MarketRegime.Range);
         // VwapReversion: HighVolatility adicionado (+33.8 pts/trade × 17 trades)
         AssertMapping("VwapReversion", MarketRegime.Range, MarketRegime.HighVolatility);

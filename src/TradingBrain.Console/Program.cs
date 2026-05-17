@@ -1082,7 +1082,6 @@ static StrategyTuningParams ReadBestParamsFromGrid(string path)
             BbFadeRsiOverbought: ReadGridInt(row, defaults.BbFadeRsiOverbought, "BbFadeRsiOverbought"),
             SessionBreakoutAtrBuffer: ReadGridDouble(row, defaults.SessionBreakoutAtrBuffer, "SessionBreakoutAtrBuffer"),
             SessionMinRangeAtrRatio: ReadGridDouble(row, defaults.SessionMinRangeAtrRatio, "SessionMinRangeAtrRatio"),
-            UseAntiMode: ReadGridBool(row, defaults.UseAntiMode, "UseAntiMode", "SrsAntiMode"),
             SrsReferenceCandle: ReadGridInt(row, defaults.SrsReferenceCandle, "SrsReferenceCandle", "SrsRefCandle"),
             OvernightRangeStartHHmmss: ReadGridInt(row, defaults.OvernightRangeStartHHmmss, "OvernightRangeStartHHmmss"),
             OvernightRangeEndHHmmss: ReadGridInt(row, defaults.OvernightRangeEndHHmmss, "OvernightRangeEndHHmmss"),
@@ -1106,7 +1105,9 @@ static StrategyTuningParams ReadBestParamsFromGrid(string path)
             ChandelierActivationRMultiple: ReadGridDouble(row, defaults.ChandelierActivationRMultiple, "ChandelierActivationRMultiple", "ChandelierActivationR"),
             ChandelierTrailMultiplier: ReadGridDouble(row, defaults.ChandelierTrailMultiplier, "ChandelierTrailMultiplier"),
             RangeTargetRatio: ReadGridDouble(row, defaults.RangeTargetRatio, "RangeTargetRatio"),
-            BbFadeTargetRatio: ReadGridDouble(row, defaults.BbFadeTargetRatio, "BbFadeTargetRatio"));
+            BbFadeTargetRatio: ReadGridDouble(row, defaults.BbFadeTargetRatio, "BbFadeTargetRatio"),
+            SrsMinRangeAtrRatio: ReadGridDouble(row, defaults.SrsMinRangeAtrRatio, "SrsMinRangeAtrRatio", "SrsMinRange"),
+            SrsUseRefCandleStop: ReadGridBool(row, defaults.SrsUseRefCandleStop, "SrsUseRefCandleStop", "SrsUseRefStop"));
     }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException or ArgumentException)
     {

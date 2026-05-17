@@ -159,7 +159,6 @@ public sealed record StrategyTuningParams(
     int BbFadeRsiOverbought = 65,
     double SessionBreakoutAtrBuffer = 0.1,
     double SessionMinRangeAtrRatio = 0.5,
-    bool UseAntiMode = false,
     int SrsReferenceCandle = 2,
     int OvernightRangeStartHHmmss = 0,
     int OvernightRangeEndHHmmss = 93000,
@@ -184,7 +183,9 @@ public sealed record StrategyTuningParams(
     double ChandelierActivationRMultiple = 0.75,
     double ChandelierTrailMultiplier = 2.0,
     double RangeTargetRatio = 1.0,
-    double BbFadeTargetRatio = 1.0)
+    double BbFadeTargetRatio = 1.0,
+    double SrsMinRangeAtrRatio = 0.3,
+    bool SrsUseRefCandleStop = true)
 {
     public static StrategyTuningParams RefinedDefault { get; } = new();
 
@@ -212,7 +213,6 @@ public sealed record StrategyTuningParams(
         BbFadeRsiOverbought: 65,
         SessionBreakoutAtrBuffer: 0.1,
         SessionMinRangeAtrRatio: 0.5,
-        UseAntiMode: false,
         SrsReferenceCandle: 2,
         OvernightRangeStartHHmmss: 0,
         OvernightRangeEndHHmmss: 93000,
@@ -232,7 +232,9 @@ public sealed record StrategyTuningParams(
         IbMaxRangeRatio: 10.0,
         IbRequireVolume: false,
         RangeTargetRatio: 1.0,
-        BbFadeTargetRatio: 1.0);
+        BbFadeTargetRatio: 1.0,
+        SrsMinRangeAtrRatio: 0.3,
+        SrsUseRefCandleStop: true);
 }
 
 public sealed record GridSearchResult(

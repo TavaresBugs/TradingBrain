@@ -87,10 +87,10 @@ public class RegimeFilterTests
     [Fact]
     public void StrategyRegimeMap_UsesValidatedIbPureMappings()
     {
-        AssertMapping("Momentum", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.IntradayExpansion);
-        AssertMapping("Ema", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.IntradayExpansion);
-        AssertMapping("Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.IntradayExpansion);
-        AssertMapping("IbBreakout", MarketRegime.Breakout, MarketRegime.Trend);
+        AssertMapping("Momentum", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
+        AssertMapping("Ema", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
+        AssertMapping("Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
+        AssertMapping("IbBreakout", MarketRegime.Breakout);
         AssertMapping("OrbBreakout", MarketRegime.Breakout, MarketRegime.Trend, MarketRegime.IntradayExpansion);
         AssertMapping("SchoolRun", MarketRegime.Breakout);
         AssertMapping("Range", MarketRegime.Range);

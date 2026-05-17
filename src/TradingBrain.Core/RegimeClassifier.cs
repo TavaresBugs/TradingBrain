@@ -162,9 +162,16 @@ public static class RegimeClassifier
         }
 
         if (openOutside
+            && ibFullToday > BreakoutIbFullThreshold)
+        {
+            reason = $"WideIbBreakout: openOutside=true ibFull={ibFullToday:F2} overnight={overnightRatio:F2} gap={gapRatio:F2}";
+            return MarketRegime.WideIbBreakout;
+        }
+
+        if (openOutside
+            && ibFullToday <= BreakoutIbFullThreshold
             && (overnightRatio > BreakoutOvernightThreshold
-                || gapRatio > BreakoutGapThreshold
-                || ibFullToday > BreakoutIbFullThreshold))
+                || gapRatio > BreakoutGapThreshold))
         {
             reason = $"Breakout: openOutside=true ibFull={ibFullToday:F2} overnight={overnightRatio:F2} gap={gapRatio:F2}";
             return MarketRegime.Breakout;

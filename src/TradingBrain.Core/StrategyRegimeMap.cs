@@ -28,10 +28,10 @@ public static class StrategyRegimeMap
     {
         var map = new Dictionary<StrategyKind, IReadOnlyList<MarketRegime>>();
 
-        Add(map, "Momentum", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.IntradayExpansion);
-        Add(map, "Ema", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.IntradayExpansion);
-        Add(map, "Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.IntradayExpansion);
-        Add(map, "IbBreakout", MarketRegime.Breakout, MarketRegime.Trend);
+        Add(map, "Momentum", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
+        Add(map, "Ema", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
+        Add(map, "Trend", MarketRegime.Trend, MarketRegime.Breakout, MarketRegime.WideIbBreakout, MarketRegime.IntradayExpansion);
+        Add(map, "IbBreakout", MarketRegime.Breakout);
         Add(map, "OrbBreakout", MarketRegime.Breakout, MarketRegime.Trend, MarketRegime.IntradayExpansion);
         Add(map, "SchoolRun", MarketRegime.Breakout);
         Add(map, "Range", MarketRegime.Range);

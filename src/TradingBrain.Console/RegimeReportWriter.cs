@@ -285,6 +285,7 @@ public static class RegimeReportWriter
     {
         MarketRegime.Trend => "#4caf50",
         MarketRegime.Breakout => "#2196f3",
+        MarketRegime.WideIbBreakout => "#3f51b5",
         MarketRegime.IntradayExpansion => "#00acc1",
         MarketRegime.Range => "#ff9800",
         MarketRegime.HighVolatility => "#f44336",

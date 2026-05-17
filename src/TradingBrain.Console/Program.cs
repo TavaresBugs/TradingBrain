@@ -130,6 +130,12 @@ if (runAllRequest is not null)
     return RunAllStrategies(runAllRequest.Value.InputPath, runAllRequest.Value.OutputDirectory, executionSettings);
 }
 
+var fullReportRequest = ReadFullReportRequest(args);
+if (fullReportRequest is not null)
+{
+    return RunFullReport(fullReportRequest.Value.InputPath, fullReportRequest.Value.OutputDirectory, executionSettings);
+}
+
 var walkForwardRequest = ReadWalkForwardRequest(args);
 if (walkForwardRequest is not null)
 {
@@ -297,6 +303,104 @@ static int RunAllStrategies(string inputPath, string outputDirectory, ExecutionS
     Console.WriteLine($"Saidas geradas em: {outputDirectory}");
     Console.WriteLine($"Manifesto: {manifestPath}");
     return 0;
+}
+
+static int RunFullReport(string inputPath, string outputDirectory, ExecutionSettings executionSettings)
+{
+    if (!TryReadBars(inputPath, out var bars))
+        return 1;
+
+    Directory.CreateDirectory(outputDirectory);
+    Console.WriteLine($"=== Full Report: {bars.Count} barras → {outputDirectory} ===");
+
+    var allStrategies = new[]
+    {
+        StrategyKind.Trend, StrategyKind.Momentum, StrategyKind.Ema,
+        StrategyKind.SchoolRun, StrategyKind.OrbBreakout, StrategyKind.IbBreakout,
+        StrategyKind.VwapReversion, StrategyKind.BollingerFade,
+        StrategyKind.Range, StrategyKind.Volatility,
+    };
+
+    // 1. Run all strategies with regime filter → collect trades + summaries
+    var allTrades = new List<TradeResult>();
+    var allSummaries = new List<BacktestSummary>();
+    var regimes = RegimeClassifier.Classify(bars);
+    var regimeByDate = regimes.ToDictionary(r => r.Date);
+
+    foreach (var strategy in allStrategies)
+    {
+        var allowed = StrategyRegimeMap.For(strategy);
+        var filteredBars = allowed.Count == 0
+            ? bars
+            : RegimeFilter.Apply(bars, allowed);
+
+        var backtester = new StrategyBacktester(strategy, StrategyTuningParams.RefinedDefault);
+        var rows = backtester.Run(filteredBars);
+        var trades = StrategyBacktester.ExtractTrades(rows, executionSettings);
+        var summary = StrategyBacktester.Summarize(rows, executionSettings);
+        allTrades.AddRange(trades);
+        allSummaries.Add(summary);
+        Console.WriteLine($"  {strategy}: {trades.Count} trades, NetPnL={summary.NetPnL:0.#}");
+    }
+
+    // 2. Write CSVs
+    var tradesCsvPath = Path.Combine(outputDirectory, "trades_combined.csv");
+    var summaryCsvPath = Path.Combine(outputDirectory, "summary_combined.csv");
+    StrategyBacktester.ExportTradesCsv(allTrades, tradesCsvPath);
+    StrategyBacktester.ExportSummaryCsv(allSummaries, summaryCsvPath);
+
+    // 3. grid_search.html (HtmlReportWriter) with equity curve / scatter / trade list
+    var split = DataSplit.SplitChronological(bars, 0.65);
+    var comparisonRows = new List<GridSearchResult>();
+    foreach (var strategy in allStrategies)
+        comparisonRows.AddRange(RunGridSearchForStrategy(strategy, split, outputDirectory, executionSettings, new List<string>(), true));
+
+    var regimeDistribution = RegimeFilter.CountDaysByRegime(bars);
+    var totalDays = bars.Select(b => b.Time.Date).Distinct().Count();
+    var filteredDays = split.InSample.Select(b => b.Time.Date).Distinct().Count();
+
+    var gridHtmlPath = Path.Combine(outputDirectory, "grid_search.html");
+    HtmlReportWriter.ExportGridSearchHtml(
+        comparisonRows.Where(r => r.Summary.IsLabel == "IS").ToList(),
+        comparisonRows.Where(r => r.Summary.IsLabel == "OOS").ToList(),
+        regimeDistribution,
+        allStrategies[0],
+        filteredDays,
+        totalDays,
+        executionSettings,
+        gridHtmlPath,
+        allTrades);
+
+    // 4. trade_analysis.html (TradeAnalyzer HTML)
+    var taPath = Path.Combine(outputDirectory, "trade_analysis.html");
+    TradeAnalyzer.Analyze(tradesCsvPath, outputDirectory);
+
+    // 5. regime_report.html (RegimeReportWriter with matrix)
+    var rrHtml = RegimeReportWriter.Build(bars, executionSettings);
+    var rrPath = Path.Combine(outputDirectory, "regime_report.html");
+    File.WriteAllText(rrPath, rrHtml, System.Text.Encoding.UTF8);
+
+    Console.WriteLine($"grid_search.html    → {gridHtmlPath}");
+    Console.WriteLine($"trade_analysis.html → {taPath}");
+    Console.WriteLine($"regime_report.html  → {rrPath}");
+    Console.WriteLine($"trades_combined.csv → {tradesCsvPath}");
+    Console.WriteLine($"summary_combined.csv → {summaryCsvPath}");
+    return 0;
+}
+
+static (string InputPath, string OutputDirectory)? ReadFullReportRequest(string[] args)
+{
+    for (var i = 0; i < args.Length; i++)
+    {
+        if (!args[i].Equals("--full-report", StringComparison.OrdinalIgnoreCase))
+            continue;
+
+        if (i + 2 >= args.Length)
+            throw new ArgumentException("Use --full-report <input.csv> <output_dir> [execution flags].");
+
+        return (args[i + 1], args[i + 2]);
+    }
+    return null;
 }
 
 static int RunGridSearch(

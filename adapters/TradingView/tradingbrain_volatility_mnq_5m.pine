@@ -1,0 +1,178 @@
+//@version=5
+strategy("TradingBrain Volatility v2 - MNQ1! 5m", overlay=true, default_qty_type=strategy.fixed, default_qty_value=1, pyramiding=0, process_orders_on_close=false, calc_on_order_fills=false, calc_on_every_tick=false, commission_type=strategy.commission.cash_per_contract, commission_value=0.54, slippage=1)
+
+// Mirrors TradingBrain.Console/StrategyRules.cs EvaluateVolatility.
+// TradingView cash_per_contract is charged per order fill, so 0.54 means
+// about 1.08 round-trip commission for one MNQ contract.
+// Slippage is fixed at 1 tick; opening-window fills may be worse in live trading.
+// StrategyDefaults.Volatility:
+// SessionStartHHmmss=93000, SessionEndHHmmss=101000, CloseAllHHmmss=101000,
+// TimeExitBars=11, TargetPoints=40, StopPoints=8, AtrMultiplier=3.4,
+// AtrMultiplierTp=3.4, VolumeThreshold=1.2, MaxDrawdownPoints=8.
+// EvaluateVolatility uses CloseAllHHmmss and MaxDrawdownPoints directly.
+
+// StrategyTuningParams used by EvaluateVolatility.
+GROUP_TUNING = "StrategyTuningParams"
+volatilityMinAtrRatio = input.float(1.2, "VolatilityMinAtrRatio", minval=0.0, step=0.1, group=GROUP_TUNING)
+volatilityMinVolumeRatio = input.float(1.5, "VolatilityMinVolumeRatio", minval=0.0, step=0.1, group=GROUP_TUNING)
+useSqueezeFilter = input.bool(false, "UseSqueezeFilter", group=GROUP_TUNING)
+volatilitySqueezeRatio = input.float(0.95, "VolatilitySqueezeRatio", minval=0.0, step=0.05, group=GROUP_TUNING)
+volatilityRangeMultiplier = input.float(1.5, "VolatilityRangeMultiplier", minval=0.0, step=0.1, group=GROUP_TUNING)
+volatilityExpansionMode = input.string("Atr", "VolatilityExpansionMode", options=["Atr", "CandleRange", "AtrAndCandleRange"], group=GROUP_TUNING)
+vwapMinDistance = input.float(0.001, "VwapMinDistance", minval=0.0, step=0.001, group=GROUP_TUNING)
+rsiLongMax = input.float(70.0, "RsiLongMax", minval=0.0, maxval=100.0, step=1.0, group=GROUP_TUNING)
+rsiShortMin = input.float(30.0, "RsiShortMin", minval=0.0, maxval=100.0, step=1.0, group=GROUP_TUNING)
+volatilityTrailingMode = input.string("VwapEmaChandelier", "VolatilityTrailingMode", options=["VwapEmaChandelier", "AtrChandelier"], group=GROUP_TUNING)
+atrChandelierMultiplier = input.float(3.0, "AtrChandelierMultiplier", minval=0.0, step=0.1, group=GROUP_TUNING)
+maxBarsWithoutProfit = input.int(5, "MaxBarsWithoutProfit", minval=1, group=GROUP_TUNING)
+minProfitAtrRatio = input.float(1.0, "MinProfitAtrRatio", minval=0.0, step=0.1, group=GROUP_TUNING)
+atrStopMultiplier = input.float(1.5, "AtrStopMultiplier", minval=0.0, step=0.1, group=GROUP_TUNING)
+trailingActivationBars = input.int(3, "TrailingActivationBars", minval=0, group=GROUP_TUNING)
+
+// Fixed periods from BuildMetrics in StrategyRules.cs.
+NY_TZ = "America/New_York"
+DEFAULT_SESSION_START_HHMMSS = 93000
+DEFAULT_CLOSE_ALL_HHMMSS = 101000
+DEFAULT_MAX_DRAWDOWN_POINTS = 8.0
+EMA_FAST_PERIOD = 9
+EMA_SLOW_PERIOD = 21
+RSI_PERIOD = 14
+ATR_PERIOD = 14
+ATR_SMA_PERIOD = 14
+CANDLE_RANGE_SMA_PERIOD = 14
+VOLUME_SMA_PERIOD = 20
+
+// C# TechnicalIndicators.Ema: first value is SMA(period), then standard EMA.
+emaFastSeed = ta.sma(close, EMA_FAST_PERIOD)
+emaSlowSeed = ta.sma(close, EMA_SLOW_PERIOD)
+var float emaFast = na
+var float emaSlow = na
+emaFast := na(emaFast[1]) ? emaFastSeed : (close - emaFast[1]) * (2.0 / (EMA_FAST_PERIOD + 1.0)) + emaFast[1]
+emaSlow := na(emaSlow[1]) ? emaSlowSeed : (close - emaSlow[1]) * (2.0 / (EMA_SLOW_PERIOD + 1.0)) + emaSlow[1]
+
+// C# TechnicalIndicators.Rsi: Wilder RSI seeded with simple average gain/loss.
+closeChange = close - close[1]
+gain = na(closeChange) ? na : math.max(closeChange, 0.0)
+loss = na(closeChange) ? na : math.max(-closeChange, 0.0)
+gainSeed = ta.sma(gain, RSI_PERIOD)
+lossSeed = ta.sma(loss, RSI_PERIOD)
+var float avgGain = na
+var float avgLoss = na
+avgGain := na(closeChange) ? na : na(avgGain[1]) ? gainSeed : (avgGain[1] * (RSI_PERIOD - 1) + gain) / RSI_PERIOD
+avgLoss := na(closeChange) ? na : na(avgLoss[1]) ? lossSeed : (avgLoss[1] * (RSI_PERIOD - 1) + loss) / RSI_PERIOD
+rsi = na(avgGain) or na(avgLoss) ? na : avgLoss == 0.0 ? 100.0 : 100.0 - 100.0 / (1.0 + avgGain / avgLoss)
+
+// C# TechnicalIndicators.Atr: true range starts on the second bar, then Wilder ATR.
+trueRange = na(close[1]) ? na : math.max(high - low, math.max(math.abs(high - close[1]), math.abs(low - close[1])))
+atrSeed = ta.sma(trueRange, ATR_PERIOD)
+var float atr = na
+atr := na(trueRange) ? na : na(atr[1]) ? atrSeed : (atr[1] * (ATR_PERIOD - 1) + trueRange) / ATR_PERIOD
+atrPrev = atr[1]
+atrSma = ta.sma(atr, ATR_SMA_PERIOD)
+candleRangeSma = ta.sma(high - low, CANDLE_RANGE_SMA_PERIOD)
+volumeSma = ta.sma(volume, VOLUME_SMA_PERIOD)
+highest3 = ta.highest(high, 3)
+lowest3 = ta.lowest(low, 3)
+
+// C# TechnicalIndicators.Vwap over all bars from the same date.
+typicalPrice = (high + low + close) / 3.0
+dayKey = year(time, NY_TZ) * 10000 + month(time, NY_TZ) * 100 + dayofmonth(time, NY_TZ)
+isNewDay = nz(ta.change(dayKey), 0) != 0
+var float dailyPv = na
+var float dailyVolume = na
+if na(dailyPv) or isNewDay
+    dailyPv := typicalPrice * volume
+    dailyVolume := volume
+else
+    dailyPv += typicalPrice * volume
+    dailyVolume += volume
+vwap = dailyVolume == 0.0 ? na : dailyPv / dailyVolume
+
+// 09:30-10:10 ET entry window; C# exits and blocks new entries at 10:10:00 or later.
+nyHhmmss = hour(time, NY_TZ) * 10000 + minute(time, NY_TZ) * 100 + second(time, NY_TZ)
+inEntryWindow = nyHhmmss >= DEFAULT_SESSION_START_HHMMSS and nyHhmmss < DEFAULT_CLOSE_ALL_HHMMSS
+atOrAfterCloseAll = nyHhmmss >= DEFAULT_CLOSE_ALL_HHMMSS
+
+// Track bars since the actual TradingView fill. With process_orders_on_close=false,
+// entries and closes submitted on this bar fill on the next bar open.
+var int entryBarIndex = na
+previousPositionSize = nz(strategy.position_size[1], 0.0)
+if strategy.position_size != 0 and previousPositionSize == 0
+    entryBarIndex := bar_index
+if strategy.position_size == 0 and previousPositionSize != 0
+    entryBarIndex := na
+barsSinceEntry = na(entryBarIndex) ? 0 : bar_index - entryBarIndex
+openProfitPoints = strategy.position_size > 0 ? close - strategy.position_avg_price : strategy.position_size < 0 ? strategy.position_avg_price - close : 0.0
+
+// Do not evaluate until every metric required by IndicatorsReady is finite.
+indicatorsReady = not na(emaFast) and not na(emaSlow) and not na(rsi) and not na(vwap) and not na(atr) and not na(atrSma) and not na(candleRangeSma) and not na(volumeSma) and not na(highest3) and not na(lowest3)
+
+// Exit logic. All stops/trailing checks are close-confirmed; no intrabar touch exits.
+string exitReason = ""
+trailingLong = math.max(vwap, emaSlow)
+trailingShort = math.min(vwap, emaSlow)
+atrTrailingLong = highest3 - atr * atrChandelierMultiplier
+atrTrailingShort = lowest3 + atr * atrChandelierMultiplier
+
+if barstate.isconfirmed and indicatorsReady and strategy.position_size > 0
+    if atOrAfterCloseAll
+        exitReason := "Fora da janela operacional"
+    else if openProfitPoints <= -DEFAULT_MAX_DRAWDOWN_POINTS
+        exitReason := "MaxDrawdown atingido"
+    else if close <= strategy.position_avg_price - atr * atrStopMultiplier
+        exitReason := "Stop ATR long"
+    else if barsSinceEntry > trailingActivationBars and volatilityTrailingMode == "VwapEmaChandelier" and close < trailingLong
+        exitReason := "Chandelier long - fechamento abaixo do trailing"
+    else if barsSinceEntry > trailingActivationBars and volatilityTrailingMode == "AtrChandelier" and close < atrTrailingLong
+        exitReason := "ATR Chandelier long - fechamento abaixo do trailing"
+    else if barsSinceEntry <= trailingActivationBars and rsi > 75.0
+        exitReason := "RSI extremo long"
+    else if barsSinceEntry >= maxBarsWithoutProfit and openProfitPoints < atr * minProfitAtrRatio
+        exitReason := "Tempo maximo sem lucro minimo"
+
+if barstate.isconfirmed and indicatorsReady and strategy.position_size < 0
+    if atOrAfterCloseAll
+        exitReason := "Fora da janela operacional"
+    else if openProfitPoints <= -DEFAULT_MAX_DRAWDOWN_POINTS
+        exitReason := "MaxDrawdown atingido"
+    else if close >= strategy.position_avg_price + atr * atrStopMultiplier
+        exitReason := "Stop ATR short"
+    else if barsSinceEntry > trailingActivationBars and volatilityTrailingMode == "VwapEmaChandelier" and close > trailingShort
+        exitReason := "Chandelier short - fechamento acima do trailing"
+    else if barsSinceEntry > trailingActivationBars and volatilityTrailingMode == "AtrChandelier" and close > atrTrailingShort
+        exitReason := "ATR Chandelier short - fechamento acima do trailing"
+    else if barsSinceEntry <= trailingActivationBars and rsi < 25.0
+        exitReason := "RSI extremo short"
+    else if barsSinceEntry >= maxBarsWithoutProfit and openProfitPoints < atr * minProfitAtrRatio
+        exitReason := "Tempo maximo sem lucro minimo"
+
+if exitReason != ""
+    if strategy.position_size > 0
+        strategy.close("Long", comment=exitReason)
+    else if strategy.position_size < 0
+        strategy.close("Short", comment=exitReason)
+
+// Entry filters: squeeze, expansion mode, volume, EMA trend, VWAP distance, and RSI bounds.
+squeezeOk = not useSqueezeFilter or atrPrev <= atrSma * volatilitySqueezeRatio
+atrExpansionOk = atr > atrSma * volatilityMinAtrRatio
+rangeExpansionOk = high - low > candleRangeSma * volatilityRangeMultiplier
+expansionOk = switch volatilityExpansionMode
+    "CandleRange" => rangeExpansionOk
+    "AtrAndCandleRange" => atrExpansionOk and rangeExpansionOk
+    => atrExpansionOk
+volatilityOk = expansionOk and volume > volumeSma * volatilityMinVolumeRatio
+vwapLongOk = close > vwap * (1.0 + vwapMinDistance)
+vwapShortOk = close < vwap * (1.0 - vwapMinDistance)
+longTrend = emaFast > emaSlow and vwapLongOk and rsi >= 50.0 and rsi <= rsiLongMax
+shortTrend = emaFast < emaSlow and vwapShortOk and rsi >= rsiShortMin and rsi <= 50.0
+
+// Entries are submitted only while flat and fill on the next bar open.
+if barstate.isconfirmed and indicatorsReady and strategy.position_size == 0 and inEntryWindow
+    if volatilityOk and squeezeOk and longTrend
+        strategy.entry("Long", strategy.long, comment="Squeeze bullish com volume")
+    else if volatilityOk and squeezeOk and shortTrend
+        strategy.entry("Short", strategy.short, comment="Squeeze bearish com volume")
+
+plot(emaFast, "EMA9", color=color.new(color.teal, 0))
+plot(emaSlow, "EMA21", color=color.new(color.orange, 0))
+plot(vwap, "Daily VWAP", color=color.new(color.blue, 0))

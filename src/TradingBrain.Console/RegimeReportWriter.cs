@@ -17,6 +17,7 @@ public static class RegimeReportWriter
         sb.Append(BuildStrategyResults(bars, settings));
         sb.Append(BuildUndefinedBreakdown(regimes));
         sb.Append(BuildMonthlyByRegime(regimes));
+        sb.Append(BuildRegimeStrategyMatrix(bars, regimes, settings));
 
         return WrapHtml(sb.ToString(), regimes.Count);
     }
@@ -234,6 +235,86 @@ public static class RegimeReportWriter
                 <tr><th>Mes</th>{headers}<th>Total</th></tr>
                 {string.Join("\n", monthly)}
               </table>
+            </section>
+            """;
+    }
+
+    private static string BuildRegimeStrategyMatrix(
+        IReadOnlyList<MarketBar> bars,
+        IReadOnlyList<DayRegime> regimes,
+        ExecutionSettings settings)
+    {
+        // Target regimes (columns) — excludes NonTrend and Undefined per project rules
+        var targetRegimes = new[]
+        {
+            MarketRegime.Trend,
+            MarketRegime.Breakout,
+            MarketRegime.Range,
+            MarketRegime.HighVolatility,
+            MarketRegime.NonTrend,
+        };
+
+        // Build date→regime lookup
+        var regimeByDate = regimes.ToDictionary(r => r.Date);
+
+        var strategies = new[]
+        {
+            StrategyKind.Trend, StrategyKind.Momentum, StrategyKind.Ema,
+            StrategyKind.SchoolRun, StrategyKind.OrbBreakout, StrategyKind.IbBreakout,
+            StrategyKind.VwapReversion, StrategyKind.BollingerFade,
+            StrategyKind.Range, StrategyKind.Volatility,
+        };
+
+        // Header row
+        var headerCells = string.Join("", targetRegimes.Select(r =>
+            $"<th style=\"color:{RegimeColor(r)}\">{r}</th>"));
+
+        var bodyRows = new StringBuilder();
+        foreach (var strategy in strategies)
+        {
+            // Run WITHOUT regime filter so every trade gets a regime tag
+            var backtester = new StrategyBacktester(strategy);
+            var rows = backtester.Run(bars);
+            var trades = StrategyBacktester.ExtractTrades(rows, settings);
+
+            // Group trades by regime
+            var tradesByRegime = trades
+                .GroupBy(t =>
+                {
+                    var date = DateOnly.FromDateTime(t.EntryTime);
+                    return regimeByDate.TryGetValue(date, out var dr) ? dr.Regime : MarketRegime.Undefined;
+                })
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var cells = string.Join("", targetRegimes.Select(regime =>
+            {
+                if (!tradesByRegime.TryGetValue(regime, out var ts) || ts.Count == 0)
+                    return "<td style=\"color:#666\">—</td>";
+
+                var avgNetPnl = ts.Average(t => t.NetPoints);
+                var bgColor = avgNetPnl > 5 ? "rgba(76,175,80,0.18)"
+                    : avgNetPnl > 0 ? "rgba(255,193,7,0.18)"
+                    : "rgba(244,67,54,0.18)";
+                var textColor = avgNetPnl > 5 ? "#2e7d32"
+                    : avgNetPnl > 0 ? "#7c5700"
+                    : "#c62828";
+                return $"<td style=\"background:{bgColor};color:{textColor};font-weight:600\">{avgNetPnl:F1}<br><small style=\"font-weight:normal;font-size:0.8em\">{ts.Count}t</small></td>";
+            }));
+
+            var mapped = StrategyRegimeMap.For(strategy);
+            var mappedLabel = mapped.Count == 0 ? "All" : string.Join("+", mapped.Select(r => r.ToString()));
+            bodyRows.AppendLine($"<tr><td><b>{strategy}</b></td><td class=\"dim\">{mappedLabel}</td>{cells}</tr>");
+        }
+
+        return $"""
+            <section>
+              <h2>5 - Regime × Strategy Matrix <span class="sub">(NetPnL médio por trade, sem filtro de regime)</span></h2>
+              <p style="color:#888;font-size:0.85em">Verde = &gt;5pts/trade; Amarelo = 0–5pts; Vermelho = negativo. Célula vazia = sem trades nesse regime.</p>
+              <table>
+                <tr><th>Strategy</th><th>Mapeado para</th>{headerCells}</tr>
+                {bodyRows}
+              </table>
+              <p style="color:#888;font-size:0.82em;margin-top:8px">Interpretação: se uma strategy tem PnL positivo num regime onde não está mapeada, pode indicar oportunidade de expansão.</p>
             </section>
             """;
     }

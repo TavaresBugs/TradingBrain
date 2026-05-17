@@ -15,7 +15,8 @@ public static class HtmlReportWriter
         int filteredDays,
         int totalDays,
         ExecutionSettings settings,
-        string path)
+        string path,
+        IReadOnlyList<TradeResult>? trades = null)
     {
         ArgumentNullException.ThrowIfNull(isResults);
         ArgumentNullException.ThrowIfNull(oosResults);
@@ -171,6 +172,14 @@ public static class HtmlReportWriter
         sb.AppendLine("</table>");
         sb.AppendLine("</div>");
         sb.AppendLine("</section>");
+
+        // ── New visual sections (Tasks 1a, 1c, 1b) ──────────────────────────
+        if (trades is { Count: > 0 })
+        {
+            sb.AppendLine(EquityCurveRenderer.RenderEquityCurveSection(trades));
+            sb.AppendLine(EquityCurveRenderer.RenderMfeMaeSection(trades));
+            sb.AppendLine(EquityCurveRenderer.RenderTradeDetailSection(trades));
+        }
 
         sb.AppendLine("</main>");
         sb.AppendLine("<script>document.documentElement.dataset.ready='true';</script>");
@@ -456,12 +465,37 @@ public static class HtmlReportWriter
         .pnl-fill.is { background: var(--is); }
         .pnl-fill.oos { background: var(--oos); }
         .pnl-fill.neg { background: var(--neg); }
+        /* ── Equity curve & scatter extras ── */
+        .eq-legend { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
+        .eq-legend-item { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); }
+        .eq-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+        .eq-metrics-grid { display:flex; flex-wrap:wrap; gap:12px; margin-top:14px; }
+        .eq-strat-card { background:#f6f8fb; border-radius:8px; padding:12px 14px; flex:1 1 220px; }
+        .eq-strat-name { font-weight:700; font-size:13px; margin-bottom:8px; }
+        .eq-strat-metrics { display:flex; flex-wrap:wrap; gap:8px; }
+        .eq-chip { background:#fff; border:1px solid var(--line); border-radius:6px; padding:5px 9px; font-size:12px; display:flex; flex-direction:column; }
+        .eq-chip-label { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.5px; }
+        .eq-chip-value { font-weight:600; margin-top:2px; }
+        /* Scatter layout */
+        .scatter-layout { display:grid; grid-template-columns:minmax(0,1.4fr) 280px; gap:20px; align-items:start; }
+        .scatter-metrics { display:flex; flex-direction:column; gap:10px; padding-top:4px; }
+        .scatter-metric { padding:12px 14px; border-radius:8px; border-left:4px solid transparent; background:#f6f8fb; }
+        .scatter-metric.good { border-color:var(--oos); }
+        .scatter-metric.bad  { border-color:var(--neg); }
+        .scatter-metric.warn { border-color:#b7791f; }
+        .sm-label { display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+        .sm-value { font-size:14px; font-weight:600; }
+        /* Trade detail table */
+        .trade-detail-table { min-width:1100px; }
+        .trade-win td { background:rgba(29,158,117,0.06); }
+        .trade-loss td { background:rgba(226,75,74,0.06); }
         @media (max-width: 980px) {
           .page { padding: 18px; }
           .header { align-items: flex-start; flex-direction: column; }
           .run-meta { justify-content: flex-start; }
           .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .grid-two { grid-template-columns: 1fr; }
+          .scatter-layout { grid-template-columns: 1fr; }
         }
         @media (max-width: 560px) {
           h1 { font-size: 24px; }

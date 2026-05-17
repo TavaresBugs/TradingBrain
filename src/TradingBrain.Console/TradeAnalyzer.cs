@@ -39,7 +39,54 @@ public static class TradeAnalyzer
 
         ExportTradeAnalysisCsv(summaries, Path.Combine(outputDirectory, "trade_analysis.csv"));
         ExportExitReasonsCsv(exitReasons, Path.Combine(outputDirectory, "exit_reasons.csv"));
+        ExportHtmlInternal(summaries, exitReasons, trades, Path.Combine(outputDirectory, "trade_analysis.html"));
         PrintSummary(summaries, exitReasons);
+    }
+
+    private static void ExportHtmlInternal(
+        IReadOnlyList<StrategyTradeSummary> summaries,
+        IReadOnlyList<ExitReasonSummary> exitReasons,
+        IReadOnlyList<AnalyzedTrade> trades,
+        string path)
+    {
+        var dtoTrades = trades
+            .Select(t => new AnalyzerTrade(
+                t.Strategy,
+                t.RMultiple,
+                t.HitHalfR,
+                t.HitOneR,
+                t.HitOneAndHalfR,
+                t.HitTwoR,
+                t.HitThreeR,
+                t.HitMinusHalfR,
+                t.HitMinusOneR,
+                t.ExitReason))
+            .ToList();
+
+        var dtoSummaries = summaries.Select(s =>
+        {
+            var stratTrades = trades.Where(t => t.Strategy == s.Strategy).ToList();
+            var n = stratTrades.Count;
+            static double Pct(IReadOnlyList<AnalyzedTrade> ts, Func<AnalyzedTrade, bool> pred)
+                => ts.Count == 0 ? 0 : ts.Count(pred) * 100.0 / ts.Count;
+            return new AnalyzerTradeSummary(
+                s.Strategy, n, s.WinRate,
+                Pct(stratTrades, t => t.HitHalfR),
+                Pct(stratTrades, t => t.HitOneR),
+                Pct(stratTrades, t => t.HitOneAndHalfR),
+                Pct(stratTrades, t => t.HitTwoR),
+                Pct(stratTrades, t => t.HitThreeR),
+                Pct(stratTrades, t => t.HitMinusHalfR),
+                Pct(stratTrades, t => t.HitMinusOneR));
+        }).ToList();
+
+        var dtoExitReasons = exitReasons
+            .Select(r => new AnalyzerExitReason(r.Strategy, r.ExitReason, r.Count, r.StrategyTrades))
+            .ToList();
+
+        var html = TradeAnalysisHtmlRenderer.Build(dtoSummaries, dtoExitReasons, dtoTrades);
+        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? ".");
+        File.WriteAllText(path, html, System.Text.Encoding.UTF8);
     }
 
     private static IReadOnlyList<string> ResolveTradeFiles(string inputPath)
@@ -48,6 +95,7 @@ public static class TradeAnalyzer
         {
             return new[] { inputPath };
         }
+
 
         if (!Directory.Exists(inputPath))
         {
@@ -103,7 +151,14 @@ public static class TradeAnalyzer
                 D(cells, columns, "TargetPrice"),
                 D(cells, columns, "RMultiple"))
             {
-                RiskPoints = D(cells, columns, "RiskPoints")
+                RiskPoints = D(cells, columns, "RiskPoints"),
+                HitHalfR = B(cells, columns, "HitHalfR"),
+                HitOneR = B(cells, columns, "HitOneR"),
+                HitOneAndHalfR = B(cells, columns, "HitOneAndHalfR"),
+                HitTwoR = B(cells, columns, "HitTwoR"),
+                HitThreeR = B(cells, columns, "HitThreeR"),
+                HitMinusHalfR = B(cells, columns, "HitMinusHalfR"),
+                HitMinusOneR = B(cells, columns, "HitMinusOneR"),
             };
         }
     }
@@ -291,6 +346,9 @@ public static class TradeAnalyzer
             ? value
             : 0;
 
+    private static bool B(IReadOnlyList<string> cells, IReadOnlyDictionary<string, int> columns, string name)
+        => bool.TryParse(S(cells, columns, name), out var b) && b;
+
     private static string F(double value)
     {
         if (double.IsPositiveInfinity(value))
@@ -327,6 +385,13 @@ public static class TradeAnalyzer
         double RMultiple)
     {
         public double RiskPoints { get; init; }
+        public bool HitHalfR { get; init; }
+        public bool HitOneR { get; init; }
+        public bool HitOneAndHalfR { get; init; }
+        public bool HitTwoR { get; init; }
+        public bool HitThreeR { get; init; }
+        public bool HitMinusHalfR { get; init; }
+        public bool HitMinusOneR { get; init; }
     }
 
     private sealed record StrategyTradeSummary(
